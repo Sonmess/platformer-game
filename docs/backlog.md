@@ -9,3 +9,4 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 - [ ] Hudba a adaptívny zvuk
 - [ ] Viac levelov s rôznymi paletami pozadia
 - [ ] Nastavenia: hlasitosť, reduce motion
+- [ ] Titulná obrazovka — v M1 hra začína rovno levelom (2026-11-03)
