@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** planning only — no code is scaffolded yet. The commands below are the intended ones; update them once the project is generated.
+**Status:** scaffolded (Phaser 4.2.1, Vite + TS, Playwright). Boot → Game greybox stub only; Milestone 1 not started.
 
 ## Stack
 
@@ -25,20 +25,34 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   look at a screenshot (see `references/qa.md`).
 - Phaser 3 tutorials are common online; this project is **Phaser 4** — check current docs
   when an API is uncertain.
-- Scaffold with `npm create @phaserjs/game@latest` (Vite + TypeScript) and then add Playwright;
-  never hand-write `package.json` or bundler config.
+- The project was scaffolded from the official generator (template-vite-ts); do not hand-write
+  bundler config. The template's telemetry script (`log.js`) was removed on purpose — don't re-add it.
 - Every third-party asset (art, audio, fonts) must have its source and license recorded in
   `public/assets/CREDITS.md`.
 - Project docs (`README.md`, `docs/`) are written in Slovak; keep new docs in the same language.
 
 ## Commands
 
-(Confirm after scaffolding.)
+- `npm run dev` — dev server on http://localhost:8080 (exposes `window.__game`, dev only)
+- `npm run build` — typecheck + production build
+- `npm run typecheck` — `tsc --noEmit`
+- `npm test` — unit (Vitest) then e2e (Playwright)
+- `npm run test:unit` / `npm run test:watch` — Vitest, `tests/unit/**/*.test.ts`
+- `npm run test:e2e` — Playwright, `tests/e2e/` (starts/reuses the dev server)
+- `npx vitest run tests/unit/constants.test.ts -t "16:9"` — single unit test
+- `npx playwright test tests/e2e/boot.spec.ts -g "boots"` — single e2e test
 
-- `npm run dev` — dev server
-- `npm run build` — production build
-- `npx playwright test` — all tests
-- `npx playwright test <file> -g "<test name>"` — single test
+## Testing
+
+- **Unit (Vitest):** pure logic only (jump math, timers, input edges, state reset) — keep it in
+  small Phaser-free functions so it can be tested in Node.
+- **E2E (Playwright):** drive scenarios through the dev-only test API `window.__game`
+  (`src/testApi.ts`, installed only when `import.meta.env.DEV`). Each new mechanic adds its
+  observable state to `GameState` (additively) and, once input exists, `press()` / `teleport()`.
+  Physics assertions use tolerances and game time, not wall-clock time.
+- Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
+  (headless GPU noise).
+- Feel/polish that can't be asserted is marked "verified by playtest" in the gameplan.
 
 ## Architecture rules (from the skill; details in `references/architecture.md`)
 

@@ -2,7 +2,7 @@
 
 2D plošinovka do webového prehliadača s parallax scrollovacím pozadím. Cieľom je hra, ktorá sa hrá plynulo a vyzerá profesionálne.
 
-**Stav:** plánovanie — kód ešte nie je založený. Pozri [`docs/gameplan.md`](docs/gameplan.md).
+**Stav:** projekt je založený (Phaser 4.2.1, Vite, TypeScript, Playwright), zatiaľ len prázdna scéna. Pozri [`docs/gameplan.md`](docs/gameplan.md).
 
 ## Technológie
 
@@ -12,13 +12,14 @@
 
 ## Spustenie
 
-*(doplní sa po založení projektu)*
-
 ```bash
 npm install
-npm run dev        # vývojový server
-npm run build      # produkčný build
-npx playwright test
+npm run dev        # vývojový server (http://localhost:8080)
+npm run build      # typecheck + produkčný build
+npx playwright install chromium   # raz, pred prvými testami
+npm test                          # unit (Vitest) + e2e (Playwright)
+npm run test:unit                 # len unit testy
+npm run test:e2e                  # len Playwright scenáre
 ```
 
 ## Štruktúra repozitára

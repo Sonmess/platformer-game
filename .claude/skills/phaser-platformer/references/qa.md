@@ -60,6 +60,12 @@ Feel and polish items that can't be asserted are listed in the milestone as
 **"verified by playtest"** — explicitly, never silently skipped. Never loosen a failing
 test to make it pass; fix the code or change the acceptance criterion with the user.
 
+## 3b. Unit tests (Vitest)
+
+Pure, Phaser-free logic (derived jump physics, coyote/buffer timers, input edge detection,
+state reset) lives in small functions and is covered by Vitest in `tests/unit/`. Run with
+`npm run test:unit`; `npm test` runs unit then e2e.
+
 ## 4. Visual regression (once the look stabilizes)
 
 Use `expect(page).toHaveScreenshot()` at fixed positions with particles/ambient motion
