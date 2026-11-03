@@ -1,6 +1,6 @@
 # Game plan (návrh)
 
-> Stav: **DRAFT** — položky označené ❓ treba rozhodnúť pred začatím kódovania.
+> Stav: **SCHVÁLENÉ** (2026-11-03) — otvorené otázky sú rozhodnuté, pozri [Rozhodnutia](#rozhodnutia) a `docs/decisions/`.
 
 ## Pitch
 
@@ -22,16 +22,18 @@ Jeden hrateľný level, ktorý už vyzerá a hrá sa „hotovo“:
 - [ ] Ovládanie: klávesnica (šípky/WASD + medzerník)
 - [ ] Playwright test: boot bez chýb, skok, respawn, parallax sa hýbe
 
-## Otvorené otázky ❓
+## Rozhodnutia
 
-1. **Téma / prostredie** — napr. les, mesto v noci, hory, sci-fi, niečo spojené s Aktuality.sk?
-2. **Postavička** — kto/čo je hráč?
-3. **Vizuálny štýl** — pixel art (napr. 480×270, zväčšené) alebo hladká HD ilustrácia (960×540)?
-4. **Grafika** — začať procedurálne/greybox a neskôr doplniť voľné (CC0) assety, alebo hneď hľadať asset pack?
-5. **Mechaniky navyše** — dvojskok, wall jump, nepriatelia (stomp), pohyblivé plošiny? (odporúčanie: pre M1 nič z toho)
-6. **Mobil** — majú byť dotykové ovládače už v M1?
-7. **Zvuk** — áno/nie v M1? (odporúčanie: jednoduché SFX áno, hudba neskôr)
-8. **Kde hra pobeží** — len lokálne/interné demo, alebo verejné nasadenie (GitHub Pages a pod.)?
+| # | Téma | Rozhodnutie | ADR |
+|---|---|---|---|
+| 1 | Téma / prostredie | Les / príroda | [0001](decisions/0001-tema-a-postavicka.md) |
+| 2 | Postavička | Malé zvieratko (líška/mačka) | [0001](decisions/0001-tema-a-postavicka.md) |
+| 3 | Vizuálny štýl | Pixel art 480×270, celočíselný zoom, `pixelArt: true` | [0002](decisions/0002-vizualny-styl-a-grafika.md) |
+| 4 | Grafika | Greybox, potom CC0 asset pack (licencie do `public/assets/CREDITS.md`) | [0002](decisions/0002-vizualny-styl-a-grafika.md) |
+| 5 | Mechaniky navyše | Žiadne v M1 (dvojskok, nepriatelia → backlog) | [0003](decisions/0003-rozsah-m1.md) |
+| 6 | Mobil | Nie, len klávesnica v M1 | [0003](decisions/0003-rozsah-m1.md) |
+| 7 | Zvuk | Jednoduché SFX cez event bus, hudba neskôr | [0003](decisions/0003-rozsah-m1.md) |
+| 8 | Nasadenie | Lokálne demo, bez verejného nasadenia | [0003](decisions/0003-rozsah-m1.md) |
 
 ## Mimo rozsahu M1
 
