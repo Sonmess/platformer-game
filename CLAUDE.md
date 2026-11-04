@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** scaffolded (Phaser 4.2.1, Vite + TS, Playwright). Boot → Game greybox stub only; Milestone 1 not started.
+**Status:** Milestone 1 in progress — progress is tracked as a checklist in `docs/gameplan.md`.
 
 ## Stack
 
@@ -49,9 +49,15 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - **E2E (Playwright):** drive scenarios through the dev-only test API `window.__game`
   (`src/testApi.ts`, installed only when `import.meta.env.DEV`). Each new mechanic adds its
   observable state to `GameState` (additively) and, once input exists, `press()` / `teleport()`.
-  Physics assertions use tolerances and game time, not wall-clock time.
+  Physics assertions use tolerances and game time, not wall-clock time: wait with
+  `window.__game.wait(ms)` (game-loop time, survives scene switches), never `setTimeout`/`waitForTimeout`,
+  or tests flake when the machine is loaded. Pick test spots from known level landmarks (e.g. flat cols 90–107).
+- The in-app browser pane throttles the page when hidden (game time stops); verify with
+  headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
   (headless GPU noise).
+- Phaser gotcha: inside `create()` of a freshly started scene `this.time.now` is stale; time UI delays
+  by summing `delta` in `update()`.
 - Feel/polish that can't be asserted is marked "verified by playtest" in the gameplan.
 
 ## Architecture rules (from the skill; details in `references/architecture.md`)

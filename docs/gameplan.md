@@ -15,28 +15,28 @@ sa automaticky testovať nedajú a odškrtávajú sa až po tvojom vyskúšaní.
 
 ### Fáza A — hrateľnosť (greybox)
 
-- [ ] **1. Hráč a pohyb** — beh, jednoduchý skok, vstupná vrstva `Input.ts`, test API `press()`/`teleport()`.
+- [x] **1. Hráč a pohyb** — beh, jednoduchý skok, vstupná vrstva `Input.ts`, test API `press()`/`teleport()`.
   Test: po spawne stojí na zemi, `press(right)` ho posunie doprava, skok ho dostane nad zem a späť.
-- [ ] **2. Level z tilemapy** — greybox Tiled JSON, 4–5 obrazoviek, plošiny, jama.
+- [x] **2. Level z tilemapy** — greybox Tiled JSON, 4–5 obrazoviek, plošiny, jama.
   Test: stena zastaví hráča, plošinou neprepadne.
-- [ ] **3. Kamera** — sledovanie s deadzone, look-ahead, hranice levelu.
+- [x] **3. Kamera** — sledovanie s deadzone, look-ahead, hranice levelu.
   Test: kamera sa posunie a nepresiahne okraj levelu.
-- [ ] **4. Smrť a respawn** — jama, bodáky, checkpointy, event bus, `state.ts`.
+- [x] **4. Smrť a respawn** — jama, bodáky, checkpointy, event bus, `state.ts`.
   Test: smrť → respawn na checkpointe, počet smrtí +1.
-- [ ] **5. Zbierateľné predmety + HUD** — mince, počítadlo (paralelná scéna Hud).
+- [x] **5. Zbierateľné predmety + HUD** — mince, počítadlo (paralelná scéna Hud).
   Test: zber mince → počet +1, minca zmizne.
-- [ ] **6. Cieľ + „Level complete“** — výsledky a reštart.
+- [x] **6. Cieľ + „Level complete“** — výsledky a reštart.
   Test: cieľ → LevelComplete; reštart 5× dá rovnaký počiatočný stav.
 
 ### Fáza B — pocit zo skoku
 
-- [ ] **7. Ladenie skoku** — fyzika odvodená z výšky skoku a času do vrcholu, coyote time, jump buffer,
+- [x] **7. Ladenie skoku** — fyzika odvodená z výšky skoku a času do vrcholu, coyote time, jump buffer,
   variabilná výška, ťažší pád, zrýchlenie/brzdenie.
   Test: výška plného skoku ±15 %, ťuk nižší ako podržanie, coyote a buffer fungujú. Pocit: overené playtestom.
 
 ### Fáza C — vizuál
 
-- [ ] **8. Výber CC0 asset packu** — 2–3 návrhy, licencie overené, zápis do `public/assets/CREDITS.md`.
+- [x] **8. Výber CC0 asset packu** — 2–3 návrhy, licencie overené, zápis do `public/assets/CREDITS.md`.
 - [ ] **9. Grafika levelu a postavy** — tileset, animácie (státie, beh, skok, pád), mince, bodáky, cieľ.
   Test: stav animácie v `getState()` zodpovedá pohybu.
 - [ ] **10. Parallax pozadie** — 4–5 vrstiev.
@@ -62,6 +62,7 @@ sa automaticky testovať nedajú a odškrtávajú sa až po tvojom vyskúšaní.
 | 6 | Mobil | Nie, len klávesnica v M1 | [0003](decisions/0003-rozsah-m1.md) |
 | 7 | Zvuk | Jednoduché SFX cez event bus, hudba neskôr | [0003](decisions/0003-rozsah-m1.md) |
 | 8 | Nasadenie | Lokálne demo, bez verejného nasadenia | [0003](decisions/0003-rozsah-m1.md) |
+| 9 | Asset pack | Sunny Land (líška, predmety, tileset) + SunnyLand Tall Forest (parallax), ansimuz, CC0 | [0004](decisions/0004-asset-pack.md) |
 
 ## Mimo rozsahu M1
 
