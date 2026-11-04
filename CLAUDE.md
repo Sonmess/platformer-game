@@ -72,3 +72,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - **Restart-safe:** reset per-run state in `init()` (scene instances are reused) and remove
   listeners on `shutdown`; restarting a level 10× must behave identically.
 - Order of work: core loop (greybox OK) → jump feel → look (parallax, tiles) → juice → verify.
+- **Player = invisible hitbox + fox sprite.** `Player` is a 12×16 Arcade rectangle (all physics/tests use it);
+  the fox `sprite` is repositioned on `POST_UPDATE` (after the physics step). Put animation and squash & stretch
+  on the sprite, never on the hitbox.
+- Level `src/levels/level1.json` uses the Tall Forest tileset (autotiled 3×3 block); it opens in Tiled because the
+  tileset image path is relative to the map.

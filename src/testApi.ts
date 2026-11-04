@@ -11,7 +11,7 @@ import { virtualKeys, type VirtualKey } from './systems/Input';
 export interface GameState {
     scene: string;
     fps: number;
-    player: { x: number; y: number; vx: number; vy: number; onGround: boolean } | null;
+    player: { x: number; y: number; vx: number; vy: number; onGround: boolean; anim: string; flipX: boolean } | null;
     level: { width: number; height: number } | null;
     camera: { scrollX: number; scrollY: number; width: number; height: number } | null;
     deaths: number;
@@ -46,7 +46,8 @@ declare global {
 export function installTestApi (game: Phaser.Game): void
 {
     const gameScene = () => game.scene.getScene('Game') as Game;
-    const activeScene = () => game.scene.getScenes(true).find(s => s.scene.key !== 'Hud') ?? gameScene();
+    // No fallback: while Preload is still loading no scene is running, and that must not read as 'Game'.
+    const activeScene = () => game.scene.getScenes(true).find(s => s.scene.key !== 'Hud');
 
     // Timers run on the game loop, not a scene clock: a press that restarts a scene must still resolve.
     // The loop stops when the tab is hidden, so this is game time, not wall-clock time.
@@ -72,12 +73,14 @@ export function installTestApi (game: Phaser.Game): void
             const hud = game.scene.getScene('Hud') as Hud | null;
             const results = game.scene.getScene('LevelComplete') as LevelComplete | null;
             return {
-                scene: activeScene().scene.key,
+                scene: activeScene()?.scene.key ?? '',
                 fps: game.loop.actualFps,
                 player: p?.body ? {
                     x: p.x, y: p.y,
                     vx: p.body.velocity.x, vy: p.body.velocity.y,
-                    onGround: p.onGround
+                    onGround: p.onGround,
+                    anim: p.anim,
+                    flipX: p.sprite.flipX
                 } : null,
                 level: map ? { width: map.widthInPixels, height: map.heightInPixels } : null,
                 camera: cam ? { scrollX: cam.scrollX, scrollY: cam.scrollY, width: cam.width, height: cam.height } : null,

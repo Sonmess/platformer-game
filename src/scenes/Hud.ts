@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { COIN, HUD } from '../config/constants';
+import { ASSETS, HUD } from '../config/constants';
 import { EV, events } from '../core/events';
 import { state } from '../core/state';
 
@@ -15,16 +15,16 @@ export class Hud extends Scene
 
     create ()
     {
-        const iconX = HUD.MARGIN + HUD.ICON_RADIUS;
-        const iconY = HUD.MARGIN + HUD.ICON_RADIUS;
-        this.add.circle(iconX, iconY, HUD.ICON_RADIUS, COIN.COLOR).setStrokeStyle(1, COIN.OUTLINE);
+        const icon = this.add.image(HUD.MARGIN, HUD.MARGIN, ASSETS.CHERRY.key, 0).setOrigin(0);
+        const iconY = icon.y + icon.height / 2;
 
-        this.coinsText = this.add.text(iconX + HUD.ICON_RADIUS + HUD.ICON_GAP, iconY, '', {
+        this.coinsText = this.add.text(icon.x + icon.width + HUD.ICON_GAP, iconY, '', {
             fontFamily: HUD.FONT_FAMILY,
             fontSize: HUD.FONT_SIZE,
             color: HUD.TEXT_COLOR,
             stroke: HUD.TEXT_STROKE,
-            strokeThickness: HUD.TEXT_STROKE_WIDTH
+            strokeThickness: HUD.TEXT_STROKE_WIDTH,
+            testString: HUD.TEXT_METRICS
         }).setOrigin(0, 0.5);
 
         this.renderCoins();

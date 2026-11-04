@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { GREYBOX, HAZARD, LEVEL, PLAYER, TILE } from '../config/constants';
+import { ASSETS, HAZARD, LEVEL, PLAYER, TILE } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
@@ -34,7 +34,7 @@ export class Game extends Scene
     create ()
     {
         this.map = this.make.tilemap({ key: LEVEL.MAP_KEY });
-        const tileset = this.map.addTilesetImage(LEVEL.TILESET_NAME, GREYBOX.TEXTURE_KEY)!;
+        const tileset = this.map.addTilesetImage(LEVEL.TILESET_NAME, ASSETS.TILESET.key)!;
         const ground = this.map.createLayer(LEVEL.GROUND_LAYER, tileset) as Phaser.Tilemaps.TilemapLayer;
         ground.setCollisionByProperty({ collides: true });
 
@@ -67,7 +67,7 @@ export class Game extends Scene
         if (this.completed) return;
         state.timeMs += delta;
         this.player.update(this.controls.read(), delta);
-        if (this.player.y - PLAYER.HEIGHT / 2 > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
+        if (this.player.body.top > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
         this.cameraRig.update(delta);
     }
 
@@ -79,13 +79,12 @@ export class Game extends Scene
     private createSpikes (): Phaser.Physics.Arcade.StaticGroup
     {
         const group = this.physics.add.staticGroup();
-        const g = this.add.graphics().fillStyle(HAZARD.SPIKE_COLOR);
-        const toothW = TILE / HAZARD.SPIKE_TEETH_PER_TILE;
 
         for (const o of this.objectsOfType(LEVEL.SPIKES_TYPE)) {
             const x = o.x!, y = o.y!, w = o.width!, h = o.height!;
-            for (let tx = x; tx < x + w; tx += toothW) {
-                g.fillTriangle(tx, y + h, tx + toothW / 2, y, tx + toothW, y + h);
+            // One spike image per tile, standing on the tile's bottom edge.
+            for (let tx = x; tx < x + w; tx += TILE) {
+                this.add.image(tx + TILE / 2, y + h, ASSETS.SPIKES.key).setOrigin(0.5, 1);
             }
             const zone = this.add.zone(x + HAZARD.SPIKE_INSET_X, y + HAZARD.SPIKE_INSET_TOP,
                 w - 2 * HAZARD.SPIKE_INSET_X, h - HAZARD.SPIKE_INSET_TOP).setOrigin(0);

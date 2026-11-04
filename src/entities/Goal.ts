@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { GOAL } from '../config/constants';
+import { ASSETS } from '../config/constants';
 
-/** Level-end trigger zone from a Tiled rectangle, drawn as a greybox flag pole. */
+/** Level-end trigger zone from a Tiled rectangle, drawn as a door standing at its centre. */
 export class Goal extends Phaser.GameObjects.Zone
 {
     declare body: Phaser.Physics.Arcade.StaticBody;
@@ -12,9 +12,6 @@ export class Goal extends Phaser.GameObjects.Zone
         this.setOrigin(0);
         scene.add.existing(this);
         scene.physics.add.existing(this, true);
-
-        const poleX = x + w / 2;
-        scene.add.rectangle(poleX, y, GOAL.POLE_WIDTH, h, GOAL.POLE_COLOR).setOrigin(0.5, 0);
-        scene.add.rectangle(poleX + GOAL.POLE_WIDTH / 2, y, GOAL.FLAG_WIDTH, GOAL.FLAG_HEIGHT, GOAL.FLAG_COLOR).setOrigin(0);
+        scene.add.image(x + w / 2, y + h, ASSETS.DOOR.key).setOrigin(0.5, 1);
     }
 }

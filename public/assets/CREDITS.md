@@ -27,4 +27,14 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
   a šírenie povolené, uvedenie autora nie je povinné. Pôvodný text: `tall-forest/LICENSE.txt`.
 - **Použité:** parallax vrstvy lesa (`back`, `far`, `middle`), tileset, rekvizity (mach, rastlina, kameň).
 
-Ďakujeme autorovi — uvedenie mena nie je povinné, ale je vítané.
+### Pixelify Sans (font) — `fonts/PixelifySans.ttf`
+
+- **Autor:** Stefie Justprince (The Pixelify Sans Project Authors)
+- **Zdroj:** <https://github.com/google/fonts/tree/main/ofl/pixelifysans> (`PixelifySans[wght].ttf`, stiahnuté 2026-11-04),
+  upstream <https://github.com/eifetx/Pixelify-Sans>
+- **Licencia:** SIL Open Font License 1.1 — plný text v `fonts/PixelifySans-OFL.txt` (musí ostať pri fonte).
+- **Použité:** HUD a obrazovka výsledkov. Pokrýva slovenčinu (overené: á ä č ď é í ĺ ľ ň ó ô ŕ š ť ú ý ž aj veľké);
+  mäkčeň na veľkých písmenách je čitateľný od 24 px.
+- *Vyskúšané a nepoužité:* Kenney Fonts (CC0) — nemajú znaky s mäkčeňom.
+
+Ďakujeme autorom — pri ansimuzovej grafike uvedenie mena nie je povinné, ale je vítané.

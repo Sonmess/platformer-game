@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
-import { COIN } from '../config/constants';
+import { ANIM, ASSETS, COIN } from '../config/constants';
 
-/** Greybox coin: a circle with a static overlap body, centred on its Tiled point. */
-export class Coin extends Phaser.GameObjects.Arc
+/** Collectible cherry with a small static overlap body, centred on its Tiled point. */
+export class Coin extends Phaser.GameObjects.Sprite
 {
     declare body: Phaser.Physics.Arcade.StaticBody;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
-        super(scene, x, y, COIN.RADIUS, 0, 360, false, COIN.COLOR);
-        this.setStrokeStyle(1, COIN.OUTLINE);
+        super(scene, x, y, ASSETS.CHERRY.key, 0);
         scene.add.existing(this);
         scene.physics.add.existing(this, true);
+        this.body.setSize(COIN.HITBOX, COIN.HITBOX, true);
+        this.play(ANIM.CHERRY);
     }
 }

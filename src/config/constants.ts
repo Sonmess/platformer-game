@@ -52,7 +52,7 @@ export const DEPTH = {
 export const PLAYER = {
     WIDTH: 12,
     HEIGHT: 16,
-    COLOR: 0xf28c28
+    // Hitbox only; the visible fox sprite follows it (see ASSETS.FOX).
 } as const;
 
 export const CAMERA = {
@@ -67,7 +67,7 @@ export const CAMERA = {
 // Tiled map names (src/levels/*.json). The spawn point marks the player's feet.
 export const LEVEL = {
     MAP_KEY: 'level1',
-    TILESET_NAME: 'greybox',        // tileset name inside the Tiled JSON
+    TILESET_NAME: 'forest',         // tileset name inside the Tiled JSON
     GROUND_LAYER: 'ground',
     OBJECT_LAYER: 'objects',
     SPAWN_OBJECT: 'spawn',
@@ -80,46 +80,37 @@ export const LEVEL = {
 export const HAZARD = {
     FALL_MARGIN: 16,            // px below the level bottom before a fall counts as death
     SPIKE_INSET_TOP: 8,         // forgiving hitbox: only the lower half of a spike tile hurts
-    SPIKE_INSET_X: 2,
-    SPIKE_COLOR: 0xd9534f,
-    SPIKE_TEETH_PER_TILE: 2
+    SPIKE_INSET_X: 2
 } as const;
 
+// Collectible ("coin" in code, a cherry on screen).
 export const COIN = {
-    RADIUS: 4,
-    COLOR: 0xf5c542,
-    OUTLINE: 0x9c6b16
+    HITBOX: 10              // px, square, centred on the Tiled point
 } as const;
 
 export const HUD = {
     MARGIN: 8,
-    ICON_RADIUS: 4,
-    ICON_GAP: 6,
-    FONT_FAMILY: 'monospace',
-    FONT_SIZE: '10px',
+    ICON_GAP: 2,
+    FONT_FAMILY: 'PixelifySans',    // loaded in Preload (ASSETS.FONT)
+    FONT_SIZE: '16px',
+    // Phaser sizes text from this string; include Slovak capitals with carons or their marks get clipped.
+    TEXT_METRICS: '|MÉqgyČŠŽĽŤĎŇ',
     TEXT_COLOR: '#ffffff',
     TEXT_STROKE: '#000000',
     TEXT_STROKE_WIDTH: 2
-} as const;
-
-export const GOAL = {
-    POLE_COLOR: 0xe8e8e8,
-    FLAG_COLOR: 0x6fcf6f,
-    FLAG_WIDTH: 14,
-    FLAG_HEIGHT: 10,
-    POLE_WIDTH: 2
 } as const;
 
 // "Level complete" screen. UI text is Slovak, like the rest of the project.
 export const RESULTS = {
     INPUT_DELAY_MS: 600,        // ignore confirm briefly so a held key doesn't skip the screen
     OVERLAY_COLOR: 0x0d1410,
-    TITLE_SIZE: '20px',
-    LINE_SIZE: '10px',
-    LINE_SPACING: 16,
+    TITLE_SIZE: '32px',
+    LINE_SIZE: '24px',          // Pixelify Sans shows carons on capitals (Č, Š…) only from 24px up
+    HINT_SIZE: '16px',          // lowercase-only hint line
+    LINE_SPACING: 24,
     TEXT: {
         TITLE: 'Level dokončený!',
-        COINS: 'Mince',
+        COINS: 'Čerešne',
         DEATHS: 'Smrti',
         TIME: 'Čas',
         RESTART: 'Enter alebo R = hrať znova'
@@ -127,16 +118,33 @@ export const RESULTS = {
 } as const;
 
 export const CHECKPOINT = {
-    POLE_WIDTH: 2,
-    FLAG_SIZE: 6,
-    IDLE_COLOR: 0x9aa59b,
-    ACTIVE_COLOR: 0x5bc0de
+    IDLE_TINT: 0x6b6b6b     // the sign is dimmed until reached
 } as const;
 
-// Procedural greybox tileset (replaced by real art in step 9): [fill, surface].
-export const GREYBOX = {
-    TEXTURE_KEY: 'greybox-tiles',
-    FILL: 0x4a574c,
-    SURFACE: 0x7d8f74,
-    EDGE: 0x2f3a31
+// Art and fonts in public/assets (sources and licenses: public/assets/CREDITS.md).
+export const ASSETS = {
+    TILESET: { key: 'forest-tiles', url: 'assets/tall-forest/tileset.png' },
+    FOX: {
+        frameWidth: 33, frameHeight: 32,
+        idle: { key: 'fox-idle', url: 'assets/sunny-land/sprites/player-idle.png', frames: 4, frameRate: 8 },
+        run: { key: 'fox-run', url: 'assets/sunny-land/sprites/payer-run.png', frames: 6, frameRate: 12 },
+        jump: { key: 'fox-jump', url: 'assets/sunny-land/sprites/player-jump.png' }     // 0 = rising, 1 = falling
+    },
+    CHERRY: { key: 'cherry', url: 'assets/sunny-land/sprites/cherry.png', frameWidth: 21, frameHeight: 21, frames: 5, frameRate: 10 },
+    SPIKES: { key: 'spikes', url: 'assets/sunny-land/props/spikes.png' },
+    SIGN: { key: 'sign', url: 'assets/sunny-land/props/sign.png' },
+    DOOR: { key: 'door', url: 'assets/sunny-land/props/door.png' },
+    FONT: { key: 'PixelifySans', url: 'assets/fonts/PixelifySans.ttf' }
 } as const;
+
+/** Animation keys created in Preload. */
+export const ANIM = {
+    FOX_IDLE: 'fox-idle',
+    FOX_RUN: 'fox-run',
+    FOX_JUMP: 'fox-jump',
+    FOX_FALL: 'fox-fall',
+    CHERRY: 'cherry-spin'
+} as const;
+
+/** |vx| above this (px/s) on the ground plays the run animation. */
+export const FOX_RUN_THRESHOLD = 10;

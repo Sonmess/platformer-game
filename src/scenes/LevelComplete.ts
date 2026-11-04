@@ -22,7 +22,8 @@ export class LevelComplete extends Scene
         const cx = GAME.WIDTH / 2;
         const style = (fontSize: string): Phaser.Types.GameObjects.Text.TextStyle => ({
             fontFamily: HUD.FONT_FAMILY, fontSize, color: HUD.TEXT_COLOR,
-            stroke: HUD.TEXT_STROKE, strokeThickness: HUD.TEXT_STROKE_WIDTH, align: 'center'
+            stroke: HUD.TEXT_STROKE, strokeThickness: HUD.TEXT_STROKE_WIDTH, align: 'center',
+            testString: HUD.TEXT_METRICS
         });
 
         const t = RESULTS.TEXT;
@@ -40,7 +41,7 @@ export class LevelComplete extends Scene
             this.add.text(cx, y, line, style(RESULTS.LINE_SIZE)).setOrigin(0.5);
         }
         y += 2 * RESULTS.LINE_SPACING;
-        this.add.text(cx, y, t.RESTART, style(RESULTS.LINE_SIZE)).setOrigin(0.5).setAlpha(0.8);
+        this.add.text(cx, y, t.RESTART, style(RESULTS.HINT_SIZE)).setOrigin(0.5).setAlpha(0.8);
 
         this.controls = new Input(this);
         // Count from deltas: the scene clock's `now` is stale inside create() of a freshly started scene.

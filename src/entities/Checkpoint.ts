@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
-import { CHECKPOINT } from '../config/constants';
+import { ASSETS, CHECKPOINT } from '../config/constants';
 
-/** Trigger zone from a Tiled rectangle with a greybox flag pole drawn at its centre. */
+/** Trigger zone from a Tiled rectangle with a sign standing at its centre; dim until reached. */
 export class Checkpoint extends Phaser.GameObjects.Zone
 {
     declare body: Phaser.Physics.Arcade.StaticBody;
     /** Respawn point at the player's feet. */
     readonly respawn: { x: number; y: number };
-    private readonly flag: Phaser.GameObjects.Rectangle;
+    private readonly sign: Phaser.GameObjects.Image;
     private isCurrent = false;
 
     constructor (scene: Phaser.Scene, x: number, y: number, w: number, h: number)
@@ -19,8 +19,7 @@ export class Checkpoint extends Phaser.GameObjects.Zone
 
         const cx = x + w / 2;
         this.respawn = { x: cx, y: y + h };
-        scene.add.rectangle(cx, y, CHECKPOINT.POLE_WIDTH, h, CHECKPOINT.IDLE_COLOR).setOrigin(0.5, 0);
-        this.flag = scene.add.rectangle(cx + CHECKPOINT.POLE_WIDTH / 2, y, CHECKPOINT.FLAG_SIZE, CHECKPOINT.FLAG_SIZE, CHECKPOINT.IDLE_COLOR).setOrigin(0);
+        this.sign = scene.add.image(cx, y + h, ASSETS.SIGN.key).setOrigin(0.5, 1).setTint(CHECKPOINT.IDLE_TINT);
     }
 
     /** The checkpoint the player will respawn at (only one at a time). */
@@ -32,7 +31,8 @@ export class Checkpoint extends Phaser.GameObjects.Zone
     setCurrent (current: boolean): this
     {
         this.isCurrent = current;
-        this.flag.setFillStyle(current ? CHECKPOINT.ACTIVE_COLOR : CHECKPOINT.IDLE_COLOR);
+        if (current) this.sign.clearTint();
+        else this.sign.setTint(CHECKPOINT.IDLE_TINT);
         return this;
     }
 }

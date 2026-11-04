@@ -1,9 +1,14 @@
 import Phaser from 'phaser';
-import { DEPTH, PHYSICS, PLAYER, PLAYER_FEEL } from '../config/constants';
+import { ANIM, ASSETS, DEPTH, FOX_RUN_THRESHOLD, PHYSICS, PLAYER, PLAYER_FEEL } from '../config/constants';
 import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
 import type { InputSnapshot } from '../systems/Input';
 
+/**
+ * The player's physics hitbox (an invisible rectangle). The visible fox is a separate sprite that
+ * follows the hitbox after each physics step, so animation and later squash & stretch never touch
+ * the simulation.
+ */
 export class Player extends Phaser.GameObjects.Rectangle
 {
     declare body: Phaser.Physics.Arcade.Body;
@@ -14,13 +19,24 @@ export class Player extends Phaser.GameObjects.Rectangle
     /** The current jump has already been cut short (cut only once per jump). */
     private cut = true;
     private readonly jump = new JumpAssist(PLAYER_FEEL.coyoteTime, PLAYER_FEEL.jumpBuffer);
+    readonly sprite: Phaser.GameObjects.Sprite;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
-        super(scene, x, y, PLAYER.WIDTH, PLAYER.HEIGHT, PLAYER.COLOR);
+        super(scene, x, y, PLAYER.WIDTH, PLAYER.HEIGHT);
         scene.add.existing(this);
         scene.physics.add.existing(this);
-        this.setDepth(DEPTH.PLAYER);
+        this.setVisible(false);
+
+        // Feet are on the frame's bottom row, so anchor the sprite at the hitbox bottom centre.
+        this.sprite = scene.add.sprite(x, y, ASSETS.FOX.idle.key).setOrigin(0.5, 1).setDepth(DEPTH.PLAYER);
+        this.sprite.play(ANIM.FOX_IDLE);
+        // POST_UPDATE runs after Arcade has moved the body for this frame (no one-frame lag).
+        scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
+        this.once(Phaser.GameObjects.Events.DESTROY, () => {
+            scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
+            this.sprite.destroy();
+        });
         this.body.setCollideWorldBounds(true);
         this.body.setMaxVelocity(PLAYER_FEEL.runSpeed, PLAYER_FEEL.maxFallSpeed);
     }
@@ -66,6 +82,24 @@ export class Player extends Phaser.GameObjects.Rectangle
         if (!this.wasOnGround && onGround) events.emit(EV.PLAYER_LAND, { impact: this.lastVy });
         this.wasOnGround = onGround;
         this.lastVy = body.velocity.y;
+    }
+
+    /** Current animation key; exposed to the test API. */
+    get anim (): string
+    {
+        return this.sprite.anims.currentAnim?.key ?? '';
+    }
+
+    private syncSprite (): void
+    {
+        const body = this.body;
+        this.sprite.setPosition(body.center.x, body.bottom);
+        this.sprite.setFlipX(this.facing < 0);
+
+        let anim: string;
+        if (!this.onGround) anim = body.velocity.y < 0 ? ANIM.FOX_JUMP : ANIM.FOX_FALL;
+        else anim = Math.abs(body.velocity.x) > FOX_RUN_THRESHOLD ? ANIM.FOX_RUN : ANIM.FOX_IDLE;
+        this.sprite.play(anim, true);
     }
 
     teleport (x: number, y: number): void
