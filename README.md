@@ -2,7 +2,18 @@
 
 2D plošinovka do webového prehliadača s parallax scrollovacím pozadím. Cieľom je hra, ktorá sa hrá plynulo a vyzerá profesionálne.
 
-**Stav:** projekt je založený (Phaser 4.2.1, Vite, TypeScript, Playwright), zatiaľ len prázdna scéna. Pozri [`docs/gameplan.md`](docs/gameplan.md).
+**Stav:** Milestone 1 je hotový — jeden hrateľný lesný level s mačkou, parallax pozadím, efektmi a zvukmi.
+Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
+
+## Ovládanie
+
+| Kláves | Akcia |
+|---|---|
+| ← → alebo A D | beh |
+| Medzerník, ↑, W alebo Z | skok (dlhším podržaním vyššie) |
+| Enter alebo R | hrať znova (na obrazovke s výsledkami) |
+
+Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj čerešne, ohniská sú checkpointy.
 
 ## Technológie
 
@@ -28,6 +39,12 @@ npm run test:e2e                  # len Playwright scenáre
 |---|---|
 | `docs/gameplan.md` | Plán hry, aktuálny míľnik a otvorené otázky |
 | `docs/backlog.md` | Nápady a úlohy na neskôr |
+| `docs/decisions/` | Rozhodnutia (ADR) |
+| `src/` | Hra: `config` (ladiace konštanty), `core` (eventy, stav), `scenes`, `entities`, `systems` (vstup, kamera, parallax, efekty, zvuk) |
+| `src/levels/level1.json` | Level (Tiled JSON) |
+| `public/assets/` | Grafika, písmo a zvuky; zdroje a licencie v `CREDITS.md` |
+| `tools/` | Generátory vlastnej grafiky (`sprites.mjs`) a zvukov (`sfx.mjs`) |
+| `tests/` | Unit (Vitest) a e2e (Playwright) testy |
 | `CLAUDE.md` | Pravidlá projektu pre Claude |
 | `.claude/skills/phaser-platformer/` | Claude skill: pocit zo skoku, parallax, efekty, architektúra, testovanie |
 

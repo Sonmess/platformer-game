@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { ANIM, ASSETS, DEPTH, FOX_RUN_THRESHOLD, PHYSICS, PLAYER, PLAYER_FEEL } from '../config/constants';
+import { ANIM, ASSETS, DEPTH, PHYSICS, PLAYER, PLAYER_FEEL, RUN_ANIM_THRESHOLD } from '../config/constants';
 import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
 import type { InputSnapshot } from '../systems/Input';
 
 /**
- * The player's physics hitbox (an invisible rectangle). The visible fox is a separate sprite that
+ * The player's physics hitbox (an invisible rectangle). The visible cat is a separate sprite that
  * follows the hitbox after each physics step, so animation and later squash & stretch never touch
  * the simulation.
  */
@@ -29,8 +29,8 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.setVisible(false);
 
         // Feet are on the frame's bottom row, so anchor the sprite at the hitbox bottom centre.
-        this.sprite = scene.add.sprite(x, y, ASSETS.FOX.idle.key).setOrigin(0.5, 1).setDepth(DEPTH.PLAYER);
-        this.sprite.play(ANIM.FOX_IDLE);
+        this.sprite = scene.add.sprite(x, y, ASSETS.CAT.idle.key).setOrigin(0.5, 1).setDepth(DEPTH.PLAYER);
+        this.sprite.play(ANIM.CAT_IDLE);
         // POST_UPDATE runs after Arcade has moved the body for this frame (no one-frame lag).
         scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
         this.once(Phaser.GameObjects.Events.DESTROY, () => {
@@ -97,8 +97,8 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.sprite.setFlipX(this.facing < 0);
 
         let anim: string;
-        if (!this.onGround) anim = body.velocity.y < 0 ? ANIM.FOX_JUMP : ANIM.FOX_FALL;
-        else anim = Math.abs(body.velocity.x) > FOX_RUN_THRESHOLD ? ANIM.FOX_RUN : ANIM.FOX_IDLE;
+        if (!this.onGround) anim = body.velocity.y < 0 ? ANIM.CAT_JUMP : ANIM.CAT_FALL;
+        else anim = Math.abs(body.velocity.x) > RUN_ANIM_THRESHOLD ? ANIM.CAT_RUN : ANIM.CAT_IDLE;
         this.sprite.play(anim, true);
     }
 

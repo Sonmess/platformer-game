@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { CAMERA, PLAYER, TILE } from '../../src/config/constants';
 
-// Landmarks in src/levels/level1.json: columns 90-107 are flat ground with platforms high above.
+// Landmarks in src/levels/level1.json: columns 90-107 are flat ground with platforms high above;
+// columns 130-140 are open ground in front of the cave hill at the level's right end.
 const GROUND_Y = 15 * TILE - PLAYER.HEIGHT / 2;
 const FLAT_START_X = 91 * TILE;
 const FLAT_MID_X = 98 * TILE;
@@ -53,8 +54,8 @@ test('camera scrolls right as the player runs right', async ({ page }) => {
 test('camera never shows outside the level at either end', async ({ page }) => {
     const { level, camera } = await state(page);
 
-    await teleportAndSettle(page, level!.width - 2 * TILE, GROUND_Y);
-    const right = await runAndSampleCamera(page, 'right', 800);
+    await teleportAndSettle(page, 136 * TILE, GROUND_Y);           // runs into the cave hill; the view must stop at the edge
+    const right = await runAndSampleCamera(page, 'right', 400);   // short: must stop before the cave (goal)
     expect(right.maxX).toBeLessThanOrEqual(level!.width - camera!.width + 0.5);
 
     await teleportAndSettle(page, 2 * TILE, GROUND_Y);

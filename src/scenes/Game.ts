@@ -6,8 +6,11 @@ import { Checkpoint } from '../entities/Checkpoint';
 import { Coin } from '../entities/Coin';
 import { Goal } from '../entities/Goal';
 import { Player } from '../entities/Player';
+import { SoundEffects } from '../systems/Audio';
 import { CameraRig } from '../systems/CameraRig';
+import { Effects } from '../systems/Effects';
 import { Input } from '../systems/Input';
+import { Parallax } from '../systems/Parallax';
 
 export class Game extends Scene
 {
@@ -15,7 +18,9 @@ export class Game extends Scene
     map: Phaser.Tilemaps.Tilemap;
     private controls: Input;
     private cameraRig: CameraRig;
-    private checkpoints: Checkpoint[] = [];
+    parallax: Parallax;
+    effects: Effects;
+    checkpoints: Checkpoint[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
     private lastDeathFrame = -1;
     private completed = false;
@@ -33,8 +38,11 @@ export class Game extends Scene
 
     create ()
     {
+        this.parallax = new Parallax(this);
+
         this.map = this.make.tilemap({ key: LEVEL.MAP_KEY });
         const tileset = this.map.addTilesetImage(LEVEL.TILESET_NAME, ASSETS.TILESET.key)!;
+        this.map.createLayer(LEVEL.DECOR_LAYER, tileset);
         const ground = this.map.createLayer(LEVEL.GROUND_LAYER, tileset) as Phaser.Tilemaps.TilemapLayer;
         ground.setCollisionByProperty({ collides: true });
 
@@ -55,6 +63,9 @@ export class Game extends Scene
         this.physics.add.overlap(this.player, this.coins, (_p, coin) => this.collectCoin(coin as Coin));
         this.physics.add.overlap(this.player, this.createGoals(), () => this.completeLevel());
 
+        // Juice and sound only listen to events; the game plays the same without them.
+        new SoundEffects(this);
+        this.effects = new Effects(this, this.player);
         this.controls = new Input(this);
         this.cameraRig = new CameraRig(this.cameras.main, this.player, { width: w, height: h });
         this.cameraRig.snap();     // the camera survives scene restarts; never start from the old scroll

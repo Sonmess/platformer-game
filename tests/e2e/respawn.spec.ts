@@ -5,7 +5,7 @@ import { TILE } from '../../src/config/constants';
 const SPAWN = { x: 3.5 * TILE, y: 15 * TILE };          // feet
 const FIRST_PIT_COL = 51;                               // pit 50-53
 const WIDE_PIT_COL = 64;                                // pit 62-70
-const SPIKES_AFTER_WALL_COL = 85;                       // spikes 85-86 on row 14
+const SPIKES_AFTER_WALL_COL = 87;                       // spikes 87-88 on row 14
 const CHECKPOINT_1 = { col: 56, feetY: 15 * TILE };     // zone 56, rows 13-14
 
 const state = (page: Page) => page.evaluate(() => window.__game!.getState());
@@ -59,4 +59,16 @@ test('reaching a checkpoint moves the respawn point there', async ({ page }) => 
     const s = await state(page);
     expect(s.player!.x).toBeCloseTo(cpX, 0);
     expect(s.player!.onGround).toBe(true);
+});
+
+test('reaching a checkpoint lights its campfire and puts out the previous one', async ({ page }) => {
+    expect((await state(page)).campfiresLit).toEqual([false, false, false]);
+
+    await game(page).teleport(CHECKPOINT_1.col * TILE + TILE / 2, 13 * TILE);
+    await page.waitForFunction(() => window.__game!.getState().campfiresLit[0]);
+    expect((await state(page)).campfiresLit).toEqual([true, false, false]);
+
+    await game(page).teleport(73 * TILE + TILE / 2, 13 * TILE);           // second checkpoint
+    await page.waitForFunction(() => window.__game!.getState().campfiresLit[1]);
+    expect((await state(page)).campfiresLit).toEqual([false, true, false]);
 });

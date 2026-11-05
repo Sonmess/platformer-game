@@ -10,7 +10,7 @@ const OBSTACLES: Obstacle[] = [
     { name: 'wide pit, onto the floating platform', startCol: 58, standRow: 15, takeoffCol: 61, passCol: 65, landRow: 12 },
     { name: 'wide pit, off the floating platform', startCol: 65, standRow: 12, takeoffCol: 67, passCol: 72, landRow: 15 },
     { name: 'wall (3 tiles)', startCol: 74, standRow: 15, takeoffCol: 78, passCol: 83, landRow: 15 },
-    { name: 'climb to the first platform', startCol: 87, standRow: 15, takeoffCol: 90, passCol: 94, landRow: 12 },
+    { name: 'climb to the first platform', startCol: 89, standRow: 15, takeoffCol: 90, passCol: 94, landRow: 12 },
     { name: 'climb to the second platform', startCol: 93, standRow: 12, takeoffCol: 95, passCol: 98, landRow: 9 },
     { name: 'climb to the top platform', startCol: 98, standRow: 9, takeoffCol: 100, passCol: 103, landRow: 6 },
     { name: 'last pit (4 tiles)', startCol: 104, standRow: 15, takeoffCol: 107, passCol: 113, landRow: 15 }

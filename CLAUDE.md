@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** Milestone 1 in progress — progress is tracked as a checklist in `docs/gameplan.md`.
+**Status:** Milestone 1 complete and playtested (2026-11-05); next milestone not planned yet — ideas in
+`docs/backlog.md`.
 
 ## Stack
 
@@ -56,6 +57,11 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
   (headless GPU noise).
+- On Windows, Playwright launches Chromium on the real GPU (`--use-angle=d3d11` in `playwright.config.ts`);
+  software GL (SwiftShader) drops frames with 4 workers and the physics tests flake. Ad-hoc screenshot scripts
+  should pass the same args. E2e runs with `workers: 2`: input is sampled per frame, so heavy parallel load
+  stretches frames and the traversal/jump tests flake. `performance.spec.ts` (FPS > 55) has retries, because
+  FPS also depends on whatever else the machine is running.
 - Phaser gotcha: inside `create()` of a freshly started scene `this.time.now` is stale; time UI delays
   by summing `delta` in `update()`.
 - Feel/polish that can't be asserted is marked "verified by playtest" in the gameplan.
@@ -72,8 +78,21 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - **Restart-safe:** reset per-run state in `init()` (scene instances are reused) and remove
   listeners on `shutdown`; restarting a level 10× must behave identically.
 - Order of work: core loop (greybox OK) → jump feel → look (parallax, tiles) → juice → verify.
-- **Player = invisible hitbox + fox sprite.** `Player` is a 12×16 Arcade rectangle (all physics/tests use it);
-  the fox `sprite` is repositioned on `POST_UPDATE` (after the physics step). Put animation and squash & stretch
+- **Player = invisible hitbox + cat sprite.** `Player` is a 18×14 Arcade rectangle (all physics/tests use it);
+  the cat `sprite` is repositioned on `POST_UPDATE` (after the physics step). Put animation and squash & stretch
   on the sprite, never on the hitbox.
+- Project-owned pixel art (cat, campfire) is text in `tools/sprites.mjs`; `node tools/sprites.mjs` writes the PNGs to
+  `public/assets/own/` (outline is added automatically). The repo is public: never add assets whose license forbids
+  redistribution. Sound effects work the same way: `tools/sfx.mjs` (tiny synth: square/triangle/noise notes)
+  → `node tools/sfx.mjs` writes WAVs to `public/assets/own/sfx/`; `src/systems/Audio.ts` plays them on gameplay
+  events (`AUDIO` in constants). Headless Chromium keeps the AudioContext locked, so e2e tests assert the
+  `sfx` log in `getState()`, not audio output.
+- Parallax (`src/systems/Parallax.ts`): layers are `PARALLAX.LAYERS` in constants (far to near); Preload bakes each
+  into its own texture (`gap` spacing, `flip`), and TileSprite offsets update on the camera's `FOLLOW_UPDATE` so they
+  never lag the world.
+- Juice (`src/systems/Effects.ts`) only subscribes to gameplay events and touches visuals (cat sprite scale,
+  particles, camera shake); tuning is `JUICE` in constants. Set a pop's start scale immediately — a tween's `from`
+  applies a frame late. Particle `x`/`y` ops are ignored when `explode(n, x, y)` gets a position; spread with an
+  `emitZone`. For screenshots of effects freeze with `game.loop.sleep()` (a paused scene's camera keeps following).
 - Level `src/levels/level1.json` uses the Tall Forest tileset (autotiled 3×3 block); it opens in Tiled because the
   tileset image path is relative to the map.

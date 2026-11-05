@@ -15,8 +15,8 @@ test.beforeEach(async ({ page }) => {
     });
 });
 
-test('fox animation follows the movement', async ({ page }) => {
-    expect((await player(page)).anim).toBe(ANIM.FOX_IDLE);
+test('cat animation follows the movement', async ({ page }) => {
+    expect((await player(page)).anim).toBe(ANIM.CAT_IDLE);
 
     const seen = await page.evaluate(async () => {
         const g = window.__game!;
@@ -30,14 +30,14 @@ test('fox animation follows the movement', async ({ page }) => {
         return log;
     });
 
-    expect(seen.some(s => s.anim === ANIM.FOX_RUN && s.onGround)).toBe(true);
-    expect(seen.some(s => s.anim === ANIM.FOX_JUMP && s.vy < 0)).toBe(true);
-    expect(seen.some(s => s.anim === ANIM.FOX_FALL && s.vy > 0)).toBe(true);
+    expect(seen.some(s => s.anim === ANIM.CAT_RUN && s.onGround)).toBe(true);
+    expect(seen.some(s => s.anim === ANIM.CAT_JUMP && s.vy < 0)).toBe(true);
+    expect(seen.some(s => s.anim === ANIM.CAT_FALL && s.vy > 0)).toBe(true);
     // Never shows the run cycle in the air.
-    expect(seen.filter(s => !s.onGround).every(s => s.anim !== ANIM.FOX_RUN)).toBe(true);
+    expect(seen.filter(s => !s.onGround).every(s => s.anim !== ANIM.CAT_RUN)).toBe(true);
 });
 
-test('fox faces the way it last moved', async ({ page }) => {
+test('cat faces the way it last moved', async ({ page }) => {
     await page.evaluate(() => window.__game!.press(['left'], 200));
     expect((await player(page)).flipX).toBe(true);
     await page.evaluate(() => window.__game!.press(['right'], 200));

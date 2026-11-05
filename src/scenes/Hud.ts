@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, HUD } from '../config/constants';
+import { ASSETS, HUD, JUICE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { state } from '../core/state';
 
@@ -7,6 +7,7 @@ import { state } from '../core/state';
 export class Hud extends Scene
 {
     private coinsText: Phaser.GameObjects.Text;
+    private icon: Phaser.GameObjects.Image;
 
     constructor ()
     {
@@ -15,10 +16,12 @@ export class Hud extends Scene
 
     create ()
     {
-        const icon = this.add.image(HUD.MARGIN, HUD.MARGIN, ASSETS.CHERRY.key, 0).setOrigin(0);
-        const iconY = icon.y + icon.height / 2;
+        // Centre origin so the collect pop scales the icon in place.
+        const icon = this.add.image(0, 0, ASSETS.CHERRY.key, 0);
+        icon.setPosition(HUD.MARGIN + icon.width / 2, HUD.MARGIN + icon.height / 2);
+        this.icon = icon;
 
-        this.coinsText = this.add.text(icon.x + icon.width + HUD.ICON_GAP, iconY, '', {
+        this.coinsText = this.add.text(HUD.MARGIN + icon.width + HUD.ICON_GAP, icon.y, '', {
             fontFamily: HUD.FONT_FAMILY,
             fontSize: HUD.FONT_SIZE,
             color: HUD.TEXT_COLOR,
@@ -28,13 +31,26 @@ export class Hud extends Scene
         }).setOrigin(0, 0.5);
 
         this.renderCoins();
-        events.on(EV.COIN_COLLECT, this.renderCoins, this);
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => events.off(EV.COIN_COLLECT, this.renderCoins, this));
+        events.on(EV.COIN_COLLECT, this.onCoin, this);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => events.off(EV.COIN_COLLECT, this.onCoin, this));
     }
 
     get coinsLabel (): string
     {
         return this.coinsText?.text ?? '';
+    }
+
+    private onCoin (): void
+    {
+        this.renderCoins();
+        this.tweens.killTweensOf(this.icon);
+        this.icon.setScale(JUICE.COIN.hudPopScale);
+        this.tweens.add({
+            targets: this.icon,
+            scale: 1,
+            duration: JUICE.COIN.hudPopMs,
+            ease: 'Back.easeOut'
+        });
     }
 
     private renderCoins (): void

@@ -4,6 +4,7 @@ import type { Game } from './scenes/Game';
 import type { Hud } from './scenes/Hud';
 import type { LevelComplete } from './scenes/LevelComplete';
 import { EV, events } from './core/events';
+import { sfxLog } from './systems/Audio';
 import { virtualKeys, type VirtualKey } from './systems/Input';
 
 // Dev-only contract between the game and automated checks (see references/qa.md).
@@ -22,7 +23,17 @@ export interface GameState {
     hud: { coinsText: string } | null;
     /** Respawn point at the player's feet. */
     checkpoint: { x: number; y: number };
+    /** Per checkpoint (level order): is its campfire burning? */
+    campfiresLit: boolean[];
     timeMs: number;
+    /** Background layers, far to near: texture offset in px (= camera scrollX × factor, rounded). */
+    parallax: { key: string; factor: number; offsetX: number }[];
+    /** Parallax FOLLOW_UPDATE listeners on the main camera; must stay 1 across restarts. */
+    parallaxListeners: number;
+    /** Juice: live particles, the visible cat's scale (squash & stretch), camera shake running. */
+    effects: { particles: number; catScaleX: number; catScaleY: number; shaking: boolean } | null;
+    /** Keys of recently played sound effects, newest last. */
+    sfx: string[];
     /** Result lines while the LevelComplete screen is shown. */
     results: string[] | null;
     /** Event-bus subscriber counts; must not grow across restarts (listener leaks). */
@@ -90,7 +101,12 @@ export function installTestApi (game: Phaser.Game): void
                 coinsLeft: g?.coins.countActive() ?? 0,
                 hud: hud?.sys.isActive() ? { coinsText: hud.coinsLabel } : null,
                 checkpoint: { ...state.checkpoint },
+                campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
+                parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],
+                parallaxListeners: cam?.listenerCount(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE) ?? 0,
+                effects: g && p ? { particles: g.effects.particles, catScaleX: p.sprite.scaleX, catScaleY: p.sprite.scaleY, shaking: cam!.shakeEffect.isRunning } : null,
+                sfx: [...sfxLog],
                 results: results?.sys.isActive() ? [...results.lines] : null,
                 listeners: Object.fromEntries(Object.values(EV).map(e => [e, events.listenerCount(e)]))
             };

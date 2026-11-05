@@ -14,8 +14,9 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Zdroj:** <https://opengameart.org/content/sunny-land-2d-pixel-art-pack> (`sunny-land-files.zip`, stiahnuté 2026-11-04)
 - **Licencia:** CC0 / public domain („Public domain and free to use on whatever you want, personal or commercial.
   Credit is not required but appreciated.“). Pôvodný text: `sunny-land/LICENSE.txt`.
-- **Použité:** spritesheety hráča (líška: idle, run, jump, hurt), drahokam, čerešňa, efekty zberu a zániku,
-  tileset, pozadie (`back`, `middle`), rekvizity (bodáky, tabuľa, dvere, strom, ker, kameň, huby).
+- **Použité:** čerešňa (zbierateľný predmet), bodáky. V repe pripravené aj drahokam, efekty zberu a zániku,
+  tileset, pozadie (`back`, `middle`) a rekvizity (strom, ker, kameň, huby).
+- **Odstránené z repa (2026-11-04):** spritesheety líšky, tabuľa a dvere — nahradené vlastnou grafikou (nižšie).
 - **Nepoužité:** hudba z balíka (Pascal Belisle) — tá *vyžaduje* uvedenie autora; ak ju niekedy pridáme, doplniť sem.
 - Názvy súborov ponechané ako v balíku (vrátane preklepov `payer-run.png`, `enemy-deadth.png`).
 
@@ -25,7 +26,8 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Zdroj:** <https://opengameart.org/node/137607> (`tall_forest_files.zip`, stiahnuté 2026-11-04)
 - **Licencia:** CC0 (podľa OpenGameArt); text v balíku: použitie v osobných aj komerčných projektoch, úpravy
   a šírenie povolené, uvedenie autora nie je povinné. Pôvodný text: `tall-forest/LICENSE.txt`.
-- **Použité:** parallax vrstvy lesa (`back`, `far`, `middle`), tileset, rekvizity (mach, rastlina, kameň).
+- **Použité:** parallax vrstvy lesa (`back`, `far`, `middle`; `middle` aj druhýkrát ako bližšia vrstva — zrkadlená
+  a stmavená), tileset, rekvizity (mach, rastlina, kameň).
 
 ### Pixelify Sans (font) — `fonts/PixelifySans.ttf`
 
@@ -36,5 +38,13 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Použité:** HUD a obrazovka výsledkov. Pokrýva slovenčinu (overené: á ä č ď é í ĺ ľ ň ó ô ŕ š ť ú ý ž aj veľké);
   mäkčeň na veľkých písmenách je čitateľný od 24 px.
 - *Vyskúšané a nepoužité:* Kenney Fonts (CC0) — nemajú znaky s mäkčeňom.
+
+### Vlastná grafika projektu — `own/`
+
+- **Mačka** (`cat-idle`, `cat-run`, `cat-jump`) a **ohnisko** (`campfire-unlit`, `campfire-lit`) nakreslené pre tento
+  projekt ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie,
+  patrí projektu.
+- **Zvukové efekty** (`sfx/`: skok, dopad, čerešňa, ohnisko, smrť, cieľ) — 8-bitové zvuky syntetizované pre tento
+  projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
 
 Ďakujeme autorom — pri ansimuzovej grafike uvedenie mena nie je povinné, ale je vítané.

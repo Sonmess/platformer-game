@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { RESULTS, TILE } from '../../src/config/constants';
 
 // Landmarks in src/levels/level1.json (tile coordinates).
-const GOAL = { x: 145 * TILE + TILE, y: 14 * TILE };    // inside the 2×3 goal zone
+const GOAL = { x: 143 * TILE + TILE, y: 14 * TILE };    // inside the 2×3 goal zone in the cave mouth
 const PLATEAU_COIN = { x: 38 * TILE + TILE / 2, y: 11 * TILE + TILE / 2 };
 const FIRST_PIT = { x: 51 * TILE, y: 12 * TILE };
 
@@ -25,7 +25,8 @@ async function initialSnapshot (page: Page)
     const s = await state(page);
     return {
         player: s.player, camera: s.camera, coins: s.coins, coinsLeft: s.coinsLeft, coinsTotal: s.coinsTotal,
-        deaths: s.deaths, checkpoint: s.checkpoint, hud: s.hud, listeners: s.listeners
+        deaths: s.deaths, checkpoint: s.checkpoint, hud: s.hud, listeners: s.listeners,
+        parallax: s.parallax, parallaxListeners: s.parallaxListeners
     };
 }
 
