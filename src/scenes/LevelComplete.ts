@@ -3,8 +3,9 @@ import { GAME, HUD, RESULTS } from '../config/constants';
 import { formatTime } from '../core/format';
 import { state } from '../core/state';
 import { Input } from '../systems/Input';
+import { music } from '../systems/Music';
 
-/** Results of the finished run; confirm (Enter/R) starts the level again. Jump keys do nothing here. */
+/** Results of the finished run; confirm (Enter/R) starts the level again, back (Esc) goes to the title. Jump keys do nothing here. */
 export class LevelComplete extends Scene
 {
     private controls: Input;
@@ -33,15 +34,15 @@ export class LevelComplete extends Scene
             `${t.TIME}: ${formatTime(state.timeMs)}`
         ];
 
-        let y = GAME.HEIGHT / 2 - 2 * RESULTS.LINE_SPACING;
+        let y = GAME.HEIGHT / 2 - 2.5 * RESULTS.LINE_SPACING;
         this.add.text(cx, y, t.TITLE, style(RESULTS.TITLE_SIZE)).setOrigin(0.5);
         y += 1.5 * RESULTS.LINE_SPACING;
         for (const line of this.lines) {
             y += RESULTS.LINE_SPACING;
             this.add.text(cx, y, line, style(RESULTS.LINE_SIZE)).setOrigin(0.5);
         }
-        y += 2 * RESULTS.LINE_SPACING;
-        this.add.text(cx, y, t.RESTART, style(RESULTS.HINT_SIZE)).setOrigin(0.5).setAlpha(0.8);
+        y += 1.5 * RESULTS.LINE_SPACING;
+        this.add.text(cx, y, `${t.RESTART}\n${t.BACK}`, style(RESULTS.HINT_SIZE)).setOrigin(0.5, 0).setAlpha(0.8);
 
         this.controls = new Input(this);
         // Count from deltas: the scene clock's `now` is stale inside create() of a freshly started scene.
@@ -52,8 +53,9 @@ export class LevelComplete extends Scene
     {
         this.shownMs += delta;
         const input = this.controls.read();
-        if (input.confirmPressed && this.shownMs >= RESULTS.INPUT_DELAY_MS) {
-            this.scene.start('Game');
-        }
+        music.handleKeys(input);
+        if (this.shownMs < RESULTS.INPUT_DELAY_MS) return;
+        if (input.confirmPressed) this.scene.start('Game');
+        else if (input.backPressed) this.scene.start('Title');
     }
 }

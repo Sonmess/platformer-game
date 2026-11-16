@@ -11,8 +11,9 @@ export class EdgeLatch
         return { pressed, released };
     }
 
-    reset (): void
+    /** Forget the history; pass the current held state so a key still held does not read as a new press. */
+    reset (isDown = false): void
     {
-        this.wasDown = false;
+        this.wasDown = isDown;
     }
 }

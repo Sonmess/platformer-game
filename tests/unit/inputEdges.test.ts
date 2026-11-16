@@ -21,4 +21,11 @@ describe('EdgeLatch', () => {
         l.reset();
         expect(l.update(true).pressed).toBe(true);
     });
+
+    it('reset to held: a key still down after the reset is not a new press', () => {
+        const l = new EdgeLatch();
+        l.reset(true);
+        expect(l.update(true).pressed).toBe(false);
+        expect(l.update(false).released).toBe(true);
+    });
 });

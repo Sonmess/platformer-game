@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, HAZARD, LEVEL, PLAYER, TILE } from '../config/constants';
+import { ASSETS, HAZARD, LEVEL, PLAYER, TILE, TITLE } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
@@ -10,6 +10,7 @@ import { SoundEffects } from '../systems/Audio';
 import { CameraRig } from '../systems/CameraRig';
 import { Effects } from '../systems/Effects';
 import { Input } from '../systems/Input';
+import { music } from '../systems/Music';
 import { Parallax } from '../systems/Parallax';
 
 export class Game extends Scene
@@ -67,17 +68,31 @@ export class Game extends Scene
         new SoundEffects(this);
         this.effects = new Effects(this, this.player);
         this.controls = new Input(this);
+        music.start(this);
         this.cameraRig = new CameraRig(this.cameras.main, this.player, { width: w, height: h });
         this.cameraRig.snap();     // the camera survives scene restarts; never start from the old scroll
+        this.cameras.main.fadeIn(TITLE.FADE_MS);
 
         this.scene.launch('Hud');
+
+        // Keys pressed while paused (the Esc/P that resumed, a jump) must not act once play continues.
+        const onResume = () => this.controls.reset();
+        this.events.on(Phaser.Scenes.Events.RESUME, onResume);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.RESUME, onResume));
     }
 
     update (_time: number, delta: number)
     {
         if (this.completed) return;
+        const input = this.controls.read();
+        music.handleKeys(input);
+        if (input.pausePressed) {
+            this.scene.launch('Pause');
+            this.scene.pause();     // freezes physics, timers, tweens, animations and particles
+            return;
+        }
         state.timeMs += delta;
-        this.player.update(this.controls.read(), delta);
+        this.player.update(input, delta);
         if (this.player.body.top > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
         this.cameraRig.update(delta);
     }

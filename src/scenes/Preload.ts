@@ -29,6 +29,7 @@ export class Preload extends Scene
         this.load.image(ASSETS.SPIKES.key, ASSETS.SPIKES.url);
         this.load.font(ASSETS.FONT.key, ASSETS.FONT.url);
         for (const sfx of Object.values(AUDIO.SFX)) this.load.audio(sfx.key, sfx.url);
+        this.load.audio(AUDIO.MUSIC.key, AUDIO.MUSIC.url);
     }
 
     create ()
@@ -36,7 +37,9 @@ export class Preload extends Scene
         this.createAnimations();
         bakeParallaxTextures(this.textures);
         bakeEffectTextures(this);
-        this.scene.start('Game');
+        // Dev only: "?play" skips the title screen (e2e tests start in the level).
+        const skipTitle = import.meta.env.DEV && new URLSearchParams(location.search).has('play');
+        this.scene.start(skipTitle ? 'Game' : 'Title');
     }
 
     /** Global animations, created once (the animation manager outlives scene restarts). */

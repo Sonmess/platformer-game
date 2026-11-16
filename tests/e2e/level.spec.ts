@@ -22,7 +22,7 @@ async function teleportAndSettle (page: Page, x: number, y: number)
 }
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 });
 

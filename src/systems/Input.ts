@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { EdgeLatch } from './inputEdges';
 
-export type VirtualKey = 'left' | 'right' | 'jump' | 'down' | 'confirm';
+export type VirtualKey = 'left' | 'right' | 'jump' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute';
 
 export interface InputSnapshot {
     left: boolean;
@@ -12,6 +12,14 @@ export interface InputSnapshot {
     jumpReleased: boolean;
     /** Menu confirm (Enter/R), edge-triggered. Not a gameplay action. */
     confirmPressed: boolean;
+    /** Menu back (Esc), edge-triggered. */
+    backPressed: boolean;
+    /** Pause toggle (Esc/P), edge-triggered. */
+    pausePressed: boolean;
+    /** Leave to the title from the pause menu (Q), edge-triggered. */
+    quitPressed: boolean;
+    /** Music on/off (M), edge-triggered; works on every screen. */
+    mutePressed: boolean;
 }
 
 /** Keys held by the dev test API; merged with the keyboard so they behave like real keys. */
@@ -19,12 +27,15 @@ export const virtualKeys = new Set<VirtualKey>();
 
 const K = Phaser.Input.Keyboard.KeyCodes;
 
+/** Actions read as edges (pressed/released), not only as held. */
+type EdgeAction = 'jump' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute';
+const EDGE_ACTIONS: EdgeAction[] = ['jump', 'confirm', 'back', 'pause', 'quit', 'mute'];
+
 /** One normalized snapshot per frame; the Player never reads devices directly. */
 export class Input
 {
     private readonly keys: Record<VirtualKey, Phaser.Input.Keyboard.Key[]>;
-    private readonly jumpLatch = new EdgeLatch();
-    private readonly confirmLatch = new EdgeLatch();
+    private readonly latches = Object.fromEntries(EDGE_ACTIONS.map(a => [a, new EdgeLatch()])) as Record<EdgeAction, EdgeLatch>;
     // Key events seen since the last read(). A tap shorter than a frame (down and up between two
     // updates) never shows up in isDown, and Phaser clears JustDown on key up, so latch the events.
     private readonly downSeen = new Set<VirtualKey>();
@@ -39,7 +50,11 @@ export class Input
             right: add(K.RIGHT, K.D),
             down: add(K.DOWN, K.S),
             jump: add(K.SPACE, K.UP, K.W, K.Z),
-            confirm: add(K.ENTER, K.R)
+            confirm: add(K.ENTER, K.R),
+            back: add(K.ESC),
+            pause: add(K.ESC, K.P),
+            quit: add(K.Q),
+            mute: add(K.M)
         };
         for (const [action, keys] of Object.entries(this.keys) as [VirtualKey, Phaser.Input.Keyboard.Key[]][]) {
             for (const key of keys) {
@@ -50,16 +65,27 @@ export class Input
         virtualKeys.clear();
     }
 
+    /**
+     * Forget everything seen so far (e.g. while the scene was paused): keys still held count as
+     * held, but not as new presses, so the key that closed a menu does not act again here.
+     */
+    reset (): void
+    {
+        for (const action of EDGE_ACTIONS) this.latches[action].reset(this.held(action));
+        this.downSeen.clear();
+        this.upSeen.clear();
+    }
+
     private held (key: VirtualKey): boolean
     {
         return virtualKeys.has(key) || this.keys[key].some(k => k.isDown);
     }
 
     /** Edges for one action: held-state transitions plus any key events latched since the last read. */
-    private edges (key: VirtualKey, latch: EdgeLatch): { held: boolean; pressed: boolean; released: boolean }
+    private edges (key: EdgeAction): { held: boolean; pressed: boolean; released: boolean }
     {
         const held = this.held(key);
-        const transition = latch.update(held);
+        const transition = this.latches[key].update(held);
         return {
             held,
             pressed: transition.pressed || this.downSeen.has(key),
@@ -69,8 +95,7 @@ export class Input
 
     read (): InputSnapshot
     {
-        const jump = this.edges('jump', this.jumpLatch);
-        const confirm = this.edges('confirm', this.confirmLatch);
+        const [jump, confirm, back, pause, quit, mute] = EDGE_ACTIONS.map(a => this.edges(a));
         this.downSeen.clear();
         this.upSeen.clear();
         return {
@@ -80,7 +105,11 @@ export class Input
             jumpHeld: jump.held,
             jumpPressed: jump.pressed,
             jumpReleased: jump.released,
-            confirmPressed: confirm.pressed
+            confirmPressed: confirm.pressed,
+            backPressed: back.pressed,
+            pausePressed: pause.pressed,
+            quitPressed: quit.pressed,
+            mutePressed: mute.pressed
         };
     }
 }

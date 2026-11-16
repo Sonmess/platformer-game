@@ -7,7 +7,7 @@ const OPEN_GROUND_X = 5 * TILE;
 const player = (page: Page) => page.evaluate(() => window.__game!.getState().player!);
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.evaluate(([x, y]) => window.__game?.teleport(x, y), [OPEN_GROUND_X, GROUND_Y]).catch(() => undefined);
     await page.waitForFunction(() => {
         const p = window.__game?.getState().player;

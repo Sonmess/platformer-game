@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** Milestone 1 complete and playtested (2026-11-05); next milestone not planned yet — ideas in
-`docs/backlog.md`.
+**Status:** Milestone 1 complete and playtested (2026-11-05). Milestone 2 (ADR 0007) in progress — checklist in
+`docs/gameplan.md`.
 
 ## Stack
 
@@ -53,6 +53,12 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   Physics assertions use tolerances and game time, not wall-clock time: wait with
   `window.__game.wait(ms)` (game-loop time, survives scene switches), never `setTimeout`/`waitForTimeout`,
   or tests flake when the machine is loaded. Pick test spots from known level landmarks (e.g. flat cols 90–107).
+- The game boots into the `Title` scene; level specs open `/?play` (dev-only, handled in `Preload`) to start
+  straight in `Game`. Only `boot.spec.ts` and `title.spec.ts` open `/`.
+- Pause: `Game` launches the `Pause` overlay and pauses itself (physics, timers, tweens, anims and particles
+  freeze; the camera follow still runs in `preRender`). Any scene that opens on a key press calls
+  `Input.reset()` so a still-held key is not read as a new press; `Game` does the same on `RESUME`.
+  `getState()` keeps reading the level while it is paused (`paused: true`, `scene: 'Pause'`).
 - The in-app browser pane throttles the page when hidden (game time stops); verify with
   headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
@@ -83,10 +89,13 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   on the sprite, never on the hitbox.
 - Project-owned pixel art (cat, campfire) is text in `tools/sprites.mjs`; `node tools/sprites.mjs` writes the PNGs to
   `public/assets/own/` (outline is added automatically). The repo is public: never add assets whose license forbids
-  redistribution. Sound effects work the same way: `tools/sfx.mjs` (tiny synth: square/triangle/noise notes)
-  → `node tools/sfx.mjs` writes WAVs to `public/assets/own/sfx/`; `src/systems/Audio.ts` plays them on gameplay
-  events (`AUDIO` in constants). Headless Chromium keeps the AudioContext locked, so e2e tests assert the
-  `sfx` log in `getState()`, not audio output.
+  redistribution. Sound works the same way: `tools/synth.mjs` (tiny synth: square/triangle/noise notes → WAV) is
+  used by `tools/sfx.mjs` (→ `public/assets/own/sfx/`, played on gameplay events by `src/systems/Audio.ts`) and
+  `tools/music.mjs` (→ `public/assets/own/music/forest.wav`, a 30 s loop rendered with wrap-around so the seam is
+  clean). `src/systems/Music.ts` keeps one loop in the game-wide sound manager: every scene calls `music.start()`
+  (idempotent) and `music.handleKeys()` (M = mute); the pause ducks it. Tuning: `AUDIO` in constants. Headless
+  Chromium keeps the AudioContext locked, so e2e tests assert the `sfx` log and `music` state in `getState()`,
+  not audio output.
 - Parallax (`src/systems/Parallax.ts`): layers are `PARALLAX.LAYERS` in constants (far to near); Preload bakes each
   into its own texture (`gap` spacing, `flip`), and TileSprite offsets update on the camera's `FOLLOW_UPDATE` so they
   never lag the world.

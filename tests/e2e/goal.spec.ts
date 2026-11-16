@@ -44,7 +44,7 @@ async function restartFromResults (page: Page)
 }
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await waitForPlaying(page);
 });
 

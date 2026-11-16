@@ -65,6 +65,8 @@ export const AUDIO = {
         DIE: { key: 'sfx-die', url: 'assets/own/sfx/die.wav', volume: 0.5, detune: 0 },
         GOAL: { key: 'sfx-goal', url: 'assets/own/sfx/goal.wav', volume: 0.55, detune: 0 }
     },
+    // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
+    MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 },
     // Coins picked up in quick succession climb in pitch (a combo).
     COIN_COMBO: { windowMs: 700, stepCents: 100, maxSteps: 5 },
     LOG_SIZE: 20            // recently played keys kept for the test API
@@ -185,7 +187,51 @@ export const RESULTS = {
         COINS: 'Čerešne',
         DEATHS: 'Smrti',
         TIME: 'Čas',
-        RESTART: 'Enter alebo R = hrať znova'
+        RESTART: 'Enter alebo R = hrať znova',
+        BACK: 'Esc = úvodná obrazovka'
+    }
+} as const;
+
+// Pause overlay over the frozen level.
+export const PAUSE = {
+    OVERLAY_COLOR: 0x0d1410,
+    OVERLAY_ALPHA: 0.6,
+    TITLE_SIZE: '32px',
+    LINE_SIZE: '16px',
+    LINE_SPACING: 24,
+    TEXT: {
+        TITLE: 'Pauza',
+        RESUME: 'Esc alebo P = pokračovať',
+        QUIT: 'Q = úvodná obrazovka',
+        MUSIC: 'M = hudba zap./vyp.'
+    }
+} as const;
+
+// Title screen. Lines starting with a lowercase letter on purpose: carons on 16px capitals read as dots.
+export const TITLE = {
+    INPUT_DELAY_MS: 300,
+    FADE_MS: 250,               // fade out of the title, fade into the level
+    DRIFT_SPEED: 40,            // px/s of virtual camera scroll; the parallax layers follow with their factors
+    PROMPT_BLINK_MS: 550,
+    NAME_SIZE: '48px',
+    LINE_SIZE: '16px',
+    PROMPT_SIZE: '24px',
+    NAME_Y: 56,
+    CONTROLS_Y: 96,
+    PROMPT_Y: 216,
+    PANEL: { COLOR: 0x0d1410, ALPHA: 0.55, PADDING: 8 },   // behind the controls, for contrast with the forest
+    CAT_X: 128,                 // the cat runs in place on the ground strip
+    GROUND_ROW: 15,             // same ground line as the level (feet at row 15)
+    GROUND_TILES: { TOP: 38, FILL: 45 },    // tileset gids, as in level1.json
+    TEXT: {
+        NAME: 'Lost Cat',
+        CONTROLS: [
+            'beh: šípky alebo A, D',
+            'skok: medzerník alebo W (podrž = vyššie)',     // Z is a jump key too, but reads as "2" in this font
+            'pauza: Esc alebo P, hudba: M',
+            'cieľ: dobehni do jaskyne, zbieraj čerešne'
+        ],
+        PROMPT: 'Enter = hrať'
     }
 } as const;
 

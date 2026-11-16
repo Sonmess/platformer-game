@@ -37,7 +37,7 @@ async function jumpHeight (page: Page, ms: number)
 }
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
     await settleAt(page, OPEN_GROUND_X, GROUND_Y);
 });

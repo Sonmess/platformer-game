@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
+import { AUDIO } from './config/constants';
 import { state } from './core/state';
 import type { Game } from './scenes/Game';
 import type { Hud } from './scenes/Hud';
 import type { LevelComplete } from './scenes/LevelComplete';
+import type { Title } from './scenes/Title';
 import { EV, events } from './core/events';
 import { sfxLog } from './systems/Audio';
+import { music } from './systems/Music';
 import { virtualKeys, type VirtualKey } from './systems/Input';
 
 // Dev-only contract between the game and automated checks (see references/qa.md).
@@ -32,8 +35,14 @@ export interface GameState {
     parallaxListeners: number;
     /** Juice: live particles, the visible cat's scale (squash & stretch), camera shake running. */
     effects: { particles: number; catScaleX: number; catScaleY: number; shaking: boolean } | null;
+    /** Background loop: playing, M-muted, ducked by the pause, current volume, and how many copies exist. */
+    music: { playing: boolean; muted: boolean; ducked: boolean; volume: number; instances: number };
     /** Keys of recently played sound effects, newest last. */
     sfx: string[];
+    /** The level is frozen under the pause overlay. */
+    paused: boolean;
+    /** While the title screen is shown: background scroll (px) and the blinking prompt. */
+    title: { scrollX: number; promptVisible: boolean } | null;
     /** Result lines while the LevelComplete screen is shown. */
     results: string[] | null;
     /** Event-bus subscriber counts; must not grow across restarts (listener leaks). */
@@ -76,13 +85,15 @@ export function installTestApi (game: Phaser.Game): void
     window.__game = {
         game,
         getState: () => {
-            // Game objects are destroyed while Game is stopped (e.g. on the results screen).
-            const g = gameScene()?.sys.isActive() ? gameScene() : null;
+            // Game objects are destroyed while Game is stopped (e.g. on the results screen); paused, they stay.
+            const gs = gameScene();
+            const g = gs?.sys.isActive() || gs?.sys.isPaused() ? gs : null;
             const p = g?.player;
             const map = g?.map;
             const cam = g?.cameras.main;
             const hud = game.scene.getScene('Hud') as Hud | null;
             const results = game.scene.getScene('LevelComplete') as LevelComplete | null;
+            const title = game.scene.getScene('Title') as Title | null;
             return {
                 scene: activeScene()?.scene.key ?? '',
                 fps: game.loop.actualFps,
@@ -107,6 +118,9 @@ export function installTestApi (game: Phaser.Game): void
                 parallaxListeners: cam?.listenerCount(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE) ?? 0,
                 effects: g && p ? { particles: g.effects.particles, catScaleX: p.sprite.scaleX, catScaleY: p.sprite.scaleY, shaking: cam!.shakeEffect.isRunning } : null,
                 sfx: [...sfxLog],
+                music: { ...music.state, instances: game.sound.getAll(AUDIO.MUSIC.key).length },
+                paused: gs?.sys.isPaused() ?? false,
+                title: title?.sys.isActive() ? { scrollX: title.scrollX, promptVisible: title.promptVisible } : null,
                 results: results?.sys.isActive() ? [...results.lines] : null,
                 listeners: Object.fromEntries(Object.values(EV).map(e => [e, events.listenerCount(e)]))
             };

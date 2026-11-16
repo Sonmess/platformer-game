@@ -50,6 +50,62 @@ sa automaticky testovať nedajú a odškrtávajú sa až po tvojom vyskúšaní.
   Test: eventy spúšťajú zvuky. Hlasitosť a kvalita: overené playtestom.
 - [x] **13. Finálna kontrola M1** — všetky testy, FPS ~60, playtest celého levelu, aktualizácia dokumentov.
 
+## Milestone 2 — „Hra s obsahom“
+
+> Stav: **SCHVÁLENÉ** (2026-11-05). Rozsah: [ADR 0007](decisions/0007-rozsah-m2.md).
+
+Z prototypu krátka hra, ktorú sa oplatí dohrať: úvodná obrazovka, pauza, hudba, nepriatelia, ktorých mačka
+**vystraší mňauknutím** (bez stomp mechaniky), a pohyblivé a prepadávacie plošiny. Stále jeden level
+(ďalšie levely až v M3). Každý krok prináša aj vlastnú grafiku (`tools/sprites.mjs`), zvuky (`tools/sfx.mjs`)
+a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy, screenshot a tvoj playtest.
+
+### Fáza A — rámec hry
+
+- [x] **1. Úvodná obrazovka „Lost Cat“** — názov, pohybujúce sa parallax pozadie, ovládanie,
+  „Enter = hrať“. Hra štartuje z nej; z výsledkov Enter/R = hrať znova, Esc = na úvodnú obrazovku.
+  Test: boot → Title, Enter → Game, výsledky → Esc → Title; listenery sa nezdvojujú.
+- [x] **2. Pauza** — Esc alebo P: zastaví fyziku, čas levelu, animácie a efekty; prekrytie „Pauza“
+  (pokračovať / na úvodnú obrazovku).
+  Test: počas pauzy sa hráč ani čas nemenia; po pokračovaní hra pokračuje rovnako.
+- [ ] **3. Hudba** — vlastná pokojná 8-bit slučka (~30 s, bez počuteľného švu) generovaná skriptom
+  `tools/music.mjs`; hrá na úvodnej obrazovke aj v leveli, počas pauzy stíšená. M = stlmiť/zapnúť hudbu.
+  Test: hrá v slučke, M prepína, po reštarte levelu sa nezdvojí. Kvalita a hlasitosť: overené playtestom.
+
+### Fáza B — mňaukanie a nepriatelia
+
+- [ ] **4. Mňaukanie** — kláves X: mačka mňaukne (snímka s otvorenou papuľou, vlna, zvuk), event
+  `player:meow`. Dosah ~4 dlaždice pred mačkou, cooldown ~2 s (viditeľný na mačke alebo v HUD).
+  Test: cooldown blokuje opakovanie, event nesie pozíciu a smer.
+- [ ] **5. Ježko** — chodí tam a späť, na okraji plošiny alebo pri stene sa otočí. Dotyk = smrť mačky.
+  Po mňauknutí v dosahu sa ~3 s zvinie do gule, trasie sa a je neškodný (dá sa cezeň prejsť),
+  potom pokračuje.
+  Test: patrola neprepadne z plošiny, dotyk zabije, vystrašený nezabije, po ~3 s opäť nebezpečný.
+- [ ] **6. Vrána** — lieta hore-dole (alebo tam a späť) v zadanom rozsahu. Dotyk = smrť. Po mňauknutí
+  ~3 s zamrzne vo vzduchu, trasie sa a je neškodná.
+  Test: drží sa svojej dráhy, vystrašenie funguje rovnako ako pri ježkovi.
+
+### Fáza C — plošiny a level
+
+- [ ] **7. Pohyblivé plošiny** — vodorovné a zvislé; mačka sa na nich vezie a dá sa z nich skákať.
+  Test: hráč stojiaci na plošine sa pohybuje s ňou a neprepadne; skok z pohybujúcej sa plošiny funguje.
+- [ ] **8. Prepadávacie plošiny** — po dotyku sa ~0,5 s trasú, potom padnú a po chvíli sa vrátia;
+  po smrti sú späť na mieste.
+  Test: časovanie pádu a návratu, reset po respawne.
+- [ ] **9. Úprava levelu** — zakomponovať nepriateľov a plošiny do `level1` (prípadne ho predĺžiť), aby
+  každá nová vec mala svoje miesto a level mal stúpajúcu obtiažnosť.
+  Test: traversal testy pre všetky nové úseky (aj s nepriateľmi a mňaukaním). Férovosť: overené playtestom.
+
+### Fáza D — záver
+
+- [ ] **10. Finálna kontrola M2** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry
+  od úvodnej obrazovky po výsledky, aktualizácia dokumentov.
+
+### Predvolené rozhodnutia M2 (zmeníme, ak pri playteste nebudú sedieť)
+
+- Nepriatelia po smrti mačky **neresetujú** pozíciu (pokračujú v patrole); pri reštarte levelu áno.
+- Stav vystrašenia je na nepriateľovi, nie globálny; jedno mňauknutie vystraší všetkých v dosahu.
+- Hlasitosť hudby a stlmenie sa pamätajú len počas hry (ukladanie nastavení → backlog).
+
 ## Rozhodnutia
 
 | # | Téma | Rozhodnutie | ADR |
@@ -65,7 +121,13 @@ sa automaticky testovať nedajú a odškrtávajú sa až po tvojom vyskúšaní.
 | 9 | Asset pack | Tall Forest (tileset, parallax) + Sunny Land (čerešne, bodáky), ansimuz, CC0 | [0004](decisions/0004-asset-pack.md) |
 | 10 | Mačka, checkpoint, cieľ | Vlastná mačka a ohnisko (`tools/sprites.mjs`), cieľ = vchod do jaskyne | [0005](decisions/0005-macka-ohnisko-jaskyna.md) |
 | 11 | Zvukové efekty | Vlastné 8-bit zvuky generované skriptom `tools/sfx.mjs` | [0006](decisions/0006-vlastne-zvuky.md) |
+| 12 | Rozsah M2 | Úvodná obrazovka, pauza, hudba, ježko a vrána vystrašení mňauknutím (bez stompu), pohyblivé a prepadávacie plošiny; ďalšie levely v M3 | [0007](decisions/0007-rozsah-m2.md) |
 
 ## Mimo rozsahu M1
 
 Viac levelov, menu s nastaveniami, ukladanie postupu, leaderboard, multiplayer.
+
+## Mimo rozsahu M2
+
+Ďalšie levely a palety (M3), stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad,
+menu s nastaveniami a ich ukladanie, verejné nasadenie.

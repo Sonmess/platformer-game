@@ -49,18 +49,24 @@ export class Parallax
             this.layers.push({ sprite, def });
         });
 
-        this.update(camera);
-        camera.on(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, this.update, this);
+        this.scrollTo(camera.scrollX);
+        camera.on(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, this.onFollow, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            camera.off(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, this.update, this);
+            camera.off(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE, this.onFollow, this);
         });
     }
 
-    private update (camera: Phaser.Cameras.Scene2D.Camera): void
+    /** Places the layers as if the camera were at `scrollX` (scenes without a follow camera drive this). */
+    scrollTo (scrollX: number): void
     {
         // Whole pixels only: fractional offsets make pixel art shimmer.
         for (const { sprite, def } of this.layers) {
-            sprite.tilePositionX = Math.round(camera.scrollX * def.factor);
+            sprite.tilePositionX = Math.round(scrollX * def.factor);
         }
+    }
+
+    private onFollow (camera: Phaser.Cameras.Scene2D.Camera): void
+    {
+        this.scrollTo(camera.scrollX);
     }
 }

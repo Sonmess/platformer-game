@@ -2,11 +2,21 @@
 
 Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky popis (zdroj/dátum)`
 
-- [ ] Dvojskok / wall jump — rozšírenie pohybu po M1
-- [ ] Nepriatelia so stomp mechanikou
-- [ ] Pohyblivé a prepadávacie plošiny
+## Naplánované v M2 (pozri `docs/gameplan.md`)
+
+- Titulná obrazovka — v M1 hra začína rovno levelom (2026-11-03)
+- Nepriatelia — namiesto stompu ich mačka vystraší mňauknutím (2026-11-05)
+- Pohyblivé a prepadávacie plošiny
+- Hudba (jednoduchá slučka)
+
+## M3
+
+- [ ] Viac levelov s rôznymi paletami pozadia (2026-11-05)
+
+## Neskôr
+
+- [ ] Dvojskok / wall jump — rozšírenie pohybu
 - [ ] Dotykové ovládanie pre mobil + gamepad
-- [ ] Hudba a adaptívny zvuk
-- [ ] Viac levelov s rôznymi paletami pozadia
-- [ ] Nastavenia: hlasitosť, reduce motion
-- [ ] Titulná obrazovka — v M1 hra začína rovno levelom (2026-11-03)
+- [ ] Adaptívna hudba
+- [ ] Nastavenia: hlasitosť, reduce motion, ich ukladanie
+- [ ] Verejné nasadenie (GitHub Pages / itch.io)

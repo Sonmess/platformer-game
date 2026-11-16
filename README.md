@@ -11,6 +11,8 @@ Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 |---|---|
 | ← → alebo A D | beh |
 | Medzerník, ↑, W alebo Z | skok (dlhším podržaním vyššie) |
+| Esc alebo P | pauza (v pauze Q = úvodná obrazovka) |
+| M | hudba zapnúť / vypnúť |
 | Enter alebo R | hrať znova (na obrazovke s výsledkami) |
 
 Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj čerešne, ohniská sú checkpointy.
@@ -43,7 +45,7 @@ npm run test:e2e                  # len Playwright scenáre
 | `src/` | Hra: `config` (ladiace konštanty), `core` (eventy, stav), `scenes`, `entities`, `systems` (vstup, kamera, parallax, efekty, zvuk) |
 | `src/levels/level1.json` | Level (Tiled JSON) |
 | `public/assets/` | Grafika, písmo a zvuky; zdroje a licencie v `CREDITS.md` |
-| `tools/` | Generátory vlastnej grafiky (`sprites.mjs`) a zvukov (`sfx.mjs`) |
+| `tools/` | Generátory vlastnej grafiky (`sprites.mjs`), zvukov (`sfx.mjs`) a hudby (`music.mjs`); spoločný syntetizátor `synth.mjs` |
 | `tests/` | Unit (Vitest) a e2e (Playwright) testy |
 | `CLAUDE.md` | Pravidlá projektu pre Claude |
 | `.claude/skills/phaser-platformer/` | Claude skill: pocit zo skoku, parallax, efekty, architektúra, testovanie |

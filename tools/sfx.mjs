@@ -1,52 +1,8 @@
 // Project-owned 8-bit sound effects. Run: `node tools/sfx.mjs` → WAV files in public/assets/own/sfx/.
-// Each sound is a list of notes; a note is a tone (square / triangle / noise) with a pitch slide,
-// a short attack and a decay. Noise uses a seeded generator, so regenerating gives identical files.
-// No dependencies: a tiny WAV encoder lives at the bottom.
+// Each sound is a list of notes (see tools/synth.mjs): a tone (square / triangle / noise) with a
+// pitch slide, a short attack and a decay.
 import { mkdirSync, writeFileSync } from 'node:fs';
-
-const RATE = 22050;
-
-// ── Synth ────────────────────────────────────────────────────────────────────────────────────
-let seed = 1;
-const noise = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x3fffffff - 1; };
-
-/**
- * One note: `wave` at `from` Hz sliding to `to` Hz (exponentially) over `dur` s, starting at `at` s.
- * `vol` 0..1, `attack`/`decay` shape the envelope (decay = exponent of the fade; 1 = linear),
- * `duty` = square pulse width, `vibrato` = [Hz, depth as a pitch ratio].
- */
-function note ({ wave = 'square', from, to = from, at = 0, dur, vol = 0.5, attack = 0.005, decay = 1, duty = 0.5, vibrato = null })
-{
-    return { wave, from, to, at, dur, vol, attack, decay, duty, vibrato };
-}
-
-function render (notes)
-{
-    const length = Math.ceil(Math.max(...notes.map(n => n.at + n.dur)) * RATE);
-    const out = new Float32Array(length);
-    for (const n of notes) {
-        let phase = 0, held = 0;
-        const start = Math.floor(n.at * RATE), count = Math.floor(n.dur * RATE);
-        for (let i = 0; i < count; i++) {
-            const t = i / count;
-            let freq = n.from * Math.pow(n.to / n.from, t);
-            if (n.vibrato) freq *= 1 + Math.sin(2 * Math.PI * n.vibrato[0] * i / RATE) * n.vibrato[1];
-            const prev = phase;
-            phase = (phase + freq / RATE) % 1;
-            let s;
-            if (n.wave === 'square') s = phase < n.duty ? 1 : -1;
-            else if (n.wave === 'triangle') s = 1 - 4 * Math.abs(phase - 0.5);
-            else {                                  // noise, resampled at the note's pitch
-                if (phase < prev) held = noise();
-                s = held;
-            }
-            const sec = i / RATE;
-            const env = Math.min(1, sec / n.attack) * Math.pow(1 - t, n.decay);
-            out[start + i] += s * env * n.vol;
-        }
-    }
-    return out;
-}
+import { note, render, wav } from './synth.mjs';
 
 // ── Sounds ───────────────────────────────────────────────────────────────────────────────────
 // Musical pitches (Hz) for the jingles.
@@ -81,24 +37,9 @@ const SFX = {
     ]
 };
 
-// ── WAV encoder (16-bit mono PCM) ───────────────────────────────────────────────────────────
-function wav (samples)
-{
-    const peak = Math.max(1, ...samples.map(Math.abs));        // never clip
-    const data = Buffer.alloc(samples.length * 2);
-    samples.forEach((s, i) => data.writeInt16LE(Math.round(s / peak * 32767), i * 2));
-    const head = Buffer.alloc(44);
-    head.write('RIFF', 0); head.writeUInt32LE(36 + data.length, 4); head.write('WAVE', 8);
-    head.write('fmt ', 12); head.writeUInt32LE(16, 16); head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22);
-    head.writeUInt32LE(RATE, 24); head.writeUInt32LE(RATE * 2, 28); head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34);
-    head.write('data', 36); head.writeUInt32LE(data.length, 40);
-    return Buffer.concat([head, data]);
-}
-
 const OUT = 'public/assets/own/sfx';
 mkdirSync(OUT, { recursive: true });
 for (const [name, notes] of Object.entries(SFX)) {
-    seed = 1;
     const file = `${OUT}/${name}.wav`;
     const bytes = wav(render(notes));
     writeFileSync(file, bytes);

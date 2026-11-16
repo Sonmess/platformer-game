@@ -46,5 +46,7 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
   patrí projektu.
 - **Zvukové efekty** (`sfx/`: skok, dopad, čerešňa, ohnisko, smrť, cieľ) — 8-bitové zvuky syntetizované pre tento
   projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
+- **Hudba** (`music/forest.wav`) — pokojná 8-bitová slučka (30 s) skomponovaná pre tento projekt v
+  `tools/music.mjs`; WAV generuje `node tools/music.mjs`. Bez cudzej licencie, patrí projektu.
 
 Ďakujeme autorom — pri ansimuzovej grafike uvedenie mena nie je povinné, ale je vítané.

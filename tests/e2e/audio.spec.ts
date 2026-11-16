@@ -17,7 +17,7 @@ const waitForSfx = (page: Page, key: string) =>
     page.waitForFunction(k => window.__game!.getState().sfx.includes(k), key);
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 });
 

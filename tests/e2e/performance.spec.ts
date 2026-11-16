@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 test.describe.configure({ retries: 2 });
 
 test('holds ~60 FPS while running and jumping through the level', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 
     const fps = await page.evaluate(async () => {

@@ -4,7 +4,9 @@ import { Boot } from '../scenes/Boot';
 import { Game } from '../scenes/Game';
 import { Hud } from '../scenes/Hud';
 import { LevelComplete } from '../scenes/LevelComplete';
+import { Pause } from '../scenes/Pause';
 import { Preload } from '../scenes/Preload';
+import { Title } from '../scenes/Title';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
@@ -21,5 +23,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
         default: 'arcade',
         arcade: { gravity: { x: 0, y: PHYSICS.gravity }, debug: false }
     },
-    scene: [Boot, Preload, Game, Hud, LevelComplete]
+    scene: [Boot, Preload, Title, Game, Hud, Pause, LevelComplete]
 };

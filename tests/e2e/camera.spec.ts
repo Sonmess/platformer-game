@@ -34,7 +34,7 @@ async function runAndSampleCamera (page: Page, key: 'right' | 'left', ms: number
 }
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 });
 

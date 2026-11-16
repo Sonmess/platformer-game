@@ -8,7 +8,7 @@ const FLAT_X = 98 * TILE;
 const state = (page: Page) => page.evaluate(() => window.__game!.getState());
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 });
 
