@@ -11,6 +11,7 @@ Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 |---|---|
 | ← → alebo A D | beh |
 | Medzerník, ↑, W alebo Z | skok (dlhším podržaním vyššie) |
+| X | mňau (vystraší nepriateľov pred mačkou; potom ~2 s nabíjanie) |
 | Esc alebo P | pauza (v pauze Q = úvodná obrazovka) |
 | M | hudba zapnúť / vypnúť |
 | Enter alebo R | hrať znova (na obrazovke s výsledkami) |

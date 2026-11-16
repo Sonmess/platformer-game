@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { DEPTH, JUICE, PLAYER_FEEL } from '../config/constants';
+import { DEPTH, JUICE, MEOW, PLAYER_FEEL } from '../config/constants';
 import { EV, events } from '../core/events';
+import type { MeowWave } from '../core/meow';
 import type { Player } from '../entities/Player';
 
 /** Bakes the square particle textures (once; textures outlive scene restarts). */
@@ -27,6 +28,7 @@ export class Effects
     private readonly coinSparks: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly fireSparks: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly deathBits: Phaser.GameObjects.Particles.ParticleEmitter;
+    private readonly scareDrops: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly handlers: [string, (...args: never[]) => void][];
 
     constructor (private readonly scene: Phaser.Scene, private readonly player: Player)
@@ -55,6 +57,7 @@ export class Effects
         this.coinSparks = sparks(JUICE.COIN.tint);
         this.fireSparks = sparks(JUICE.CHECKPOINT.tint);
         this.deathBits = sparks(JUICE.DEATH.tint);
+        this.scareDrops = sparks(JUICE.SCARE.tint);
 
         this.handlers = [
             [EV.PLAYER_JUMP, this.onJump],
@@ -62,7 +65,9 @@ export class Effects
             [EV.PLAYER_DIE, this.onDie],
             [EV.PLAYER_RESPAWN, this.onRespawn],
             [EV.COIN_COLLECT, this.onCoin],
-            [EV.CHECKPOINT_REACH, this.onCheckpoint]
+            [EV.CHECKPOINT_REACH, this.onCheckpoint],
+            [EV.PLAYER_MEOW, this.onMeow],
+            [EV.ENEMY_SCARE, this.onEnemyScare]
         ];
         for (const [name, fn] of this.handlers) events.on(name, fn, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -73,7 +78,7 @@ export class Effects
     /** Live particles across all emitters; exposed to the test API. */
     get particles (): number
     {
-        return [this.dust, this.coinSparks, this.fireSparks, this.deathBits].reduce((n, e) => n + e.getAliveParticleCount(), 0);
+        return [this.dust, this.coinSparks, this.fireSparks, this.deathBits, this.scareDrops].reduce((n, e) => n + e.getAliveParticleCount(), 0);
     }
 
     private onJump (): void
@@ -116,6 +121,39 @@ export class Effects
     {
         // Sparks fly up out of the campfire (its base is at the respawn point).
         this.fireSparks.explode(JUICE.CHECKPOINT.sparks, x, y - JUICE.CHECKPOINT.sparkHeight);
+    }
+
+    /** Sound-wave arcs rolling out from the cat's mouth to the edge of the meow's reach, fading as they go. */
+    private onMeow (wave: MeowWave): void
+    {
+        const W = MEOW.WAVE;
+        const g = this.scene.add.graphics().setDepth(DEPTH.EFFECTS);
+        const half = Phaser.Math.DegToRad(W.ANGLE_DEG);
+        const facing = wave.dir > 0 ? 0 : Math.PI;
+        const progress = { t: 0 };
+        this.scene.tweens.add({
+            targets: progress,
+            t: 1,
+            duration: W.MS,
+            ease: 'Sine.easeOut',
+            onUpdate: () => {
+                g.clear();
+                for (let i = 0; i < W.ARCS; i++) {
+                    const r = progress.t * wave.range - i * W.SPACING_PX;
+                    if (r <= 0) continue;
+                    g.lineStyle(W.LINE, W.COLOR, (1 - progress.t) * (1 - i / W.ARCS));
+                    g.beginPath();
+                    g.arc(wave.x, wave.y, r, facing - half, facing + half);
+                    g.strokePath();
+                }
+            },
+            onComplete: () => g.destroy()
+        });
+    }
+
+    private onEnemyScare ({ x, y }: { x: number; y: number }): void
+    {
+        this.scareDrops.explode(JUICE.SCARE.drops, x, y);
     }
 
     /** Dust at the paws. Uses the hitbox: the sprite still sits where the last frame left it. */

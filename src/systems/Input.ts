@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { EdgeLatch } from './inputEdges';
 
-export type VirtualKey = 'left' | 'right' | 'jump' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute';
+export type VirtualKey = 'left' | 'right' | 'jump' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow';
 
 export interface InputSnapshot {
     left: boolean;
@@ -20,6 +20,8 @@ export interface InputSnapshot {
     quitPressed: boolean;
     /** Music on/off (M), edge-triggered; works on every screen. */
     mutePressed: boolean;
+    /** Meow (X), edge-triggered. */
+    meowPressed: boolean;
 }
 
 /** Keys held by the dev test API; merged with the keyboard so they behave like real keys. */
@@ -28,8 +30,8 @@ export const virtualKeys = new Set<VirtualKey>();
 const K = Phaser.Input.Keyboard.KeyCodes;
 
 /** Actions read as edges (pressed/released), not only as held. */
-type EdgeAction = 'jump' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute';
-const EDGE_ACTIONS: EdgeAction[] = ['jump', 'confirm', 'back', 'pause', 'quit', 'mute'];
+type EdgeAction = 'jump' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow';
+const EDGE_ACTIONS: EdgeAction[] = ['jump', 'confirm', 'back', 'pause', 'quit', 'mute', 'meow'];
 
 /** One normalized snapshot per frame; the Player never reads devices directly. */
 export class Input
@@ -54,7 +56,8 @@ export class Input
             back: add(K.ESC),
             pause: add(K.ESC, K.P),
             quit: add(K.Q),
-            mute: add(K.M)
+            mute: add(K.M),
+            meow: add(K.X)
         };
         for (const [action, keys] of Object.entries(this.keys) as [VirtualKey, Phaser.Input.Keyboard.Key[]][]) {
             for (const key of keys) {
@@ -95,7 +98,7 @@ export class Input
 
     read (): InputSnapshot
     {
-        const [jump, confirm, back, pause, quit, mute] = EDGE_ACTIONS.map(a => this.edges(a));
+        const [jump, confirm, back, pause, quit, mute, meow] = EDGE_ACTIONS.map(a => this.edges(a));
         this.downSeen.clear();
         this.upSeen.clear();
         return {
@@ -109,7 +112,8 @@ export class Input
             backPressed: back.pressed,
             pausePressed: pause.pressed,
             quitPressed: quit.pressed,
-            mutePressed: mute.pressed
+            mutePressed: mute.pressed,
+            meowPressed: meow.pressed
         };
     }
 }

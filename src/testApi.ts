@@ -8,6 +8,7 @@ import type { Title } from './scenes/Title';
 import { EV, events } from './core/events';
 import { sfxLog } from './systems/Audio';
 import { music } from './systems/Music';
+import type { MeowWave } from './core/meow';
 import { virtualKeys, type VirtualKey } from './systems/Input';
 
 // Dev-only contract between the game and automated checks (see references/qa.md).
@@ -23,9 +24,13 @@ export interface GameState {
     coinsTotal: number;
     /** Coins still in the level. */
     coinsLeft: number;
-    hud: { coinsText: string } | null;
+    hud: { coinsText: string; meowReady: boolean } | null;
+    /** Meow: cooldown left (ms), how many meows this page has seen, and the last one's reach. */
+    meow: { cooldownMs: number; count: number; last: MeowWave | null };
     /** Respawn point at the player's feet. */
     checkpoint: { x: number; y: number };
+    /** Enemies in level order: hitbox centre, facing, scared and how much fright is left (ms), harmful. */
+    enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string }[];
     /** Per checkpoint (level order): is its campfire burning? */
     campfiresLit: boolean[];
     timeMs: number;
@@ -65,6 +70,9 @@ declare global {
 
 export function installTestApi (game: Phaser.Game): void
 {
+    // Installed once per page: counts every meow event, across restarts.
+    const meowLog = { count: 0, last: null as MeowWave | null };
+    events.on(EV.PLAYER_MEOW, (w: MeowWave) => { meowLog.count++; meowLog.last = { x: w.x, y: w.y, dir: w.dir, range: w.range, halfHeight: w.halfHeight, behind: w.behind }; });
     const gameScene = () => game.scene.getScene('Game') as Game;
     // No fallback: while Preload is still loading no scene is running, and that must not read as 'Game'.
     const activeScene = () => game.scene.getScenes(true).find(s => s.scene.key !== 'Hud');
@@ -110,8 +118,10 @@ export function installTestApi (game: Phaser.Game): void
                 coins: state.coins,
                 coinsTotal: state.coinsTotal,
                 coinsLeft: g?.coins.countActive() ?? 0,
-                hud: hud?.sys.isActive() ? { coinsText: hud.coinsLabel } : null,
+                hud: hud?.sys.isActive() || hud?.sys.isPaused() ? { coinsText: hud.coinsLabel, meowReady: hud.meowReady } : null,
+                meow: { cooldownMs: p?.meowCooldown.remainingMs ?? 0, count: meowLog.count, last: meowLog.last },
                 checkpoint: { ...state.checkpoint },
+                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key })) ?? [],
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
                 parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],

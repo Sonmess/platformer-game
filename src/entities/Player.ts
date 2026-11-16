@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { ANIM, ASSETS, DEPTH, PHYSICS, PLAYER, PLAYER_FEEL, RUN_ANIM_THRESHOLD } from '../config/constants';
+import { ANIM, ASSETS, DEPTH, MEOW, PHYSICS, PLAYER, PLAYER_FEEL, RUN_ANIM_THRESHOLD, TILE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
+import { Cooldown, type MeowWave } from '../core/meow';
 import type { InputSnapshot } from '../systems/Input';
 
 /**
@@ -20,6 +21,9 @@ export class Player extends Phaser.GameObjects.Rectangle
     private cut = true;
     private readonly jump = new JumpAssist(PLAYER_FEEL.coyoteTime, PLAYER_FEEL.jumpBuffer);
     readonly sprite: Phaser.GameObjects.Sprite;
+    /** Kept across respawns, so the HUD's refill bar stays in sync. */
+    readonly meowCooldown = new Cooldown(MEOW.COOLDOWN_MS);
+    private meowPoseMs = 0;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
@@ -76,12 +80,34 @@ export class Player extends Phaser.GameObjects.Rectangle
             body.setVelocityY(body.velocity.y * PLAYER_FEEL.jumpCutMult);
         }
 
+        // Meow: allowed on the ground and in the air; the open-mouth frame shows briefly.
+        this.meowCooldown.update(deltaMs);
+        this.meowPoseMs = Math.max(0, this.meowPoseMs - deltaMs);
+        if (input.meowPressed && this.meowCooldown.trigger()) {
+            this.meowPoseMs = MEOW.POSE_MS;
+            events.emit(EV.PLAYER_MEOW, { ...this.meowWave(), cooldownMs: MEOW.COOLDOWN_MS });
+        }
+
         // Asymmetric gravity: heavier fall, brief hang at the apex.
         body.setGravityY(onGround ? 0 : extraGravity(body.velocity.y, PHYSICS, PLAYER_FEEL));
 
         if (!this.wasOnGround && onGround) events.emit(EV.PLAYER_LAND, { impact: this.lastVy });
         this.wasOnGround = onGround;
         this.lastVy = body.velocity.y;
+    }
+
+    /** What the meow reaches, from the cat's head forward. */
+    private meowWave (): MeowWave
+    {
+        const c = this.body.center;
+        return {
+            x: c.x + this.facing * MEOW.HEAD_OFFSET.x,
+            y: c.y + MEOW.HEAD_OFFSET.y,
+            dir: this.facing,
+            range: MEOW.RANGE_TILES * TILE,
+            halfHeight: MEOW.HALF_HEIGHT_TILES * TILE,
+            behind: MEOW.BEHIND_PX
+        };
     }
 
     /** Current animation key; exposed to the test API. */
@@ -97,7 +123,8 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.sprite.setFlipX(this.facing < 0);
 
         let anim: string;
-        if (!this.onGround) anim = body.velocity.y < 0 ? ANIM.CAT_JUMP : ANIM.CAT_FALL;
+        if (this.meowPoseMs > 0) anim = ANIM.CAT_MEOW;
+        else if (!this.onGround) anim = body.velocity.y < 0 ? ANIM.CAT_JUMP : ANIM.CAT_FALL;
         else anim = Math.abs(body.velocity.x) > RUN_ANIM_THRESHOLD ? ANIM.CAT_RUN : ANIM.CAT_IDLE;
         this.sprite.play(anim, true);
     }

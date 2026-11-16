@@ -1,10 +1,13 @@
 import Phaser, { Scene } from 'phaser';
 import { ASSETS, HAZARD, LEVEL, PLAYER, TILE, TITLE } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
+import { inMeowRange, type MeowWave } from '../core/meow';
 import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Coin } from '../entities/Coin';
+import type { Enemy } from '../entities/Enemy';
 import { Goal } from '../entities/Goal';
+import { Hedgehog } from '../entities/Hedgehog';
 import { Player } from '../entities/Player';
 import { SoundEffects } from '../systems/Audio';
 import { CameraRig } from '../systems/CameraRig';
@@ -22,6 +25,7 @@ export class Game extends Scene
     parallax: Parallax;
     effects: Effects;
     checkpoints: Checkpoint[] = [];
+    enemies: Enemy[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
     private lastDeathFrame = -1;
     private completed = false;
@@ -64,6 +68,14 @@ export class Game extends Scene
         this.physics.add.overlap(this.player, this.coins, (_p, coin) => this.collectCoin(coin as Coin));
         this.physics.add.overlap(this.player, this.createGoals(), () => this.completeLevel());
 
+        this.enemies = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! }, ground));
+        this.physics.add.collider(this.enemies, ground);
+        this.physics.add.overlap(this.player, this.enemies, (_p, e) => { if ((e as Enemy).harmful) this.killPlayer('enemy'); });
+        // A meow scares every enemy within its reach (enemies never read the player directly).
+        const onMeow = (wave: MeowWave) => this.enemies.forEach(e => { if (inMeowRange(wave, e.body.center)) e.scare(); });
+        events.on(EV.PLAYER_MEOW, onMeow);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => events.off(EV.PLAYER_MEOW, onMeow));
+
         // Juice and sound only listen to events; the game plays the same without them.
         new SoundEffects(this);
         this.effects = new Effects(this, this.player);
@@ -89,12 +101,15 @@ export class Game extends Scene
         if (input.pausePressed) {
             this.scene.launch('Pause');
             this.scene.pause();     // freezes physics, timers, tweens, animations and particles
+            this.scene.pause('Hud');    // the meow refill bar runs on the Hud's clock
             return;
         }
         state.timeMs += delta;
         this.player.update(input, delta);
         if (this.player.body.top > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
         this.cameraRig.update(delta);
+        const playerBounds = this.player.getBounds();
+        for (const enemy of this.enemies) enemy.update(delta, playerBounds);
     }
 
     private objectsOfType (type: string)

@@ -58,7 +58,17 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - Pause: `Game` launches the `Pause` overlay and pauses itself (physics, timers, tweens, anims and particles
   freeze; the camera follow still runs in `preRender`). Any scene that opens on a key press calls
   `Input.reset()` so a still-held key is not read as a new press; `Game` does the same on `RESUME`.
-  `getState()` keeps reading the level while it is paused (`paused: true`, `scene: 'Pause'`).
+  `getState()` keeps reading the level while it is paused (`paused: true`, `scene: 'Pause'`). The pause also
+  pauses `Hud` (its tweens, e.g. the meow refill bar, run on the Hud clock).
+- Meow (X): `Player` owns a `Cooldown` and emits `player:meow` with a `MeowWave` (head position, `dir`, `range`,
+  `halfHeight`, `behind`); enemies decide with `inMeowRange()` from `src/core/meow.ts` (pure, unit-tested).
+  Effects draw the wave arcs, Audio plays the meow, Hud shows readiness. Tuning: `MEOW` in constants.
+- Enemies (`src/entities/Enemy.ts`): invisible hitbox + sprite like the Player; the base owns the fright (`Scare`
+  in `src/core/meow.ts`: frozen, shaking, harmless for `ENEMY.SCARE_MS`, recovers only once the cat is off it).
+  `Game` routes `player:meow` to every enemy in reach and kills the cat on touching a `harmful` one. A hedgehog
+  is a Tiled rectangle of type `hedgehog`: its width is the patrol range, its bottom edge the ground. Enemies keep
+  patrolling after the cat dies; they reset only with the level. Level specs place the cat away from patrols
+  (first hedgehog: cols 18–31, second: 119–127).
 - The in-app browser pane throttles the page when hidden (game time stops); verify with
   headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored

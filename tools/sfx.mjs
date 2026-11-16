@@ -28,6 +28,20 @@ const SFX = {
         note({ from: 520, to: 90, dur: 0.45, vol: 0.32, duty: 0.5, decay: 0.8, vibrato: [18, 0.06] }),
         note({ wave: 'noise', from: 900, to: 200, dur: 0.18, vol: 0.25, decay: 2 })
     ],
+    // "Mňau": pitch rises ("mň-") then falls ("-au"), with a wobbly vibrato; a triangle an octave
+    // below gives it body.
+    meow: [
+        note({ from: 520, to: 880, dur: 0.12, vol: 0.3, duty: 0.35, attack: 0.02, decay: 0, vibrato: [9, 0.02] }),
+        note({ from: 880, to: 480, at: 0.12, dur: 0.3, vol: 0.3, duty: 0.35, decay: 1.2, vibrato: [9, 0.025] }),
+        note({ wave: 'triangle', from: 260, to: 440, dur: 0.12, vol: 0.25, attack: 0.02, decay: 0 }),
+        note({ wave: 'triangle', from: 440, to: 240, at: 0.12, dur: 0.3, vol: 0.25, decay: 1.2 })
+    ],
+    // An enemy gets scared: a startled squeak that drops, with a short rustle.
+    scare: [
+        note({ from: 1500, to: 1900, dur: 0.05, vol: 0.25, duty: 0.25, decay: 0 }),
+        note({ from: 1900, to: 700, at: 0.05, dur: 0.16, vol: 0.25, duty: 0.25, decay: 1.5 }),
+        note({ wave: 'noise', from: 3000, to: 1500, dur: 0.12, vol: 0.15, decay: 2 })
+    ],
     // Short fanfare: arpeggio, then a held chord.
     goal: [
         ...[C5, E5, G5].map((f, i) => note({ from: f, at: i * 0.1, dur: 0.12, vol: 0.22, duty: 0.25 })),

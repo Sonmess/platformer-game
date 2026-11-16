@@ -63,7 +63,9 @@ export const AUDIO = {
         COIN: { key: 'sfx-coin', url: 'assets/own/sfx/coin.wav', volume: 0.45, detune: 0 },
         CHECKPOINT: { key: 'sfx-checkpoint', url: 'assets/own/sfx/checkpoint.wav', volume: 0.5, detune: 0 },
         DIE: { key: 'sfx-die', url: 'assets/own/sfx/die.wav', volume: 0.5, detune: 0 },
-        GOAL: { key: 'sfx-goal', url: 'assets/own/sfx/goal.wav', volume: 0.55, detune: 0 }
+        GOAL: { key: 'sfx-goal', url: 'assets/own/sfx/goal.wav', volume: 0.55, detune: 0 },
+        SCARE: { key: 'sfx-scare', url: 'assets/own/sfx/scare.wav', volume: 0.45, detune: 80 },
+        MEOW: { key: 'sfx-meow', url: 'assets/own/sfx/meow.wav', volume: 0.5, detune: 70 }
     },
     // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
     MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 },
@@ -92,6 +94,7 @@ export const JUICE = {
     COIN: { sparks: 8, tint: [0xffffff, 0xffe066, 0xff6a6a], hudPopScale: 1.4, hudPopMs: 160 },
     CHECKPOINT: { sparks: 14, sparkHeight: 8, tint: [0xffe066, 0xffa030, 0xff5a20] },
     DEATH: { particles: 16, shakeMs: 160, shakeIntensity: 0.006, tint: [0xffffff, 0xd0d0d0] },
+    SCARE: { drops: 8, tint: [0xffffff, 0xbfe3ff] },     // a burst of "sweat" over a scared enemy
     RESPAWN: { fromScale: 0.5, ms: 220 }
 } as const;
 
@@ -122,6 +125,32 @@ export interface ParallaxLayerDef
     tint?: number;
 }
 
+// Meow (X): scares enemies in front of the cat (see src/core/meow.ts).
+export const MEOW = {
+    RANGE_TILES: 4,             // reach in front of the cat's head
+    HALF_HEIGHT_TILES: 1.5,     // reach above and below the head
+    BEHIND_PX: 8,               // also counts what touches the cat's face
+    COOLDOWN_MS: 2000,
+    POSE_MS: 350,               // how long the open-mouth frame shows
+    HEAD_OFFSET: { x: 9, y: -4 },   // head relative to the hitbox centre (facing right)
+    WAVE: { ARCS: 3, SPACING_PX: 10, MS: 450, ANGLE_DEG: 40, LINE: 2, COLOR: 0xffffff }
+} as const;
+
+// Enemies are scared by a meow (src/core/meow.ts): harmless and frozen, shaking, for SCARE_MS.
+export const ENEMY = {
+    SCARE_MS: 3000,
+    WARN_MS: 600,               // shakes faster just before it recovers
+    SHAKE_PX: 1,
+    SHAKE_MS: 70,               // time between shake steps
+    WARN_SHAKE_MS: 35
+} as const;
+
+export const HEDGEHOG = {
+    SPEED: 28,                  // px/s
+    WIDTH: 14,                  // hitbox; the sprite is 20×14
+    HEIGHT: 10
+} as const;
+
 export const PLAYER = {
     WIDTH: 18,              // hitbox, sized to the cat's body (ears and tail stick out, on purpose)
     HEIGHT: 14
@@ -148,6 +177,7 @@ export const LEVEL = {
     SPIKES_TYPE: 'spikes',
     CHECKPOINT_TYPE: 'checkpoint',
     COIN_TYPE: 'coin',
+    HEDGEHOG_TYPE: 'hedgehog',      // rectangle = patrol range, bottom edge = the ground it walks on
     GOAL_TYPE: 'goal'
 } as const;
 
@@ -171,7 +201,10 @@ export const HUD = {
     TEXT_METRICS: '|MÉqgyČŠŽĽŤĎŇ',
     TEXT_COLOR: '#ffffff',
     TEXT_STROKE: '#000000',
-    TEXT_STROKE_WIDTH: 2
+    TEXT_STROKE_WIDTH: 2,
+    // Meow readiness under the cherries: label dims and a bar refills during the cooldown.
+    MEOW_LABEL: 'X mňau',
+    MEOW_BAR: { WIDTH: 40, HEIGHT: 2, GAP: 2, COLOR: 0xffffff, COOLING_ALPHA: 0.4 }
 } as const;
 
 // "Level complete" screen. UI text is Slovak, like the rest of the project.
@@ -228,7 +261,7 @@ export const TITLE = {
         CONTROLS: [
             'beh: šípky alebo A, D',
             'skok: medzerník alebo W (podrž = vyššie)',     // Z is a jump key too, but reads as "2" in this font
-            'pauza: Esc alebo P, hudba: M',
+            'mňau: X, pauza: Esc alebo P, hudba: M',
             'cieľ: dobehni do jaskyne, zbieraj čerešne'
         ],
         PROMPT: 'Enter = hrať'
@@ -243,7 +276,8 @@ export const ASSETS = {
         frameWidth: 32, frameHeight: 22,
         idle: { key: 'cat-idle', url: 'assets/own/cat-idle.png', frames: 2, frameRate: 2 },
         run: { key: 'cat-run', url: 'assets/own/cat-run.png', frames: 4, frameRate: 12 },
-        jump: { key: 'cat-jump', url: 'assets/own/cat-jump.png' }       // 0 = rising, 1 = falling
+        jump: { key: 'cat-jump', url: 'assets/own/cat-jump.png' },      // 0 = rising, 1 = falling
+        meow: { key: 'cat-meow', url: 'assets/own/cat-meow.png' }
     },
     CAMPFIRE: {
         frameWidth: 24, frameHeight: 24,
@@ -252,6 +286,11 @@ export const ASSETS = {
     },
     CHERRY: { key: 'cherry', url: 'assets/sunny-land/sprites/cherry.png', frameWidth: 21, frameHeight: 21, frames: 5, frameRate: 10 },
     SPIKES: { key: 'spikes', url: 'assets/sunny-land/props/spikes.png' },
+    HEDGEHOG: {
+        frameWidth: 20, frameHeight: 14,
+        walk: { key: 'hedgehog-walk', url: 'assets/own/hedgehog-walk.png', frames: 2, frameRate: 6 },
+        scared: { key: 'hedgehog-scared', url: 'assets/own/hedgehog-scared.png' }
+    },
     FONT: { key: 'PixelifySans', url: 'assets/fonts/PixelifySans.ttf' }
 } as const;
 
@@ -261,6 +300,8 @@ export const ANIM = {
     CAT_RUN: 'cat-run',
     CAT_JUMP: 'cat-jump',
     CAT_FALL: 'cat-fall',
+    CAT_MEOW: 'cat-meow',
+    HEDGEHOG_WALK: 'hedgehog-walk',
     CHERRY: 'cherry-spin',
     CAMPFIRE: 'campfire-burn'
 } as const;

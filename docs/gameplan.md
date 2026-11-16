@@ -67,13 +67,13 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 - [x] **2. Pauza** — Esc alebo P: zastaví fyziku, čas levelu, animácie a efekty; prekrytie „Pauza“
   (pokračovať / na úvodnú obrazovku).
   Test: počas pauzy sa hráč ani čas nemenia; po pokračovaní hra pokračuje rovnako.
-- [ ] **3. Hudba** — vlastná pokojná 8-bit slučka (~30 s, bez počuteľného švu) generovaná skriptom
+- [x] **3. Hudba** — vlastná pokojná 8-bit slučka (~30 s, bez počuteľného švu) generovaná skriptom
   `tools/music.mjs`; hrá na úvodnej obrazovke aj v leveli, počas pauzy stíšená. M = stlmiť/zapnúť hudbu.
   Test: hrá v slučke, M prepína, po reštarte levelu sa nezdvojí. Kvalita a hlasitosť: overené playtestom.
 
 ### Fáza B — mňaukanie a nepriatelia
 
-- [ ] **4. Mňaukanie** — kláves X: mačka mňaukne (snímka s otvorenou papuľou, vlna, zvuk), event
+- [x] **4. Mňaukanie** — kláves X: mačka mňaukne (snímka s otvorenou papuľou, vlna, zvuk), event
   `player:meow`. Dosah ~4 dlaždice pred mačkou, cooldown ~2 s (viditeľný na mačke alebo v HUD).
   Test: cooldown blokuje opakovanie, event nesie pozíciu a smer.
 - [ ] **5. Ježko** — chodí tam a späť, na okraji plošiny alebo pri stene sa otočí. Dotyk = smrť mačky.

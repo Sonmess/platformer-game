@@ -40,6 +40,7 @@ export class Pause extends Scene
         music.handleKeys(input);
         if (input.pausePressed) {
             this.scene.resume('Game');
+            this.scene.resume('Hud');
             this.scene.stop();
         } else if (input.quitPressed) {
             this.scene.stop('Hud');

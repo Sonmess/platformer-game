@@ -29,7 +29,9 @@ export class SoundEffects
             [EV.COIN_COLLECT, this.onCoin],
             [EV.CHECKPOINT_REACH, () => this.play(AUDIO.SFX.CHECKPOINT)],
             [EV.PLAYER_DIE, () => this.play(AUDIO.SFX.DIE)],
-            [EV.LEVEL_COMPLETE, () => this.play(AUDIO.SFX.GOAL)]
+            [EV.LEVEL_COMPLETE, () => this.play(AUDIO.SFX.GOAL)],
+            [EV.PLAYER_MEOW, () => this.play(AUDIO.SFX.MEOW)],
+            [EV.ENEMY_SCARE, () => this.play(AUDIO.SFX.SCARE)]
         ];
         for (const [name, fn] of this.handlers) events.on(name, fn, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {

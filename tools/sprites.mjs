@@ -20,7 +20,11 @@ const PALETTE = {
     y: '#ffb53a',   // flame middle
     Y: '#fff1a8',   // flame core
     a: '#4a4e57',   // ash / cold embers
-    K: '#1a1a22'    // pupil
+    K: '#1a1a22',   // pupil
+    b: '#3b3734',   // hedgehog spines (dark); cool grey so it stands out from the orange-brown ground
+    B: '#7a7068',   // hedgehog spines
+    h: '#e6c9a0',   // hedgehog face and belly
+    n: '#2a1a14'    // hedgehog nose and feet
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -37,6 +41,17 @@ const HEAD = [          // 10×9, placed at the body's front
     'gggggwwwww',
     '.ggwwwwww.',
     '..gwwww...'
+];
+const HEAD_MEOW = [     // same head, mouth open
+    'g.....g...',
+    'gg...gg...',
+    'gpg.gpg...',
+    'ggggggggg.',
+    'gggggeKggg',
+    'gggggggggp',
+    'gggggwwKKK',
+    '.ggwwwKKpK',
+    '..gwwwwKK.'
 ];
 const BODY = [          // 18×7
     '.ggdgggdggggdgggg.',
@@ -64,7 +79,7 @@ const FWD = [0, 0, 1, 1, 2];
 const BACK = [0, 0, -1, -1, -2];
 const TUCK = [1, 1, 2];           // short: tucked under the body (airborne / mid-stride)
 
-function catFrame ({ bob = 0, tail = TAIL_UP, legs })
+function catFrame ({ bob = 0, tail = TAIL_UP, legs, head = HEAD })
 {
     const grid = Array.from({ length: H }, () => Array(W).fill('.'));
     const put = (x, y, c) => { if (x >= 0 && x < W && y >= 0 && y < H && c !== '.') grid[y][x] = c; };
@@ -82,7 +97,7 @@ function catFrame ({ bob = 0, tail = TAIL_UP, legs })
         });
     }
     BODY.forEach((row, y) => [...row].forEach((c, x) => put(bodyX + x, bodyY + y, c)));
-    HEAD.forEach((row, y) => [...row].forEach((c, x) => put(bodyX + 13 + x, bodyY - 6 + y, c)));
+    head.forEach((row, y) => [...row].forEach((c, x) => put(bodyX + 13 + x, bodyY - 6 + y, c)));
     for (const [x, y] of tail) { put(bodyX + x, bodyY + y, 'g'); put(bodyX + x, bodyY + y + 1, 'g'); }
     return grid.map(r => r.join(''));
 }
@@ -106,10 +121,54 @@ const CAT = {
         catFrame({ bob: 2, legs: [leg(1, [-1, -2, -3], true), leg(3, [-1, -2, -3], false), leg(14, [1, 2, 3], true), leg(15, [1, 2, 3], false)], tail: TAIL_LOW }),
         // Falling: legs reaching down for the landing, tail up for balance.
         catFrame({ legs: [leg(2, FWD, true), leg(4, FWD, false), leg(12, FWD, true), leg(14, FWD, false)], tail: TAIL_UP })
+    ],
+    // Meow: head raised a pixel, mouth wide open (dark with a pink tongue), tail straight up.
+    meow: [
+        catFrame({ bob: 1, legs: legsStanding, head: HEAD_MEOW, tail: TAIL_UP })
     ]
 };
 
 // ── Campfire (checkpoint): 24×24, unlit = 1 frame, lit = 4 flame frames ──────────────────────
+// ── Hedgehog (enemy): 20×14 frames, facing right, feet on the bottom row ───────────────────────
+// Walking: spiny back, pointed face with a black nose; two leg poses. Scared: a spiky ball.
+const HEDGEHOG_BODY = [
+    '......b.b.b.........',
+    '....b.BbBbBb.b......',
+    '...bBBBBBBBBBb......',
+    '..bBBBbBBBBbBBb.....',
+    '.bBBBBBBBBBBBBBh....',
+    '.bBBbBBBBbBBBBhhh...',
+    'bBBBBBBBBBBBBhhKhh..',
+    'bBBBBbBBBBBBBhhhhhhn',
+    '.bBBBBBBBBBBhhhhhh..',
+    '..hhhhhhhhhhhhhh....',
+    '...hhhhhhhhhhhh.....'
+];
+// One empty row on top (room for the outline), the body, then two rows of legs.
+const hedgehogWalk = legs => ['.'.repeat(20), ...HEDGEHOG_BODY, legs, legs];
+const HEDGEHOG = {
+    walk: [
+        hedgehogWalk('...nn...nn..nn..nn..'),
+        hedgehogWalk('....nn..nn...nn..nn.')
+    ],
+    scared: [[
+        '....................',
+        '.......b.b.b........',
+        '.....bBbBbBbBb......',
+        '....bBBBBBBBBBb.....',
+        '...bBBbBBBbBBBBb....',
+        '..bBBBBBBBBBBBBBb...',
+        '..bBBbBBBbBBBbBBb...',
+        '..bBBBBBBBBBBBBBb...',
+        '..bBBBbBBBbBBBBBb...',
+        '..bBBBBBBBBBBBBBb...',
+        '...bBBBBBBBBBBBb....',
+        '....bBBBhhhBBBb.....',
+        '.....bbhhhhhbb......',
+        '.......nnnnn........'
+    ]]
+};
+
 const FW = 24;
 const FIRE_BASE = [            // rows 18..23
     '....kllk........kllk....',
@@ -201,5 +260,8 @@ const write = (name, frames, outline, skip) => {
 write('cat-idle', CAT.idle, true);
 write('cat-run', CAT.run, true);
 write('cat-jump', CAT.jump, true);
+write('cat-meow', CAT.meow, true);
 write('campfire-unlit', FIRE.unlit, true);
 write('campfire-lit', FIRE.lit, true, 'rYy');      // no outline around the flames
+write('hedgehog-walk', HEDGEHOG.walk, true);
+write('hedgehog-scared', HEDGEHOG.scared, true);
