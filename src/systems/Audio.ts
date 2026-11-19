@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { AUDIO, JUICE, PLAYER_FEEL } from '../config/constants';
+import { AUDIO, JUICE, PLAYER_FEEL, type FeatherKind } from '../config/constants';
 import { EV, events } from '../core/events';
 
 type Sfx = typeof AUDIO.SFX[keyof typeof AUDIO.SFX];
@@ -27,11 +27,17 @@ export class SoundEffects
             [EV.PLAYER_JUMP, () => this.play(AUDIO.SFX.JUMP)],
             [EV.PLAYER_LAND, this.onLand],
             [EV.COIN_COLLECT, this.onCoin],
+            [EV.LIFE_GAIN, () => this.play(AUDIO.SFX.LIFE)],
+            [EV.PLAYER_GROW, () => this.play(AUDIO.SFX.GROW)],
+            [EV.PLAYER_SHRINK, () => this.play(AUDIO.SFX.SHRINK)],
             [EV.CHECKPOINT_REACH, () => this.play(AUDIO.SFX.CHECKPOINT)],
             [EV.PLAYER_DIE, () => this.play(AUDIO.SFX.DIE)],
             [EV.LEVEL_COMPLETE, () => this.play(AUDIO.SFX.GOAL)],
+            [EV.GAME_OVER, () => this.play(AUDIO.SFX.GAME_OVER)],
             [EV.PLAYER_MEOW, () => this.play(AUDIO.SFX.MEOW)],
             [EV.ENEMY_SCARE, () => this.play(AUDIO.SFX.SCARE)],
+            [EV.PLAYER_CLAW, () => this.play(AUDIO.SFX.CLAW)],
+            [EV.ENEMY_FLEE, () => this.play(AUDIO.SFX.FLEE)],
             [EV.CRUMBLE_SHAKE, () => this.play(AUDIO.SFX.CRACK)],
             [EV.CRUMBLE_FALL, () => this.play(AUDIO.SFX.CRUMBLE)]
         ];
@@ -49,13 +55,13 @@ export class SoundEffects
         this.play(AUDIO.SFX.LAND, strength);
     }
 
-    private onCoin (): void
+    private onCoin ({ kind }: { kind: FeatherKind }): void
     {
         const now = this.scene.time.now;
         const { windowMs, stepCents, maxSteps } = AUDIO.COIN_COMBO;
         this.comboSteps = now - this.lastCoinMs <= windowMs ? Math.min(this.comboSteps + 1, maxSteps) : 0;
         this.lastCoinMs = now;
-        this.play(AUDIO.SFX.COIN, 1, this.comboSteps * stepCents);
+        this.play(AUDIO.SFX.COIN, 1, AUDIO.FEATHER_PITCH[kind] + this.comboSteps * stepCents);
     }
 
     private play (sfx: Sfx, volumeScale = 1, detune = 0): void

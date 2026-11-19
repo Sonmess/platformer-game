@@ -8,6 +8,7 @@ import type { Title } from './scenes/Title';
 import { EV, events } from './core/events';
 import { sfxLog } from './systems/Audio';
 import { music } from './systems/Music';
+import type { ClawSwipe } from './core/claw';
 import type { MeowWave } from './core/meow';
 import { virtualKeys, type VirtualKey } from './systems/Input';
 
@@ -16,21 +17,43 @@ import { virtualKeys, type VirtualKey } from './systems/Input';
 export interface GameState {
     scene: string;
     fps: number;
-    player: { x: number; y: number; vx: number; vy: number; onGround: boolean; anim: string; flipX: boolean; spriteX: number; spriteY: number } | null;
+    /**
+     * `dying`: the death animation plays (controls off); `invulnerable`: just respawned; `awaitingRelease`: the
+     * arrows are ignored until let go. `spriteAlpha`/`spriteAngle` show the death and blink animations.
+     */
+    player: {
+        x: number; y: number; vx: number; vy: number; onGround: boolean; anim: string; flipX: boolean; spriteX: number; spriteY: number;
+        dying: boolean; invulnerable: boolean; awaitingRelease: boolean; spriteAlpha: number; spriteAngle: number;
+        /** Puffed up by a yarn ball; `spriteScale` is the sprite's current x scale. */
+        big: boolean; spriteScale: number;
+    } | null;
     level: { width: number; height: number } | null;
     camera: { scrollX: number; scrollY: number; width: number; height: number } | null;
     deaths: number;
+    /** Lives left (9 at the start of a run, game over at 0). */
+    lives: number;
     coins: number;
     coinsTotal: number;
+    /** Feather points (1 / 5 / 10 each) and the level's total; the HUD shows `points`. */
+    points: number;
+    pointsTotal: number;
     /** Coins still in the level. */
     coinsLeft: number;
-    hud: { coinsText: string; meowReady: boolean } | null;
+    /** Yarn balls still in the level. */
+    yarnsLeft: number;
+    /** `livesShown`: cat heads in the top-right corner (one per life). */
+    hud: { coinsText: string; meowReady: boolean; livesShown: number } | null;
     /** Meow: cooldown left (ms), how many meows this page has seen, and the last one's reach. */
     meow: { cooldownMs: number; count: number; last: MeowWave | null };
+    /** Claw (C): cooldown left (ms), how many swipes this page has seen, and the last one's reach. */
+    claw: { cooldownMs: number; count: number; last: ClawSwipe | null };
     /** Respawn point at the player's feet. */
     checkpoint: { x: number; y: number };
-    /** Enemies in level order: hitbox centre, facing, scared and how much fright is left (ms), harmful. */
-    enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string }[];
+    /**
+     * Enemies in level order: hitbox centre, facing, scared and how much fright is left (ms), harmful; `gone` = clawed
+     * and fled (no hitbox until the level restarts), `spriteAlpha` fades as it runs off.
+     */
+    enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string; gone: boolean; spriteAlpha: number }[];
     /** Moving platforms in level order: top-left corner and velocity. */
     platforms: { x: number; y: number; width: number; vx: number; vy: number; drawX: number; drawY: number }[];
     /** Crumbling platforms in level order: top-left corner, phase (solid/shaking/falling/gone) and the drawn image. */
@@ -80,6 +103,8 @@ export function installTestApi (game: Phaser.Game): void
     // Installed once per page: counts every meow event, across restarts.
     const meowLog = { count: 0, last: null as MeowWave | null };
     events.on(EV.PLAYER_MEOW, (w: MeowWave) => { meowLog.count++; meowLog.last = { x: w.x, y: w.y, dir: w.dir, range: w.range, halfHeight: w.halfHeight, behind: w.behind }; });
+    const clawLog = { count: 0, last: null as ClawSwipe | null };
+    events.on(EV.PLAYER_CLAW, (s: ClawSwipe) => { clawLog.count++; clawLog.last = { x: s.x, y: s.y, dir: s.dir, reach: s.reach, behind: s.behind, halfHeight: s.halfHeight }; });
     const gameScene = () => game.scene.getScene('Game') as Game;
     // No fallback: while Preload is still loading no scene is running, and that must not read as 'Game'.
     const activeScene = () => game.scene.getScenes(true).find(s => s.scene.key !== 'Hud');
@@ -118,18 +143,26 @@ export function installTestApi (game: Phaser.Game): void
                     onGround: p.onGround,
                     anim: p.anim,
                     flipX: p.sprite.flipX,
-                    spriteX: p.sprite.x, spriteY: p.sprite.y
+                    spriteX: p.sprite.x, spriteY: p.sprite.y,
+                    dying: p.dying, invulnerable: p.invulnerable, awaitingRelease: p.awaitingRelease,
+                    big: p.big, spriteScale: p.sprite.scaleX,
+                    spriteAlpha: p.sprite.alpha, spriteAngle: p.sprite.angle
                 } : null,
                 level: map ? { width: map.widthInPixels, height: map.heightInPixels } : null,
                 camera: cam ? { scrollX: cam.scrollX, scrollY: cam.scrollY, width: cam.width, height: cam.height } : null,
                 deaths: state.deaths,
+                lives: state.lives,
                 coins: state.coins,
                 coinsTotal: state.coinsTotal,
+                points: state.points,
+                pointsTotal: state.pointsTotal,
                 coinsLeft: g?.coins.countActive() ?? 0,
-                hud: hud?.sys.isActive() || hud?.sys.isPaused() ? { coinsText: hud.coinsLabel, meowReady: hud.meowReady } : null,
+                yarnsLeft: g?.yarns.countActive() ?? 0,
+                hud: hud?.sys.isActive() || hud?.sys.isPaused() ? { coinsText: hud.coinsLabel, meowReady: hud.meowReady, livesShown: hud.livesShown } : null,
                 meow: { cooldownMs: p?.meowCooldown.remainingMs ?? 0, count: meowLog.count, last: meowLog.last },
+                claw: { cooldownMs: p?.clawCooldown.remainingMs ?? 0, count: clawLog.count, last: clawLog.last },
                 checkpoint: { ...state.checkpoint },
-                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key })) ?? [],
+                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key, gone: e.gone, spriteAlpha: e.sprite.alpha })) ?? [],
                 platforms: g?.platforms.map(p => ({ x: p.x, y: p.y, width: p.width, vx: p.body.velocity.x, vy: p.body.velocity.y, drawX: p.image.x, drawY: p.image.y })) ?? [],
                 crumbles: g?.crumbles.map(c => ({ x: c.x, y: c.y, width: c.width, phase: c.phase, solid: c.solid, imageX: c.image.x, imageY: c.image.y, visible: c.image.visible })) ?? [],
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],

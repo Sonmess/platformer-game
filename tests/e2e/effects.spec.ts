@@ -95,13 +95,22 @@ test('collecting a coin bursts sparks', async ({ page }) => {
     expect((await effects(page)).particles).toBeGreaterThan(0);
 });
 
-test('dying shakes the screen and the cat pops back in at the checkpoint', async ({ page }) => {
+test('dying shakes the screen, then the cat pops back in at the checkpoint and blinks', async ({ page }) => {
     await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [51 * TILE, 12 * TILE]);
     await page.waitForFunction(() => window.__game!.getState().deaths === 1);
-    const fx = await effects(page);
-    expect(fx.shaking).toBe(true);
-    expect(fx.catScaleY).toBeLessThan(1);
+    expect((await effects(page)).shaking).toBe(true);
 
-    await wait(page, 800);
+    await page.waitForFunction(() => !window.__game!.getState().player!.dying);
+    const fx = await effects(page);
+    expect(fx.catScaleY).toBeLessThan(1);                      // the pop back in
+    const alphas = await page.evaluate(async () => {
+        const seen: number[] = [];
+        for (let i = 0; i < 12; i++) { seen.push(window.__game!.getState().player!.spriteAlpha); await window.__game!.wait(40); }
+        return seen;
+    });
+    expect(Math.min(...alphas)).toBeLessThan(1);               // blinking while invulnerable
+
+    await wait(page, 1500);
     await expectAtRest(page);
+    expect((await state(page)).player!.spriteAlpha).toBe(1);
 });

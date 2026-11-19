@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { RESULTS, TILE } from '../../src/config/constants';
+import { LIVES, RESULTS, TILE } from '../../src/config/constants';
 import { CRUMBLES, GOAL } from './landmarks';
 
 // Landmarks in src/levels/level1.json (tile coordinates).
@@ -25,10 +25,10 @@ async function initialSnapshot (page: Page)
     const s = await state(page);
     return {
         player: s.player, camera: s.camera, coins: s.coins, coinsLeft: s.coinsLeft, coinsTotal: s.coinsTotal,
-        deaths: s.deaths, checkpoint: s.checkpoint, hud: s.hud, listeners: s.listeners,
+        deaths: s.deaths, lives: s.lives, checkpoint: s.checkpoint, hud: s.hud, listeners: s.listeners,
         parallax: s.parallax, parallaxListeners: s.parallaxListeners,
         paused: s.paused, meowCooldownMs: s.meow.cooldownMs, campfiresLit: s.campfiresLit,
-        enemies: s.enemies.map(e => ({ kind: e.kind, scared: e.scared, harmful: e.harmful })),
+        enemies: s.enemies.map(e => ({ kind: e.kind, scared: e.scared, harmful: e.harmful, gone: e.gone })),
         crumbles: s.crumbles.map(c => ({ phase: c.phase, visible: c.visible, imageX: c.imageX, imageY: c.imageY })),
         musicInstances: s.music.instances
     };
@@ -56,13 +56,13 @@ test('reaching the goal shows the results with coins, deaths and time', async ({
     await teleport(page, PLATEAU_COIN);
     await page.waitForFunction(() => window.__game!.getState().coins === 1);
     await teleport(page, FIRST_PIT);
-    await page.waitForFunction(() => window.__game!.getState().deaths === 1);
+    await page.waitForFunction(() => window.__game!.getState().deaths === 1 && !window.__game!.getState().player!.dying);   // and back at the checkpoint
 
     await finishLevel(page);
     const s = await state(page);
     expect(s.hud).toBeNull();                               // HUD is stopped with the level
-    expect(s.results![0]).toBe(`${RESULTS.TEXT.COINS}: 1/${s.coinsTotal}`);
-    expect(s.results![1]).toBe(`${RESULTS.TEXT.DEATHS}: 1`);
+    expect(s.results![0]).toBe(`${RESULTS.TEXT.COINS}: 1/${s.pointsTotal}`);     // a blue feather: 1 point
+    expect(s.results![1]).toBe(`${RESULTS.TEXT.LIVES}: ${LIVES.START - 1}/${LIVES.MAX}`);   // one life lost
     expect(s.results![2]).toMatch(new RegExp(`^${RESULTS.TEXT.TIME}: \\d+:\\d\\d\\.\\d$`));
     expect(s.timeMs).toBeGreaterThan(0);
 });
@@ -103,7 +103,7 @@ test('restarting 10× yields an identical initial state', async ({ page }) => {
         await teleport(page, PLATEAU_COIN);
         await page.waitForFunction(() => window.__game!.getState().coins === 1);
         await teleport(page, FIRST_PIT);
-        await page.waitForFunction(() => window.__game!.getState().deaths === 1);
+        await page.waitForFunction(() => window.__game!.getState().deaths === 1 && !window.__game!.getState().player!.dying);   // and back at the checkpoint
         await teleport(page, { x: CRUMBLES[0].x + CRUMBLES[0].width / 2, y: CRUMBLES[0].y - 12 });
         await page.waitForFunction(() => window.__game!.getState().crumbles[0].phase !== 'solid');
         await finishLevel(page);

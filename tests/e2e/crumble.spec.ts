@@ -65,6 +65,6 @@ test('a death puts it straight back in place', async ({ page }) => {
     await standOnIt(page);
     await waitForPhase(page, 'falling');
     await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [FIRST_PIT.x, FIRST_PIT.y]);
-    await page.waitForFunction(() => window.__game!.getState().deaths === 1);
+    await page.waitForFunction(() => window.__game!.getState().deaths === 1 && !window.__game!.getState().player!.dying);   // and back at the checkpoint
     expect(await crumble(page)).toMatchObject({ phase: 'solid', solid: true, visible: true, imageX: CRUMBLE_AT.x, imageY: CRUMBLE_AT.y });
 });

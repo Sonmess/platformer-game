@@ -12,7 +12,8 @@ const state = (page: Page) => page.evaluate(() => window.__game!.getState());
 const game = (page: Page) => ({
     teleport: (x: number, y: number) => page.evaluate(([px, py]) => window.__game!.teleport(px, py), [x, y]),
     wait: (ms: number) => page.evaluate(m => window.__game!.wait(m), ms),
-    waitForDeaths: (n: number) => page.waitForFunction(d => window.__game!.getState().deaths >= d, n)
+    /** Waits for the n-th death and its respawn (the death animation plays first). */
+    waitForDeaths: (n: number) => page.waitForFunction(d => window.__game!.getState().deaths >= d && !window.__game!.getState().player!.dying, n)
 });
 
 test.beforeEach(async ({ page }) => {

@@ -14,6 +14,7 @@ export class Crow extends Enemy
     private readonly length: number;
     private readonly vertical: boolean;
     private travelled = 0;
+    readonly spiky = false;
 
     constructor (scene: Phaser.Scene, path: { x: number; y: number; width: number; height: number })
     {
@@ -45,5 +46,10 @@ export class Crow extends Enemy
     {
         if (this.scared) sprite.stop().setTexture(ASSETS.CROW.scared.key);
         else sprite.play(ANIM.CROW_FLY, true);
+    }
+
+    protected showFleeing (sprite: Phaser.GameObjects.Sprite): void
+    {
+        sprite.play(ANIM.CROW_FLY, true);
     }
 }

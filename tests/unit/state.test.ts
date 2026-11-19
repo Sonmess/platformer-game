@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { COIN, LIVES } from '../../src/config/constants';
 import { state } from '../../src/core/state';
 
 describe('state.reset', () => {
@@ -15,6 +16,59 @@ describe('state.reset', () => {
         state.reset(1, spawn);
         spawn.x = 100;
         expect(state.checkpoint.x).toBe(1);
+    });
+});
+
+describe('lives', () => {
+    it('a new run starts with three lives', () => {
+        state.lives = 1;
+        state.reset();
+        expect(state.lives).toBe(LIVES.START);
+        expect(LIVES.START).toBe(3);
+        expect(state.gameOver).toBe(false);
+    });
+
+    it('every death counts and takes a life; at none left the game is over', () => {
+        state.reset();
+        for (let i = LIVES.START - 1; i >= 0; i--) expect(state.loseLife()).toBe(i);
+        expect(state.deaths).toBe(LIVES.START);
+        expect(state.gameOver).toBe(true);
+        expect(state.loseLife()).toBe(0);                  // never below zero
+    });
+
+    it('a life can be gained back, but not above the maximum', () => {
+        state.reset();
+        state.loseLife();
+        expect(state.gainLife()).toBe(true);
+        expect(state.lives).toBe(LIVES.MAX);
+        expect(state.gainLife()).toBe(false);
+        expect(state.lives).toBe(LIVES.MAX);
+    });
+});
+
+describe('feathers and points', () => {
+    it('counts feathers and adds up their points', () => {
+        state.reset(1, { x: 0, y: 0 }, 3, 16);
+        state.collect(1);
+        state.collect(5);
+        state.collect(10);
+        expect(state).toMatchObject({ coins: 3, coinsTotal: 3, points: 16, pointsTotal: 16 });
+    });
+
+    it('every LIFE_EVERY points give back a missing life, never above the maximum', () => {
+        state.reset();
+        state.loseLife();
+        for (let p = 0; p < COIN.LIFE_EVERY - 10; p += 10) expect(state.collect(10)).toBe(false);
+        expect(state.collect(10)).toBe(true);               // crossed the threshold
+        expect(state.lives).toBe(LIVES.MAX);
+        for (let p = 0; p < COIN.LIFE_EVERY; p += 10) expect(state.collect(10)).toBe(false);   // full: nothing
+        expect(state.lives).toBe(LIVES.MAX);
+    });
+
+    it('a new run clears the points', () => {
+        state.collect(10);
+        state.reset();
+        expect(state.points).toBe(0);
     });
 });
 

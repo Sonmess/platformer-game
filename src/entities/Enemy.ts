@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DEPTH, ENEMY } from '../config/constants';
+import { DEPTH, ENEMY, FLEE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { Scare } from '../core/meow';
 
@@ -8,7 +8,9 @@ export type EnemyKind = 'hedgehog' | 'crow';
 /**
  * Shared enemy behaviour: an invisible Arcade hitbox (all physics and tests use it) with a sprite that
  * follows it after the physics step, like the Player. A meow scares the enemy: it stops, plays its
- * scared look, shakes, and is harmless until it recovers. Subclasses only move and pick animations.
+ * scared look, shakes, and is harmless until it recovers. A claw makes it flee: the hitbox is switched off at once,
+ * the sprite runs (or flies) away and fades, and it stays gone until the level restarts. Subclasses only move and pick
+ * animations.
  */
 export abstract class Enemy extends Phaser.GameObjects.Rectangle
 {
@@ -19,6 +21,10 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
     private readonly fright = new Scare(ENEMY.SCARE_MS, ENEMY.WARN_MS);
     private shakeMs = 0;
     private shakeOffset = 0;
+    /** Clawed and fled: no hitbox, no updates, no sprite sync (a tween owns the sprite). Back only with the level. */
+    gone = false;
+    /** Spines: clawing it unscared pricks the cat (see clawOutcome). */
+    abstract readonly spiky: boolean;
 
     /** `spriteOriginY`: the sprite row (0..1) that sits on the hitbox bottom (a crow's feet dangle below it). */
     constructor (scene: Phaser.Scene, readonly kind: EnemyKind, x: number, y: number, width: number, height: number, texture: string, spriteOriginY = 1)
@@ -39,7 +45,7 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
     /** Touching it kills the cat. */
     get harmful (): boolean
     {
-        return !this.fright.scared;
+        return !this.gone && !this.fright.scared;
     }
 
     get scared (): boolean
@@ -61,9 +67,30 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
         if (!wasScared) events.emit(EV.ENEMY_SCARE, { x: this.x, y: this.y, kind: this.kind });
     }
 
+    /** Clawed: run away from the cat (`away` = direction) and leave the level. */
+    flee (away: 1 | -1): void
+    {
+        if (this.gone) return;
+        this.gone = true;
+        this.body.stop();
+        this.body.enable = false;
+        this.dir = away;
+        events.emit(EV.ENEMY_FLEE, { x: this.x, y: this.y, kind: this.kind, dir: away });
+
+        const look = FLEE[this.kind];
+        const sprite = this.sprite.setFlipX(away < 0).setPosition(this.body.center.x, this.body.bottom);
+        this.showFleeing(sprite);
+        sprite.anims.timeScale = look.animScale;
+        this.scene.tweens.add({ targets: sprite, x: sprite.x + away * look.dx, alpha: 0, duration: FLEE.MS, ease: 'Quad.easeIn' });
+        // A hedgehog hops once as it bolts; a crow climbs away (one tween per property, so they never fight).
+        if (look.hopPx > 0) this.scene.tweens.add({ targets: sprite, y: sprite.y - look.hopPx, duration: FLEE.MS / 4, yoyo: true, ease: 'Quad.easeOut' });
+        else this.scene.tweens.add({ targets: sprite, y: sprite.y + look.dy, duration: FLEE.MS, ease: 'Quad.easeIn' });
+    }
+
     /** `player` = the cat's hitbox: a scared enemy recovers only once the cat is off it. */
     update (deltaMs: number, player: Phaser.Geom.Rectangle): void
     {
+        if (this.gone) return;
         const free = !Phaser.Geom.Intersects.RectangleToRectangle(this.getBounds(), player);
         if (this.fright.update(deltaMs, free)) events.emit(EV.ENEMY_RECOVER, { x: this.x, y: this.y, kind: this.kind });
 
@@ -86,8 +113,12 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
     /** Animation and frame for the current state. */
     protected abstract show (sprite: Phaser.GameObjects.Sprite): void;
 
+    /** Animation while fleeing (normal movement, sped up). */
+    protected abstract showFleeing (sprite: Phaser.GameObjects.Sprite): void;
+
     private syncSprite (): void
     {
+        if (this.gone) return;
         const body = this.body;
         this.sprite.setPosition(body.center.x + this.shakeOffset, body.bottom);
         this.sprite.setFlipX(this.dir < 0);

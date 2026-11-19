@@ -23,6 +23,12 @@ class Music
         this.apply();
     }
 
+    /** Silence (the "game over" jingle plays alone); the next `start()` begins the loop again. */
+    stop (): void
+    {
+        this.sound?.stop();
+    }
+
     /** Call from every scene's update: M toggles the music in any screen. */
     handleKeys (input: InputSnapshot): void
     {

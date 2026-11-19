@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { DEPTH, JUICE, MEOW, PLAYER_FEEL } from '../config/constants';
-import { EV, events } from '../core/events';
+import { DEATH, DEPTH, JUICE, MEOW, PLAYER_FEEL, POWER, type FeatherKind } from '../config/constants';
+import { EV, events, type DeathCause } from '../core/events';
+import type { ClawSwipe } from '../core/claw';
 import type { MeowWave } from '../core/meow';
 import type { Player } from '../entities/Player';
 
@@ -25,11 +26,19 @@ export class Effects
 {
     private readonly dust: Phaser.GameObjects.Particles.ParticleEmitter;
     /** One emitter per spark colour set; each particle picks a random tint from its set. */
-    private readonly coinSparks: Phaser.GameObjects.Particles.ParticleEmitter;
+    /** Feather sparkles, one emitter per kind (its colours). */
+    private readonly coinSparks: Record<FeatherKind, Phaser.GameObjects.Particles.ParticleEmitter>;
+    private readonly lifeSparks: Phaser.GameObjects.Particles.ParticleEmitter;
+    private readonly powerSparks: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly fireSparks: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly deathBits: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly scareDrops: Phaser.GameObjects.Particles.ParticleEmitter;
+    private readonly furPuff: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly handlers: [string, (...args: never[]) => void][];
+    // The cat sprite's tweens, kept apart so a jump's squash never cuts the respawn blink short.
+    private popTween?: Phaser.Tweens.Tween;
+    private blinkTween?: Phaser.Tweens.Tween;
+    private deathTween?: Phaser.Tweens.TweenChain;
 
     constructor (private readonly scene: Phaser.Scene, private readonly player: Player)
     {
@@ -54,10 +63,13 @@ export class Effects
             tint: [...tint],
             emitting: false
         }).setDepth(DEPTH.EFFECTS);
-        this.coinSparks = sparks(JUICE.COIN.tint);
+        this.coinSparks = { normal: sparks(JUICE.COIN.normal.tint), silver: sparks(JUICE.COIN.silver.tint), gold: sparks(JUICE.COIN.gold.tint) };
+        this.lifeSparks = sparks(JUICE.LIFE.tint);
+        this.powerSparks = sparks(JUICE.POWER.tint);
         this.fireSparks = sparks(JUICE.CHECKPOINT.tint);
         this.deathBits = sparks(JUICE.DEATH.tint);
         this.scareDrops = sparks(JUICE.SCARE.tint);
+        this.furPuff = sparks(JUICE.CLAW.HIT_TINT);
 
         this.handlers = [
             [EV.PLAYER_JUMP, this.onJump],
@@ -65,9 +77,14 @@ export class Effects
             [EV.PLAYER_DIE, this.onDie],
             [EV.PLAYER_RESPAWN, this.onRespawn],
             [EV.COIN_COLLECT, this.onCoin],
+            [EV.LIFE_GAIN, this.onLifeGain],
+            [EV.PLAYER_GROW, this.onSizeChange],
+            [EV.PLAYER_SHRINK, this.onShrink],
             [EV.CHECKPOINT_REACH, this.onCheckpoint],
             [EV.PLAYER_MEOW, this.onMeow],
             [EV.ENEMY_SCARE, this.onEnemyScare],
+            [EV.PLAYER_CLAW, this.onClaw],
+            [EV.ENEMY_FLEE, this.onEnemyFlee],
             [EV.CRUMBLE_FALL, this.onCrumbleFall]
         ];
         for (const [name, fn] of this.handlers) events.on(name, fn, this);
@@ -79,7 +96,8 @@ export class Effects
     /** Live particles across all emitters; exposed to the test API. */
     get particles (): number
     {
-        return [this.dust, this.coinSparks, this.fireSparks, this.deathBits, this.scareDrops].reduce((n, e) => n + e.getAliveParticleCount(), 0);
+        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff]
+            .reduce((n, e) => n + e.getAliveParticleCount(), 0);
     }
 
     private onJump (): void
@@ -100,22 +118,45 @@ export class Effects
         if (strength >= L.shakeAbove) this.shake(L.shakeMs, L.shakeIntensity);
     }
 
-    private onDie ({ x, y }: { x: number; y: number }): void
+    private onDie ({ x, y, cause }: { x: number; y: number; cause: DeathCause }): void
     {
         const D = JUICE.DEATH;
         this.deathBits.explode(D.particles, x, y);
         this.shake(D.shakeMs, D.shakeIntensity);
+        if (cause === 'pit') return;            // already off the bottom of the screen
+
+        // Knocked out: a little hop, then a spin and a drop off the screen, fading (Player shows the hurt frame).
+        const sprite = this.player.sprite;
+        this.popTween?.stop();
+        this.blinkTween?.stop();
+        sprite.setScale(1).setAlpha(1);
+        this.deathTween = this.scene.tweens.chain({
+            targets: sprite,
+            tweens: [
+                { y: sprite.y - D.popPx, duration: D.popMs, ease: 'Quad.easeOut' },
+                { y: sprite.y + D.fallPx, angle: D.spinDeg * this.player.facing, alpha: 0, duration: D.fallMs, ease: 'Quad.easeIn' }
+            ]
+        });
     }
 
     private onRespawn (): void
     {
-        const { fromScale, ms } = JUICE.RESPAWN;
-        this.pop(fromScale, fromScale, ms);
+        const R = JUICE.RESPAWN;
+        const sprite = this.player.sprite;
+        this.deathTween?.stop();
+        sprite.setAngle(0).setAlpha(1);
+        this.pop(R.fromScale, R.fromScale, R.ms);
+        this.blink(DEATH.INVULNERABLE_MS);      // while invulnerable
     }
 
-    private onCoin ({ x, y }: { x: number; y: number }): void
+    private onCoin ({ x, y, kind }: { x: number; y: number; kind: FeatherKind }): void
     {
-        this.coinSparks.explode(JUICE.COIN.sparks, x, y);
+        this.coinSparks[kind].explode(JUICE.COIN[kind].sparks, x, y);
+    }
+
+    private onLifeGain ({ x, y }: { x: number; y: number }): void
+    {
+        this.lifeSparks.explode(JUICE.LIFE.sparks, x, y);
     }
 
     private onCheckpoint ({ x, y }: { x: number; y: number }): void
@@ -157,6 +198,33 @@ export class Effects
         this.scareDrops.explode(JUICE.SCARE.drops, x, y);
     }
 
+    /** Three slanted claw marks in front of the paw, sliding down-forward and fading. */
+    private onClaw (swipe: ClawSwipe): void
+    {
+        const C = JUICE.CLAW;
+        const g = this.scene.add.graphics().setDepth(DEPTH.EFFECTS);
+        const cx = swipe.x + swipe.dir * (swipe.reach - C.LENGTH_PX / 2);
+        const progress = { t: 0 };
+        const draw = () => {
+            g.clear();
+            g.lineStyle(C.LINE, C.COLOR, 1 - progress.t);
+            const slide = progress.t * C.SLIDE_PX;
+            for (let i = 0; i < C.LINES; i++) {
+                const x = cx + swipe.dir * ((i - (C.LINES - 1) / 2) * C.SPACING_PX + slide);
+                const y = swipe.y + slide;
+                g.lineBetween(x - swipe.dir * C.SLANT_PX / 2, y - C.LENGTH_PX / 2, x + swipe.dir * C.SLANT_PX / 2, y + C.LENGTH_PX / 2);
+            }
+        };
+        draw();     // visible on the swipe's own frame
+        this.scene.tweens.add({ targets: progress, t: 1, duration: C.MS, ease: 'Quad.easeOut', onUpdate: draw, onComplete: () => g.destroy() });
+    }
+
+    /** A clawed enemy: a puff of fur where it was hit (the enemy animates its own escape). */
+    private onEnemyFlee ({ x, y }: { x: number; y: number }): void
+    {
+        this.furPuff.explode(JUICE.CLAW.HIT_SPARKS, x, y);
+    }
+
     /** Dust puffs along the whole width of a crumbling platform as it gives way. */
     private onCrumbleFall ({ x, y, width }: { x: number; y: number; width: number }): void
     {
@@ -172,18 +240,66 @@ export class Effects
         this.dust.explode(count, body.center.x, body.bottom);
     }
 
-    /** Squash & stretch on the visible cat only (never the hitbox), easing back to scale 1. */
+    /**
+     * Squash & stretch on the visible cat only (never the hitbox), easing back to its resting scale (1, or bigger
+     * with a yarn ball). The factors are relative to that resting scale.
+     */
     private pop (scaleX: number, scaleY: number, ms: number): void
     {
         const sprite = this.player.sprite;
-        this.scene.tweens.killTweensOf(sprite);
-        sprite.setScale(scaleX, scaleY);        // now, not on the tween's first update (a frame later)
-        this.scene.tweens.add({
+        const base = this.player.baseScale;
+        this.popTween?.stop();                  // only the scale tween: a blink may be running alongside
+        sprite.setScale(scaleX * base, scaleY * base);     // now, not on the tween's first update (a frame later)
+        this.popTween = this.scene.tweens.add({
             targets: sprite,
-            scaleX: 1,
-            scaleY: 1,
+            scaleX: base,
+            scaleY: base,
             duration: ms,
             ease: 'Back.easeOut'
+        });
+    }
+
+    /** Growing or shrinking: flicker between the two sizes a few times, ending at the new one; sparkles. */
+    private onSizeChange ({ x, y }: { x: number; y: number }): void
+    {
+        const P = JUICE.POWER;
+        const sprite = this.player.sprite;
+        const to = this.player.baseScale;
+        const from = to === 1 ? POWER.BIG_SCALE : 1;
+        this.popTween?.stop();
+        this.powerSparks.explode(P.sparks, x, y);
+        let step = 0;
+        sprite.setScale(from);
+        this.popTween = this.scene.tweens.addCounter({
+            from: 0, to: 2 * P.flickers, duration: 2 * P.flickers * P.flickerMs,
+            onUpdate: tween => {
+                const n = Math.floor(tween.getValue() ?? 0);
+                if (n !== step) { step = n; sprite.setScale(n % 2 === 1 ? to : from); }
+            },
+            onComplete: () => sprite.setScale(to)
+        });
+    }
+
+    /** Hit while big: the same flicker, and blink while invulnerable. */
+    private onShrink (e: { x: number; y: number }): void
+    {
+        this.onSizeChange(e);
+        this.blink(POWER.HURT_INVULNERABLE_MS);
+    }
+
+    private blink (ms: number): void
+    {
+        const R = JUICE.RESPAWN;
+        const sprite = this.player.sprite;
+        this.blinkTween?.stop();
+        sprite.setAlpha(1);
+        this.blinkTween = this.scene.tweens.add({
+            targets: sprite,
+            alpha: R.blinkAlpha,
+            duration: R.blinkMs,
+            yoyo: true,
+            repeat: Math.max(0, Math.floor(ms / (2 * R.blinkMs)) - 1),
+            onComplete: () => sprite.setAlpha(1)
         });
     }
 

@@ -62,18 +62,26 @@ export const AUDIO = {
         JUMP: { key: 'sfx-jump', url: 'assets/own/sfx/jump.wav', volume: 0.35, detune: 60 },
         LAND: { key: 'sfx-land', url: 'assets/own/sfx/land.wav', volume: 0.5, detune: 80 },    // × impact strength
         COIN: { key: 'sfx-coin', url: 'assets/own/sfx/coin.wav', volume: 0.45, detune: 0 },
+        LIFE: { key: 'sfx-life', url: 'assets/own/sfx/life.wav', volume: 0.5, detune: 0 },
+        GROW: { key: 'sfx-grow', url: 'assets/own/sfx/grow.wav', volume: 0.5, detune: 0 },
+        SHRINK: { key: 'sfx-shrink', url: 'assets/own/sfx/shrink.wav', volume: 0.5, detune: 0 },
         CHECKPOINT: { key: 'sfx-checkpoint', url: 'assets/own/sfx/checkpoint.wav', volume: 0.5, detune: 0 },
         DIE: { key: 'sfx-die', url: 'assets/own/sfx/die.wav', volume: 0.5, detune: 0 },
         GOAL: { key: 'sfx-goal', url: 'assets/own/sfx/goal.wav', volume: 0.55, detune: 0 },
+        GAME_OVER: { key: 'sfx-gameover', url: 'assets/own/sfx/gameover.wav', volume: 0.55, detune: 0 },
         SCARE: { key: 'sfx-scare', url: 'assets/own/sfx/scare.wav', volume: 0.45, detune: 80 },
         CRACK: { key: 'sfx-crack', url: 'assets/own/sfx/crack.wav', volume: 0.4, detune: 60 },
         CRUMBLE: { key: 'sfx-crumble', url: 'assets/own/sfx/crumble.wav', volume: 0.45, detune: 60 },
-        MEOW: { key: 'sfx-meow', url: 'assets/own/sfx/meow.wav', volume: 0.5, detune: 70 }
+        MEOW: { key: 'sfx-meow', url: 'assets/own/sfx/meow.wav', volume: 0.5, detune: 70 },
+        CLAW: { key: 'sfx-claw', url: 'assets/own/sfx/claw.wav', volume: 0.4, detune: 120 },
+        FLEE: { key: 'sfx-flee', url: 'assets/own/sfx/flee.wav', volume: 0.45, detune: 80 }
     },
     // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
     MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 },
     // Coins picked up in quick succession climb in pitch (a combo).
     COIN_COMBO: { windowMs: 700, stepCents: 100, maxSteps: 5 },
+    // Precious feathers ring higher (cents added to the pickup sound).
+    FEATHER_PITCH: { normal: 0, silver: 400, gold: 700 },
     LOG_SIZE: 20            // recently played keys kept for the test API
 } as const;
 
@@ -94,12 +102,27 @@ export const JUICE = {
         dustMin: 4, dustMax: 12,            // scaled by impact / maxFallSpeed
         shakeAbove: 0.98, shakeMs: 80, shakeIntensity: 0.003    // only near terminal speed: a full jump lands at ~0.91
     },
-    COIN: { sparks: 8, tint: [0xffffff, 0xffe066, 0xff6a6a], hudPopScale: 1.4, hudPopMs: 160 },
+    // Sparkles in the feather's colours; more for the precious ones.
+    COIN: {
+        hudPopScale: 1.4, hudPopMs: 160,
+        normal: { sparks: 8, tint: [0xffffff, 0xa6dcff, 0x3b86d6] },
+        silver: { sparks: 12, tint: [0xffffff, 0xeef2f8, 0x9aa4b6] },
+        gold: { sparks: 16, tint: [0xffffff, 0xffe58a, 0xd99a1e] }
+    },
+    LIFE: { sparks: 18, tint: [0xffffff, 0xff9ab0, 0xffe066] },     // a life won back: a burst on the cat
+    // Growing / shrinking: the cat flickers between the two sizes a few times, like Mario.
+    POWER: { sparks: 16, tint: [0xffffff, 0xffb6c8, 0xe8607f], flickers: 3, flickerMs: 70 },
     CHECKPOINT: { sparks: 14, sparkHeight: 8, tint: [0xffe066, 0xffa030, 0xff5a20] },
-    DEATH: { particles: 16, shakeMs: 160, shakeIntensity: 0.006, tint: [0xffffff, 0xd0d0d0] },
+    DEATH: {
+        particles: 16, shakeMs: 160, shakeIntensity: 0.006, tint: [0xffffff, 0xd0d0d0],
+        // The knocked-out cat hops up, then spins and drops off the screen (not for pits: it is already gone).
+        popPx: 28, popMs: 260, fallPx: 200, fallMs: 600, spinDeg: 200
+    },
     CRUMBLE: { spacing: 12, dustPerPuff: 3, offsetY: 12 },     // dust along a crumbling platform as it falls
     SCARE: { drops: 8, tint: [0xffffff, 0xbfe3ff] },     // a burst of "sweat" over a scared enemy
-    RESPAWN: { fromScale: 0.5, ms: 220 }
+    // Claw swipe: three short slash lines in front of the paw, sliding and fading; a hit enemy gets a puff of fur.
+    CLAW: { LINES: 3, LENGTH_PX: 9, SPACING_PX: 4, SLANT_PX: 4, SLIDE_PX: 4, MS: 160, LINE: 1, COLOR: 0xffffff, HIT_SPARKS: 10, HIT_TINT: [0xffffff, 0xd0d0d0, 0x8a8a9a] },
+    RESPAWN: { fromScale: 0.5, ms: 220, blinkMs: 90, blinkAlpha: 0.35 }     // blinks while invulnerable
 } as const;
 
 /**
@@ -138,6 +161,23 @@ export const MEOW = {
     POSE_MS: 350,               // how long the open-mouth frame shows
     HEAD_OFFSET: { x: 9, y: -4 },   // head relative to the hitbox centre (facing right)
     WAVE: { ARCS: 3, SPACING_PX: 10, MS: 450, ANGLE_DEG: 40, LINE: 2, COLOR: 0xffffff }
+} as const;
+
+// Claw (C): a quick swipe in front of the cat (see src/core/claw.ts). A crow, or a hedgehog scared by a meow,
+// flees the level for good (back only when the level restarts); an unscared hedgehog's spines prick the cat.
+export const CLAW = {
+    COOLDOWN_MS: 400,
+    POSE_MS: 160,               // how long the raised-paw frame shows
+    REACH_PX: 14,               // ahead of the hitbox's front edge
+    BEHIND_PX: 9,               // back to the hitbox centre: an enemy touching the cat counts
+    HALF_HEIGHT_PX: 12          // above and below the hitbox centre
+} as const;
+
+// A clawed enemy runs (or flies) away and fades out; the look only, its hitbox is off at once.
+export const FLEE = {
+    MS: 650,
+    hedgehog: { dx: 72, dy: 0, hopPx: 8, animScale: 3 },
+    crow: { dx: 80, dy: -90, hopPx: 0, animScale: 2.5 }
 } as const;
 
 // Enemies are scared by a meow (src/core/meow.ts): harmless and frozen, shaking, for SCARE_MS.
@@ -189,6 +229,30 @@ export const CRUMBLE = {
     CRACKS: [[4, 3], [5, 4], [5, 5], [6, 6], [11, 2], [10, 3], [10, 4], [11, 5], [12, 6], [8, 9], [7, 10], [8, 11]]
 } as const;
 
+// Dying is not instant: the death animation plays with the controls off and the camera still, then the cat
+// reappears at the checkpoint, invulnerable for a moment, and waits for the arrows to be let go before it moves.
+// Three lives (nine took far too long to run out). At zero the game is over and the level starts again from scratch.
+export const LIVES = {
+    START: 3,
+    MAX: 3
+} as const;
+
+// Yarn ball power-up (like Mario's mushroom): the cat puffs up; a hit then only shrinks it back, with a moment of
+// invulnerability, instead of costing a life. A pit always kills. The hitbox stays the same (only the look grows),
+// so the level fits a big cat just as well.
+export const POWER = {
+    BIG_SCALE: 1.25,            // sprite scale of the big cat
+    HURT_INVULNERABLE_MS: 1500,
+    YARN_HITBOX: 12,
+    YARN_BOB_PX: 2,
+    YARN_BOB_MS: 700
+} as const;
+
+export const DEATH = {
+    ANIM_MS: 900,
+    INVULNERABLE_MS: 1200
+} as const;
+
 export const PLAYER = {
     WIDTH: 18,              // hitbox, sized to the cat's body (ears and tail stick out, on purpose)
     HEIGHT: 14
@@ -214,11 +278,12 @@ export const LEVEL = {
     SPAWN_OBJECT: 'spawn',
     SPIKES_TYPE: 'spikes',
     CHECKPOINT_TYPE: 'checkpoint',
-    COIN_TYPE: 'coin',
+    COIN_TYPE: 'feather',
     HEDGEHOG_TYPE: 'hedgehog',      // rectangle = patrol range, bottom edge = the ground it walks on
     PLATFORM_TYPE: 'platform',
     CRUMBLE_TYPE: 'crumble',
     CROW_TYPE: 'crow',              // rectangle = flight path: wider than tall = back and forth, else up and down
+    YARN_TYPE: 'yarn',              // point = a yarn ball power-up
     GOAL_TYPE: 'goal'
 } as const;
 
@@ -228,10 +293,25 @@ export const HAZARD = {
     SPIKE_INSET_X: 2
 } as const;
 
-// Collectible ("coin" in code, a cherry on screen).
+// Collectible ("coin" in code, a feather on screen). A Tiled point of type "feather"; its int property "value" is
+// 1 (blue), 5 (silver) or 10 (gold). Every LIFE_EVERY points give a life back (up to LIVES.MAX).
 export const COIN = {
-    HITBOX: 10              // px, square, centred on the Tiled point
+    HITBOX: 10,             // px, square, centred on the Tiled point
+    VALUE_PROPERTY: 'value',
+    LIFE_EVERY: 50,         // the level holds ~61 points, so a careful run earns one life back
+    BOB_PX: 2,              // the feather floats up and down a little (look only; the body stays put)
+    BOB_MS: 900
 } as const;
+
+export type FeatherKind = 'normal' | 'silver' | 'gold';
+/** Feather looks by value. */
+export const FEATHERS: Record<FeatherKind, { value: number; key: string; url: string; anim: string }> = {
+    normal: { value: 1, key: 'feather-normal', url: 'assets/own/feather-normal.png', anim: 'feather-normal-glint' },
+    silver: { value: 5, key: 'feather-silver', url: 'assets/own/feather-silver.png', anim: 'feather-silver-glint' },
+    gold: { value: 10, key: 'feather-gold', url: 'assets/own/feather-gold.png', anim: 'feather-gold-glint' }
+};
+export const featherKind = (value: number): FeatherKind => value >= FEATHERS.gold.value ? 'gold' : value >= FEATHERS.silver.value ? 'silver' : 'normal';
+export const FEATHER_SHEET = { frameWidth: 14, frameHeight: 16, frames: 4, frameRate: 8, glintEveryMs: 1400 };
 
 export const HUD = {
     MARGIN: 8,
@@ -245,7 +325,10 @@ export const HUD = {
     TEXT_STROKE_WIDTH: 2,
     // Meow readiness under the cherries: label dims and a bar refills during the cooldown.
     MEOW_LABEL: 'X mňau',
-    MEOW_BAR: { WIDTH: 40, HEIGHT: 2, GAP: 2, COLOR: 0xffffff, COOLING_ALPHA: 0.4 }
+    MEOW_BAR: { WIDTH: 40, HEIGHT: 2, GAP: 2, COLOR: 0xffffff, COOLING_ALPHA: 0.4 },
+    // Lives in the top-right corner: one cat head per life. A lost head pops and fades out, a gained one pops in.
+    LIVES_GAP: 2,
+    LIVES_POP: { SCALE: 1.6, MS: 260 }
 } as const;
 
 // "Level complete" screen. UI text is Slovak, like the rest of the project.
@@ -258,10 +341,24 @@ export const RESULTS = {
     LINE_SPACING: 24,
     TEXT: {
         TITLE: 'Level dokončený!',
-        COINS: 'Čerešne',
+        COINS: 'Pierka',
         DEATHS: 'Smrti',
+        LIVES: 'Životy',
         TIME: 'Čas',
         RESTART: 'Enter alebo R = hrať znova',
+        BACK: 'Esc = úvodná obrazovka'
+    }
+} as const;
+
+// "Game over" screen after the last life; same look as the results.
+export const GAME_OVER = {
+    INPUT_DELAY_MS: 900,        // the jingle plays first, and a key mashed while dying must not skip it
+    TITLE_SIZE: '32px',
+    LINE_SIZE: '16px',
+    TEXT: {
+        TITLE: 'Koniec hry',
+        LINE: 'mačke došli všetky životy',     // lowercase: carons on 16px capitals read as dots
+        RETRY: 'Enter alebo R = skúsiť znova',
         BACK: 'Esc = úvodná obrazovka'
     }
 } as const;
@@ -318,14 +415,17 @@ export const ASSETS = {
         idle: { key: 'cat-idle', url: 'assets/own/cat-idle.png', frames: 2, frameRate: 2 },
         run: { key: 'cat-run', url: 'assets/own/cat-run.png', frames: 4, frameRate: 12 },
         jump: { key: 'cat-jump', url: 'assets/own/cat-jump.png' },      // 0 = rising, 1 = falling
-        meow: { key: 'cat-meow', url: 'assets/own/cat-meow.png' }
+        meow: { key: 'cat-meow', url: 'assets/own/cat-meow.png' },
+        hurt: { key: 'cat-hurt', url: 'assets/own/cat-hurt.png' },
+        claw: { key: 'cat-claw', url: 'assets/own/cat-claw.png' },
+        head: { key: 'cat-head', url: 'assets/own/cat-head.png' }        // HUD lives icon
     },
+    YARN: { key: 'yarn', url: 'assets/own/yarn.png' },
     CAMPFIRE: {
         frameWidth: 24, frameHeight: 24,
         unlit: { key: 'campfire-unlit', url: 'assets/own/campfire-unlit.png' },
         lit: { key: 'campfire-lit', url: 'assets/own/campfire-lit.png', frames: 4, frameRate: 10 }
     },
-    CHERRY: { key: 'cherry', url: 'assets/sunny-land/sprites/cherry.png', frameWidth: 21, frameHeight: 21, frames: 5, frameRate: 10 },
     SPIKES: { key: 'spikes', url: 'assets/sunny-land/props/spikes.png' },
     CROW: {
         frameWidth: 20, frameHeight: 16,
@@ -347,9 +447,10 @@ export const ANIM = {
     CAT_JUMP: 'cat-jump',
     CAT_FALL: 'cat-fall',
     CAT_MEOW: 'cat-meow',
+    CAT_HURT: 'cat-hurt',
+    CAT_CLAW: 'cat-claw',
     HEDGEHOG_WALK: 'hedgehog-walk',
     CROW_FLY: 'crow-fly',
-    CHERRY: 'cherry-spin',
     CAMPFIRE: 'campfire-burn'
 } as const;
 

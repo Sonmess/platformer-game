@@ -27,7 +27,17 @@ const PALETTE = {
     n: '#2a1a14',   // hedgehog nose and feet
     c: '#22222e',   // crow feathers
     C: '#4d4d6b',   // crow wing highlight
-    L: '#b8bcd6'    // crow rim (light outline)
+    L: '#b8bcd6',   // crow rim (light outline)
+    F: '#3b86d6',   // feather vane: normal (blue)
+    f: '#a6dcff',   //   its light edge
+    I: '#9aa4b6',   // feather vane: silver
+    i: '#eef2f8',
+    J: '#d99a1e',   // feather vane: gold
+    j: '#ffe58a',
+    q: '#fff8e6',   // feather quill (all kinds)
+    M: '#e8607f',   // yarn ball
+    m: '#a8344f',   //   wound strands (dark)
+    t: '#ffb6c8'    //   highlight
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -40,6 +50,28 @@ const HEAD = [          // 10×9, placed at the body's front
     'gpg.gpg...',
     'ggggggggg.',
     'gggggeKggg',
+    'gggggggggp',
+    'gggggwwwww',
+    '.ggwwwwww.',
+    '..gwwww...'
+];
+const HEAD_HURT = [     // knocked out: "x" eye, mouth open
+    'g.....g...',
+    'gg...gg...',
+    'gpg.gpg...',
+    'ggggKgKgg.',
+    'gggggKgggg',
+    'ggggKgKggp',
+    'gggggwwKKw',
+    '.ggwwwwKK.',
+    '..gwwww...'
+];
+const HEAD_CLAW = [     // narrowed eye, ears laid back a little
+    '..........',
+    'gg....g...',
+    'gpg..gpg..',
+    'ggggggggg.',
+    'gggggKKggg',
     'gggggggggp',
     'gggggwwwww',
     '.ggwwwwww.',
@@ -82,7 +114,8 @@ const FWD = [0, 0, 1, 1, 2];
 const BACK = [0, 0, -1, -1, -2];
 const TUCK = [1, 1, 2];           // short: tucked under the body (airborne / mid-stride)
 
-function catFrame ({ bob = 0, tail = TAIL_UP, legs, head = HEAD })
+/** `extra`: [x, y, colour] pixels drawn last, in frame coordinates (e.g. a raised paw). */
+function catFrame ({ bob = 0, tail = TAIL_UP, legs, head = HEAD, extra = [] })
 {
     const grid = Array.from({ length: H }, () => Array(W).fill('.'));
     const put = (x, y, c) => { if (x >= 0 && x < W && y >= 0 && y < H && c !== '.') grid[y][x] = c; };
@@ -102,6 +135,7 @@ function catFrame ({ bob = 0, tail = TAIL_UP, legs, head = HEAD })
     BODY.forEach((row, y) => [...row].forEach((c, x) => put(bodyX + x, bodyY + y, c)));
     head.forEach((row, y) => [...row].forEach((c, x) => put(bodyX + 13 + x, bodyY - 6 + y, c)));
     for (const [x, y] of tail) { put(bodyX + x, bodyY + y, 'g'); put(bodyX + x, bodyY + y + 1, 'g'); }
+    for (const [x, y, c] of extra) put(x, y, c);
     return grid.map(r => r.join(''));
 }
 
@@ -128,6 +162,22 @@ const CAT = {
     // Meow: head raised a pixel, mouth wide open (dark with a pink tongue), tail straight up.
     meow: [
         catFrame({ bob: 1, legs: legsStanding, head: HEAD_MEOW, tail: TAIL_UP })
+    ],
+    // Claw swipe: the near front paw shoots forward under the chin with its claws out, tail back.
+    claw: [
+        catFrame({
+            legs: [leg(2, STAND, true), leg(4, STAND, false), leg(12, STAND, true)], head: HEAD_CLAW, tail: TAIL_BACK,
+            extra: [
+                // the arm, a row below the chin (the outline keeps the two apart), the white paw, three claws
+                ...[20, 21, 22, 23, 24, 25].map(x => [x, 15, 'g']), ...[22, 23, 24, 25, 26].map(x => [x, 14, 'g']),
+                [27, 13, 'w'], [28, 13, 'w'], [27, 14, 'w'], [28, 14, 'w'], [29, 14, 'w'],
+                [29, 12, 'q'], [30, 13, 'q'], [30, 15, 'q']
+            ]
+        })
+    ],
+    // Hurt (the death animation spins and drops it): legs splayed out, tail limp, "x" eye.
+    hurt: [
+        catFrame({ legs: [leg(1, BACK, true), leg(3, BACK, false), leg(13, FWD, true), leg(15, FWD, false)], head: HEAD_HURT, tail: TAIL_LOW })
     ]
 };
 
@@ -232,6 +282,59 @@ const CROW = {
     ].map(fit)]
 };
 
+// ── Feather (collectible): 14×16 frames, leaning right, quill at the bottom left ───────────────
+// One template, recoloured per kind (normal = blue, silver, gold): V = vane, v = its light edge, q = quill.
+// Four frames: plain, then a white glint sliding down the vane.
+const FEATHER_TEMPLATE = [
+    '..............',
+    '..........VV..',
+    '.........vVVV.',
+    '........vVqVV.',
+    '.......vVqVV..',
+    '......vVqVVV..',
+    '.....vVqVVV...',
+    '....vVqVVV....',
+    '...vVqVVV.....',
+    '...VqVVV......',
+    '...qVVV.......',
+    '..qVV.........',
+    '..q...........',
+    '.q............',
+    '..............',
+    '..............'
+];
+const GLINTS = [null, [11, 2], [9, 5], [7, 8]];
+function featherFrames (vane, light)
+{
+    return GLINTS.map(glint => FEATHER_TEMPLATE.map((row, y) => [...row].map((c, x) =>
+        glint && glint[0] === x && glint[1] === y ? 'w' : c === 'V' ? vane : c === 'v' ? light : c).join('')));
+}
+const FEATHER = {
+    normal: featherFrames('F', 'f'),
+    silver: featherFrames('I', 'i'),
+    gold: featherFrames('J', 'j')
+};
+
+// ── Yarn ball (power-up): 16×16, a pink ball of wound strands with a loose end ─────────────────
+const YARN = [[
+    '................',
+    '......MMMM......',
+    '....MMtMMmMM....',
+    '...MtMMmMMMmM...',
+    '..MtMMmMMMmMMM..',
+    '..MMMmMMMmMMMM..',
+    '.MMMmMMMmMMMmMM.',
+    '.MmMMMmMMMmMMMM.',
+    '.MMMmMMMmMMMmMM.',
+    '.MMmMMMmMMMmMMM.',
+    '..MMMmMMMmMMMM..',
+    '..MmMMMmMMMmMM..',
+    '...MMmMMMmMMM...',
+    '....MMMMMMMm....',
+    '......MMMM..m...',
+    '.............mm.'
+]];
+
 const FW = 24;
 const FIRE_BASE = [            // rows 18..23
     '....kllk........kllk....',
@@ -324,6 +427,14 @@ write('cat-idle', CAT.idle, true);
 write('cat-run', CAT.run, true);
 write('cat-jump', CAT.jump, true);
 write('cat-meow', CAT.meow, true);
+write('cat-hurt', CAT.hurt, true);
+write('cat-claw', CAT.claw, true);
+write('feather-normal', FEATHER.normal, true);
+write('feather-silver', FEATHER.silver, true);
+write('feather-gold', FEATHER.gold, true);
+write('yarn', YARN, true);
+// HUD lives icon: the cat's head on its own, with a pixel of room on every side for the outline.
+write('cat-head', [['.'.repeat(12), ...HEAD.map(r => '.' + r + '.'), '.'.repeat(12)]], true);
 write('campfire-unlit', FIRE.unlit, true);
 write('campfire-lit', FIRE.lit, true, 'rYy');      // no outline around the flames
 write('hedgehog-walk', HEDGEHOG.walk, true);

@@ -7,8 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
 **Status:** Milestones 1 (2026-11-05) and 2 (2026-11-19, ADR 0007) complete and playtested. Milestone 3 (game
-improvements, ADR 0008) is planned in `docs/gameplan.md`, awaiting the user's approval before any code; more
-levels moved to M4. Checklists in
+improvements, ADR 0008) is approved and in progress; more levels moved to M4. Checklists in
 `docs/gameplan.md`.
 
 ## Stack
@@ -62,6 +61,24 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   editing the level, keep the cat's test spots clear of patrols and spikes, and keep every section passable.
 - The game boots into the `Title` scene; level specs open `/?play` (dev-only, handled in `Preload`) to start
   straight in `Game`. Only `boot.spec.ts` and `title.spec.ts` open `/`.
+- Death is not instant: `Game.killPlayer()` → `Player.die()` (body off, controls off, hurt frame), the camera holds
+  (`CameraRig.hold()`), Effects hops/spins/fades the sprite; after `DEATH.ANIM_MS` `Game.respawnPlayer()` puts the
+  cat at the checkpoint, invulnerable for `DEATH.INVULNERABLE_MS` (blinks; a pit still kills) and with
+  `awaitingRelease` (held arrows ignored until let go). `deaths` counts at the hit, the respawn comes later: specs
+  that check the respawn wait for `!player.dying`.
+- Lives: `state.lives` (3, `LIVES` in constants); `state.loseLife()` counts the death and takes a life, and
+  `Game` emits `lives:change` for the HUD (one cat head per life, top right; a lost one pops and fades). At 0, after the death animation, `Game`
+  starts the `GameOver` scene (Enter/R = level from scratch with 9 lives, Esc = title); it stops the music
+  (`music.stop()`) so the jingle plays alone, and the next `music.start()` brings the loop back. The results show
+  "Životy n/3" instead of deaths. Each death plays a hurt cat (hiss + sad meow, `die.wav`).
+- Feathers are the collectible ("coin" in code: `Coin`, `state.coins`, `coin:collect`). Tiled points of type
+  `feather` with an int property `value` (1 blue, 5 silver, 10 gold; `FEATHERS` in constants). `state.collect(value)`
+  adds `points`; every `COIN.LIFE_EVERY` (50) points give a lost life back (`life:gain`). The HUD shows points,
+  the results "Pierka: points/pointsTotal".
+- Yarn ball (Tiled point `yarn`, `src/entities/Yarn.ts`): `Player.grow()` makes the cat `big` (sprite × `POWER.BIG_SCALE`,
+  hitbox unchanged). `Game.killPlayer()` turns a non-pit hit on a big cat into `Player.shrink()` (no life lost,
+  invulnerable `POWER.HURT_INVULNERABLE_MS`, `player:shrink`); a pit always kills; a respawn starts small. Effects
+  scale around `player.baseScale` (squash/stretch, the grow/shrink flicker), so they never reset a big cat to 1.
 - Pause: `Game` launches the `Pause` overlay and pauses itself (physics, timers, tweens, anims and particles
   freeze; the camera follow still runs in `preRender`). Any scene that opens on a key press calls
   `Input.reset()` so a still-held key is not read as a new press; `Game` does the same on `RESUME`.
@@ -70,6 +87,11 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - Meow (X): `Player` owns a `Cooldown` and emits `player:meow` with a `MeowWave` (head position, `dir`, `range`,
   `halfHeight`, `behind`); enemies decide with `inMeowRange()` from `src/core/meow.ts` (pure, unit-tested).
   Effects draw the wave arcs, Audio plays the meow, Hud shows readiness. Tuning: `MEOW` in constants.
+- Claw (C): `Player` owns a `clawCooldown` and emits `player:claw` with a `ClawSwipe` (hitbox centre, `dir`, `reach`,
+  `behind`, `halfHeight`); `Game.onClaw` uses `clawHits()` / `clawOutcome()` from `src/core/claw.ts` (pure, unit-tested):
+  a crow or a scared hedgehog gets `Enemy.flee(dir)` (`gone`: body off, no update or sprite sync, a tween runs it off and
+  fades it, `enemy:flee`); an unscared hedgehog (`spiky`) pricks the cat (`killPlayer('enemy')`). A fled enemy stays
+  gone through deaths and is back only when the level restarts. Tuning: `CLAW`, `FLEE`, `JUICE.CLAW`.
 - Enemies (`src/entities/Enemy.ts`): invisible hitbox + sprite like the Player; the base owns the fright (`Scare`
   in `src/core/meow.ts`: frozen, shaking, harmless for `ENEMY.SCARE_MS`, recovers only once the cat is off it).
   `Game` routes `player:meow` to every enemy in reach and kills the cat on touching a `harmful` one. A hedgehog

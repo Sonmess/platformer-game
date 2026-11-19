@@ -14,6 +14,20 @@ export class CameraRig
         camera.setFollowOffset(-player.facing * CAMERA.lookAhead, 0);
     }
 
+    /** Stay where it is (the death animation plays in place; the cat may be falling off the screen). */
+    hold (): void
+    {
+        this.camera.stopFollow();
+    }
+
+    /** Follow the player again, straight from its position (after a respawn). */
+    resume (): void
+    {
+        const offset = this.camera.followOffset.clone();
+        this.camera.startFollow(this.player, true, CAMERA.lerpX, CAMERA.lerpY, offset.x, offset.y);
+        this.snap();
+    }
+
     /** Jump straight to the player (after a respawn) instead of sliding across the level. */
     snap (): void
     {

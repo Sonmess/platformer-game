@@ -14,7 +14,7 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Zdroj:** <https://opengameart.org/content/sunny-land-2d-pixel-art-pack> (`sunny-land-files.zip`, stiahnuté 2026-11-04)
 - **Licencia:** CC0 / public domain („Public domain and free to use on whatever you want, personal or commercial.
   Credit is not required but appreciated.“). Pôvodný text: `sunny-land/LICENSE.txt`.
-- **Použité:** čerešňa (zbierateľný predmet), bodáky. V repe pripravené aj drahokam, efekty zberu a zániku,
+- **Použité:** bodáky. (Čerešňa ako zbierateľný predmet do M2, v M3 ju nahradili vlastné pierka.) V repe pripravené aj čerešňa, drahokam, efekty zberu a zániku,
   tileset, pozadie (`back`, `middle`) a rekvizity (strom, ker, kameň, huby).
 - **Odstránené z repa (2026-11-04):** spritesheety líšky, tabuľa a dvere — nahradené vlastnou grafikou (nižšie).
 - **Nepoužité:** hudba z balíka (Pascal Belisle) — tá *vyžaduje* uvedenie autora; ak ju niekedy pridáme, doplniť sem.
@@ -41,10 +41,10 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 
 ### Vlastná grafika projektu — `own/`
 
-- **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
+- **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`, `cat-hurt`, `cat-claw`, hlávka do HUD `cat-head`), **pierka** (`feather-normal`, `feather-silver`, `feather-gold`), **klbko vlny** (`yarn`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
   **ježko** (`hedgehog-walk`, `hedgehog-scared`) a **vrana** (`crow-fly`, `crow-scared`) nakreslené pre tento projekt
   ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
-- **Zvukové efekty** (`sfx/`: skok, dopad, čerešňa, ohnisko, smrť, cieľ, mňau, vystrašenie, praskanie a zrútenie plošiny) — 8-bitové zvuky syntetizované pre tento
+- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
   projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
 - **Hudba** (`music/forest.wav`) — pokojná 8-bitová slučka (30 s) skomponovaná pre tento projekt v
   `tools/music.mjs`; WAV generuje `node tools/music.mjs`. Bez cudzej licencie, patrí projektu.

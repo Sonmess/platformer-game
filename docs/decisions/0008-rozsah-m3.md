@@ -1,6 +1,6 @@
 # ADR 0008: Rozsah Milestone 3
 
-- Stav: navrhnuté (2026-11-19), čaká na schválenie plánu v `docs/gameplan.md`
+- Stav: prijaté (2026-11-19)
 
 ## Kontext
 M2 je hotový: hra „Lost Cat“ má úvodnú obrazovku, pauzu, hudbu a dlhý level s ježkami, vranami a plošinami.
@@ -10,9 +10,9 @@ interakcia s nepriateľmi. Pred ďalšími levelmi chceme vylepšiť jadro hry.
 
 ## Rozhodnutie
 - **Smrť:** krátka animácia, vypnuté ovládanie, respawn až po pustení smeru, krátka nezraniteľnosť.
-- **Životy:** 9 životov („mačka má 9 životov“), koniec hry pri 0. **Klbko vlny** je power-up: veľká mačka
+- **Životy:** 3 životy, koniec hry pri 0. (Pôvodne 9 podľa „mačka má 9 životov“, pri playteste to trvalo pridlho — zmenené 2026-11-19.) **Klbko vlny** je power-up: veľká mačka
   vydrží jeden zásah navyše (ako Mario s hubou).
-- **Zberateľné:** **pierka** namiesto čerešní — bežné (1 bod), strieborné (5), zlaté (10); 100 bodov = život.
+- **Zberateľné:** **pierka** namiesto čerešní — bežné (1 bod), strieborné (5), zlaté (10); 50 bodov = stratený život späť (pôvodne 100, ale level má len 61 bodov).
 - **Útok pazúrikmi** (kláves C): vranu hneď, ježka len vystrašeného (inak sa mačka popichá). Zasiahnutý
   nepriateľ komicky uteká / odletí z levelu (bez násilia, vhodné pre deti).
 - **Hadík:** nový nepriateľ, ktorý v cykle strieka jed okolo seba; mňauknutie naňho nepôsobí, treba počkať

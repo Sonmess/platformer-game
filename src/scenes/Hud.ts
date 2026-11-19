@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, HUD, JUICE } from '../config/constants';
+import { ASSETS, FEATHERS, GAME, HUD, JUICE, LIVES } from '../config/constants';
 import { EV, events } from '../core/events';
 import { state } from '../core/state';
 
@@ -10,6 +10,8 @@ export class Hud extends Scene
     private icon: Phaser.GameObjects.Image;
     private meowLabel: Phaser.GameObjects.Text;
     private meowBar: Phaser.GameObjects.Rectangle;
+    private lifeIcons: Phaser.GameObjects.Image[] = [];
+    private shown = 0;
     /** False while the meow cooldown refills; exposed to the test API. */
     meowReady = true;
 
@@ -21,7 +23,7 @@ export class Hud extends Scene
     create ()
     {
         // Centre origin so the collect pop scales the icon in place.
-        const icon = this.add.image(0, 0, ASSETS.CHERRY.key, 0);
+        const icon = this.add.image(0, 0, FEATHERS.normal.key, 0);
         icon.setPosition(HUD.MARGIN + icon.width / 2, HUD.MARGIN + icon.height / 2);
         this.icon = icon;
 
@@ -42,18 +44,57 @@ export class Hud extends Scene
         this.meowBar = this.add.rectangle(HUD.MARGIN, this.meowLabel.y + this.meowLabel.height + bar.GAP, bar.WIDTH, bar.HEIGHT, bar.COLOR)
             .setOrigin(0);
 
+        // Lives in the top-right corner: one cat head per possible life, the row ending at the margin.
+        this.shown = state.lives;
+        this.lifeIcons = Array.from({ length: LIVES.MAX }, () => this.add.image(0, icon.y, ASSETS.CAT.head.key));
+        const w = this.lifeIcons[0].width;
+        this.lifeIcons.forEach((head, i) => {
+            head.setX(GAME.WIDTH - HUD.MARGIN - w / 2 - (LIVES.MAX - 1 - i) * (w + HUD.LIVES_GAP));
+            head.setVisible(i < state.lives);
+        });
+
         this.renderCoins();
         events.on(EV.COIN_COLLECT, this.onCoin, this);
         events.on(EV.PLAYER_MEOW, this.onMeow, this);
+        events.on(EV.LIVES_CHANGE, this.onLives, this);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             events.off(EV.COIN_COLLECT, this.onCoin, this);
             events.off(EV.PLAYER_MEOW, this.onMeow, this);
+            events.off(EV.LIVES_CHANGE, this.onLives, this);
         });
     }
 
     get coinsLabel (): string
     {
         return this.coinsText?.text ?? '';
+    }
+
+    /** Cat heads shown (lives); exposed to the test API. */
+    get livesShown (): number
+    {
+        return this.shown;
+    }
+
+    /** A lost head pops and fades out (the rightmost one), a gained head pops in. */
+    private onLives ({ lives }: { lives: number }): void
+    {
+        const pop = HUD.LIVES_POP;
+        for (let i = 0; i < this.lifeIcons.length; i++) {
+            const head = this.lifeIcons[i];
+            const was = i < this.shown, now = i < lives;
+            if (was === now) continue;
+            this.tweens.killTweensOf(head);
+            if (now) {
+                head.setVisible(true).setAlpha(1).setScale(pop.SCALE);
+                this.tweens.add({ targets: head, scale: 1, duration: pop.MS, ease: 'Back.easeOut' });
+            } else {
+                this.tweens.add({
+                    targets: head, scale: pop.SCALE, alpha: 0, duration: pop.MS, ease: 'Quad.easeOut',
+                    onComplete: () => head.setVisible(false).setScale(1).setAlpha(1)
+                });
+            }
+        }
+        this.shown = lives;
     }
 
     private onCoin (): void
@@ -88,6 +129,6 @@ export class Hud extends Scene
 
     private renderCoins (): void
     {
-        this.coinsText.setText(`${state.coins}/${state.coinsTotal}`);
+        this.coinsText.setText(`${state.points}`);     // feather points
     }
 }

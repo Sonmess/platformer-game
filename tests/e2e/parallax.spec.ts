@@ -43,7 +43,7 @@ test('layers are back in place after a respawn at the spawn', async ({ page }) =
     await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [FLAT_X, GROUND_Y]);
     await page.evaluate(() => window.__game!.wait(1000));
     await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [51 * TILE, 12 * TILE]);   // first pit
-    await page.waitForFunction(() => window.__game!.getState().deaths === 1);
+    await page.waitForFunction(() => window.__game!.getState().deaths === 1 && !window.__game!.getState().player!.dying);   // and back at the checkpoint
     await page.evaluate(() => window.__game!.wait(200));
     expect((await state(page)).parallax).toEqual(start);
 });

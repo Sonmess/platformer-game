@@ -1,6 +1,7 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, HAZARD, LEVEL, PLATFORM, PLAYER, TILE, TITLE } from '../config/constants';
+import { ASSETS, COIN, DEATH, HAZARD, LEVEL, PLATFORM, PLAYER, TILE, TITLE } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
+import { clawHits, clawOutcome, type ClawSwipe } from '../core/claw';
 import { inMeowRange, type MeowWave } from '../core/meow';
 import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
@@ -10,6 +11,7 @@ import { CrumblePlatform } from '../entities/CrumblePlatform';
 import type { Enemy } from '../entities/Enemy';
 import { Goal } from '../entities/Goal';
 import { Hedgehog } from '../entities/Hedgehog';
+import { Yarn } from '../entities/Yarn';
 import { MovingPlatform } from '../entities/MovingPlatform';
 import { Player } from '../entities/Player';
 import { SoundEffects } from '../systems/Audio';
@@ -32,8 +34,10 @@ export class Game extends Scene
     platforms: MovingPlatform[] = [];
     crumbles: CrumblePlatform[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
-    private lastDeathFrame = -1;
+    yarns: Phaser.Physics.Arcade.StaticGroup;
     private completed = false;
+    /** Time left of the death animation before the cat reappears at the checkpoint (0 = not dying). */
+    private respawnInMs = 0;
 
     constructor ()
     {
@@ -42,8 +46,8 @@ export class Game extends Scene
 
     init ()
     {
-        this.lastDeathFrame = -1;
         this.completed = false;
+        this.respawnInMs = 0;
     }
 
     create ()
@@ -62,7 +66,9 @@ export class Game extends Scene
 
         const spawn = this.map.findObject(LEVEL.OBJECT_LAYER, o => o.name === LEVEL.SPAWN_OBJECT)!;
         const coinObjects = this.objectsOfType(LEVEL.COIN_TYPE);
-        state.reset(1, { x: spawn.x!, y: spawn.y! }, coinObjects.length);
+        const valueOf = (o: Phaser.Types.Tilemaps.TiledObject) =>
+            (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === COIN.VALUE_PROPERTY)?.value ?? 1;
+        state.reset(1, { x: spawn.x!, y: spawn.y! }, coinObjects.length, coinObjects.reduce((sum, o) => sum + valueOf(o), 0));
 
         this.player = new Player(this, spawn.x!, spawn.y! - PLAYER.HEIGHT / 2);
         this.physics.add.collider(this.player, ground);
@@ -76,9 +82,11 @@ export class Game extends Scene
         this.physics.add.overlap(this.player, this.createSpikes(), () => this.killPlayer('spikes'));
         this.physics.add.overlap(this.player, this.createCheckpoints(), (_p, cp) => this.reachCheckpoint(cp as Checkpoint));
 
-        this.coins = this.physics.add.staticGroup(coinObjects.map(o => new Coin(this, o.x!, o.y!)));
+        this.coins = this.physics.add.staticGroup(coinObjects.map(o => new Coin(this, o.x!, o.y!, valueOf(o))));
         this.physics.add.overlap(this.player, this.coins, (_p, coin) => this.collectCoin(coin as Coin));
         this.physics.add.overlap(this.player, this.createGoals(), () => this.completeLevel());
+        this.yarns = this.physics.add.staticGroup(this.objectsOfType(LEVEL.YARN_TYPE).map(o => new Yarn(this, o.x!, o.y!)));
+        this.physics.add.overlap(this.player, this.yarns, (_p, y) => this.collectYarn(y as Yarn));
 
         const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
         const hedgehogs = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, rect(o), ground));
@@ -87,9 +95,13 @@ export class Game extends Scene
         this.physics.add.collider(hedgehogs, ground);     // crows fly a fixed path
         this.physics.add.overlap(this.player, this.enemies, (_p, e) => { if ((e as Enemy).harmful) this.killPlayer('enemy'); });
         // A meow scares every enemy within its reach (enemies never read the player directly).
-        const onMeow = (wave: MeowWave) => this.enemies.forEach(e => { if (inMeowRange(wave, e.body.center)) e.scare(); });
+        const onMeow = (wave: MeowWave) => this.enemies.forEach(e => { if (!e.gone && inMeowRange(wave, e.body.center)) e.scare(); });
         events.on(EV.PLAYER_MEOW, onMeow);
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => events.off(EV.PLAYER_MEOW, onMeow));
+        events.on(EV.PLAYER_CLAW, this.onClaw, this);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            events.off(EV.PLAYER_MEOW, onMeow);
+            events.off(EV.PLAYER_CLAW, this.onClaw, this);
+        });
 
         // Juice and sound only listen to events; the game plays the same without them.
         new SoundEffects(this);
@@ -120,9 +132,18 @@ export class Game extends Scene
             return;
         }
         state.timeMs += delta;
-        this.player.update(input, delta);
-        if (this.player.body.top > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
-        this.cameraRig.update(delta);
+        if (this.player.dying) {
+            // The controls are off; the world goes on while the death animation plays.
+            this.respawnInMs -= delta;
+            if (this.respawnInMs <= 0) {
+                if (state.gameOver) this.endGame();
+                else this.respawnPlayer();
+            }
+        } else {
+            this.player.update(input, delta);
+            if (this.player.body.top > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
+            this.cameraRig.update(delta);
+        }
         for (const crumble of this.crumbles) crumble.update(delta);
         const playerBounds = this.player.getBounds();
         for (const enemy of this.enemies) enemy.update(delta, playerBounds);
@@ -170,6 +191,15 @@ export class Game extends Scene
         return this.objectsOfType(LEVEL.GOAL_TYPE).map(o => new Goal(this, o.x!, o.y!, o.width!, o.height!));
     }
 
+    /** No lives left: after the death animation, the "game over" screen instead of a respawn. */
+    private endGame (): void
+    {
+        this.completed = true;
+        events.emit(EV.GAME_OVER, { coins: state.coins, coinsTotal: state.coinsTotal, timeMs: state.timeMs });
+        this.scene.stop('Hud');
+        this.scene.start('GameOver');
+    }
+
     private completeLevel (): void
     {
         if (this.completed) return;
@@ -181,25 +211,65 @@ export class Game extends Scene
 
     private collectCoin (coin: Coin): void
     {
-        const { x, y } = coin;
+        const { x, y, value, kind } = coin;
         this.coins.remove(coin, true, true);
-        state.coins++;
-        events.emit(EV.COIN_COLLECT, { x, y, coins: state.coins, coinsTotal: state.coinsTotal });
+        const lifeGained = state.collect(value);
+        events.emit(EV.COIN_COLLECT, { x, y, value, kind, coins: state.coins, coinsTotal: state.coinsTotal, points: state.points });
+        if (lifeGained) {
+            events.emit(EV.LIFE_GAIN, { x: this.player.x, y: this.player.y });
+            events.emit(EV.LIVES_CHANGE, { lives: state.lives });
+        }
+    }
+
+    /** A yarn ball: the cat puffs up (already big: the ball is still taken). */
+    private collectYarn (yarn: Yarn): void
+    {
+        if (this.player.dying) return;
+        this.yarns.remove(yarn, true, true);
+        if (this.player.big) return;
+        this.player.grow();
+        events.emit(EV.PLAYER_GROW, { x: this.player.x, y: this.player.y });
+    }
+
+    /** A claw swipe: every enemy it reaches flees, except an unscared hedgehog, whose spines prick the cat. */
+    private onClaw (swipe: ClawSwipe): void
+    {
+        let pricked = false;
+        for (const e of this.enemies) {
+            if (e.gone || !clawHits(swipe, e.body)) continue;
+            if (clawOutcome(e.spiky, e.scared) === 'flee') e.flee(swipe.dir);
+            else pricked = true;
+        }
+        if (pricked) this.killPlayer('enemy');
     }
 
     private killPlayer (cause: DeathCause): void
     {
-        // Overlapping several hazards in one step must count as a single death.
-        if (this.game.loop.frame === this.lastDeathFrame) return;
-        this.lastDeathFrame = this.game.loop.frame;
+        // Already down (several hazards in one step count once), or just respawned (a pit still counts).
+        if (this.player.dying || (this.player.invulnerable && cause !== 'pit')) return;
+        // Big (yarn): a hit only shrinks the cat. A pit is always the end.
+        if (this.player.big && cause !== 'pit') {
+            this.player.shrink();
+            events.emit(EV.PLAYER_SHRINK, { x: this.player.x, y: this.player.y, cause });
+            return;
+        }
 
-        state.deaths++;
-        events.emit(EV.PLAYER_DIE, { x: this.player.x, y: this.player.y, cause });
+        const lives = state.loseLife();
+        events.emit(EV.PLAYER_DIE, { x: this.player.x, y: this.player.y, cause, lives });
+        events.emit(EV.LIVES_CHANGE, { lives });
+        this.player.die();
+        this.cameraRig.hold();
+        this.respawnInMs = DEATH.ANIM_MS;
+    }
 
+    /** After the death animation: back at the checkpoint, with every crumbling platform in place. */
+    private respawnPlayer (): void
+    {
         const { x, y } = state.checkpoint;
         this.player.respawn(x, y);
-        this.crumbles.forEach(c => c.reset());     // a second try starts with every crumbling platform in place
-        this.cameraRig.snap();
+        this.crumbles.forEach(c => c.reset());
+        this.cameraRig.resume();
+        this.controls.reset();      // a key still held from before the death is not a new press
         events.emit(EV.PLAYER_RESPAWN, { x, y });
     }
 }

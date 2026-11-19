@@ -10,7 +10,7 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 
 ## Naplánované v M3 (pozri `docs/gameplan.md`, návrh)
 
-- Animácia smrti, 9 životov + klbko vlny, pierka, útok pazúrikmi, hadík, šplhanie (2026-11-19)
+- Animácia smrti, 3 životy + klbko vlny, pierka, útok pazúrikmi, hadík, šplhanie (2026-11-19)
 
 ## M4
 

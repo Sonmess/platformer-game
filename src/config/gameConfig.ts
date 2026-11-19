@@ -3,6 +3,7 @@ import { GAME, PHYSICS } from './constants';
 import { Boot } from '../scenes/Boot';
 import { Game } from '../scenes/Game';
 import { Hud } from '../scenes/Hud';
+import { GameOver } from '../scenes/GameOver';
 import { LevelComplete } from '../scenes/LevelComplete';
 import { Pause } from '../scenes/Pause';
 import { Preload } from '../scenes/Preload';
@@ -23,5 +24,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
         default: 'arcade',
         arcade: { gravity: { x: 0, y: PHYSICS.gravity }, debug: false }
     },
-    scene: [Boot, Preload, Title, Game, Hud, Pause, LevelComplete]
+    scene: [Boot, Preload, Title, Game, Hud, Pause, LevelComplete, GameOver]
 };

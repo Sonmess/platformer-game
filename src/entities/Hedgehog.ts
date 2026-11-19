@@ -10,6 +10,7 @@ export class Hedgehog extends Enemy
 {
     private readonly minX: number;
     private readonly maxX: number;
+    readonly spiky = true;
 
     constructor (scene: Phaser.Scene, patrol: { x: number; y: number; width: number; height: number }, private readonly ground: Phaser.Tilemaps.TilemapLayer)
     {
@@ -34,5 +35,10 @@ export class Hedgehog extends Enemy
     {
         if (this.scared) sprite.stop().setTexture(ASSETS.HEDGEHOG.scared.key);
         else sprite.play(ANIM.HEDGEHOG_WALK, true);
+    }
+
+    protected showFleeing (sprite: Phaser.GameObjects.Sprite): void
+    {
+        sprite.play(ANIM.HEDGEHOG_WALK, true);
     }
 }

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { ANIM, ASSETS, DEPTH, MEOW, PHYSICS, PLAYER, PLAYER_FEEL, RUN_ANIM_THRESHOLD, TILE } from '../config/constants';
+import { ANIM, ASSETS, CLAW, DEATH, DEPTH, MEOW, PHYSICS, PLAYER, PLAYER_FEEL, POWER, RUN_ANIM_THRESHOLD, TILE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
+import type { ClawSwipe } from '../core/claw';
 import { Cooldown, type MeowWave } from '../core/meow';
 import type { InputSnapshot } from '../systems/Input';
 
@@ -33,12 +34,21 @@ export class Player extends Phaser.GameObjects.Rectangle
     /** Kept across respawns, so the HUD's refill bar stays in sync. */
     readonly meowCooldown = new Cooldown(MEOW.COOLDOWN_MS);
     private meowPoseMs = 0;
+    readonly clawCooldown = new Cooldown(CLAW.COOLDOWN_MS);
+    private clawPoseMs = 0;
     /**
      * The moving platform under the cat after the latest physics step (null if none), and the one found
      * during the step in progress. Per physics step, not per frame: on fast screens many frames run no step.
      */
     private standingOn: Rideable | null = null;
     private contact: Rideable | null = null;
+    /** Knocked out: the death animation plays, the body is off (no collisions), the controls do nothing. */
+    dying = false;
+    private invulnerableMs = 0;
+    /** After a respawn the arrows are ignored until both are let go (a held arrow must not walk into the pit again). */
+    awaitingRelease = false;
+    /** Puffed up by a yarn ball: a hit only shrinks it (see Game.killPlayer). The hitbox does not change. */
+    big = false;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
@@ -90,13 +100,54 @@ export class Player extends Phaser.GameObjects.Rectangle
         return true;
     }
 
+    /** The sprite's resting scale (Effects squashes and stretches around it). */
+    get baseScale (): number
+    {
+        return this.big ? POWER.BIG_SCALE : 1;
+    }
+
+    /** Picked up a yarn ball: puff up. */
+    grow (): void
+    {
+        this.big = true;
+        this.sprite.setScale(this.baseScale);
+    }
+
+    /** Hit while big: back to the small cat, briefly invulnerable, no life lost. */
+    shrink (): void
+    {
+        this.big = false;
+        this.sprite.setScale(this.baseScale);
+        this.invulnerableMs = POWER.HURT_INVULNERABLE_MS;
+    }
+
+    /** Just respawned (or shrunk): spikes and enemies do not hurt (falling into a pit still does). */
+    get invulnerable (): boolean
+    {
+        return this.invulnerableMs > 0;
+    }
+
+    /** Knocked out: stop where it is and switch the body off; Effects animates the sprite, Game respawns it. */
+    die (): void
+    {
+        this.dying = true;
+        this.meowPoseMs = 0;
+        this.clawPoseMs = 0;
+        this.body.stop();
+        this.body.enable = false;
+        this.standingOn = this.contact = null;
+    }
+
     update (input: InputSnapshot, deltaMs: number): void
     {
         const body = this.body;
         const onGround = this.onGround;
+        this.invulnerableMs = Math.max(0, this.invulnerableMs - deltaMs);
 
         // Horizontal: acceleration while held, drag to stop; weaker in the air.
-        const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+        if (this.awaitingRelease && !input.left && !input.right) this.awaitingRelease = false;
+        const steer = !this.awaitingRelease;
+        const dir = steer ? (input.right ? 1 : 0) - (input.left ? 1 : 0) : 0;
         if (dir !== 0) {
             this.facing = dir > 0 ? 1 : -1;
             if (onGround && Math.sign(body.velocity.x) === -dir) body.setVelocityX(0); // snap-turn
@@ -128,6 +179,15 @@ export class Player extends Phaser.GameObjects.Rectangle
             events.emit(EV.PLAYER_MEOW, { ...this.meowWave(), cooldownMs: MEOW.COOLDOWN_MS });
         }
 
+        // Claw: a quick swipe, also in the air; Game decides what it hits.
+        this.clawCooldown.update(deltaMs);
+        this.clawPoseMs = Math.max(0, this.clawPoseMs - deltaMs);
+        if (input.clawPressed && this.clawCooldown.trigger()) {
+            this.clawPoseMs = CLAW.POSE_MS;
+            this.meowPoseMs = 0;
+            events.emit(EV.PLAYER_CLAW, { ...this.clawSwipe(), cooldownMs: CLAW.COOLDOWN_MS });
+        }
+
         // Asymmetric gravity: heavier fall, brief hang at the apex.
         body.setGravityY(onGround ? 0 : extraGravity(body.velocity.y, PHYSICS, PLAYER_FEEL));
 
@@ -150,6 +210,18 @@ export class Player extends Phaser.GameObjects.Rectangle
         };
     }
 
+    /** What the claw reaches: from the hitbox centre to a little past its front edge. */
+    private clawSwipe (): ClawSwipe
+    {
+        const c = this.body.center;
+        return {
+            x: c.x, y: c.y, dir: this.facing,
+            reach: this.body.halfWidth + CLAW.REACH_PX,
+            behind: CLAW.BEHIND_PX,
+            halfHeight: CLAW.HALF_HEIGHT_PX
+        };
+    }
+
     /** Current animation key; exposed to the test API. */
     get anim (): string
     {
@@ -158,6 +230,10 @@ export class Player extends Phaser.GameObjects.Rectangle
 
     private syncSprite (): void
     {
+        if (this.dying) {
+            this.sprite.play(ANIM.CAT_HURT, true);     // Effects moves it (the hop and the fall)
+            return;
+        }
         const body = this.body;
         const platform = this.standingOn;
         if (platform) {
@@ -170,7 +246,8 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.sprite.setFlipX(this.facing < 0);
 
         let anim: string;
-        if (this.meowPoseMs > 0) anim = ANIM.CAT_MEOW;
+        if (this.clawPoseMs > 0) anim = ANIM.CAT_CLAW;
+        else if (this.meowPoseMs > 0) anim = ANIM.CAT_MEOW;
         else if (!this.onGround) anim = body.velocity.y < 0 ? ANIM.CAT_JUMP : ANIM.CAT_FALL;
         else anim = Math.abs(body.velocity.x) > RUN_ANIM_THRESHOLD ? ANIM.CAT_RUN : ANIM.CAT_IDLE;
         this.sprite.play(anim, true);
@@ -182,9 +259,17 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.body.reset(x, y);
     }
 
-    /** Instantly place the player standing at a feet position, with no momentum carried over. */
+    /**
+     * Place the player standing at a feet position, with no momentum carried over, briefly invulnerable and
+     * ignoring the arrows until they are let go.
+     */
     respawn (feetX: number, feetY: number): void
     {
+        this.dying = false;
+        this.body.enable = true;
+        this.invulnerableMs = DEATH.INVULNERABLE_MS;
+        this.big = false;                               // a new life starts small
+        this.awaitingRelease = true;
         this.body.reset(feetX, feetY - PLAYER.HEIGHT / 2);
         this.standingOn = null;
         this.body.setAcceleration(0, 0);
