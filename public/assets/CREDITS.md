@@ -42,9 +42,9 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 ### Vlastná grafika projektu — `own/`
 
 - **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`, `cat-hurt`, `cat-claw`, hlávka do HUD `cat-head`), **pierka** (`feather-normal`, `feather-silver`, `feather-gold`), **klbko vlny** (`yarn`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
-  **ježko** (`hedgehog-walk`, `hedgehog-scared`) a **vrana** (`crow-fly`, `crow-scared`) nakreslené pre tento projekt
+  **ježko** (`hedgehog-walk`, `hedgehog-scared`), **vrana** (`crow-fly`, `crow-scared`) a **hadík** (`snake-slither`, `snake-warn`, `snake-spray`) nakreslené pre tento projekt
   ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
-- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
+- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, syčanie a striekanie jedu hadíka, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
   projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
 - **Hudba** (`music/forest.wav`) — pokojná 8-bitová slučka (30 s) skomponovaná pre tento projekt v
   `tools/music.mjs`; WAV generuje `node tools/music.mjs`. Bez cudzej licencie, patrí projektu.

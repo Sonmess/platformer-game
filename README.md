@@ -20,7 +20,10 @@ a prepadávacími plošinami. Ďalšie levely sú plánované v M3. Postup a roz
 | Enter alebo R / Esc | hrať znova / úvodná obrazovka (na obrazovke s výsledkami) |
 
 Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj pierka (modré 1 bod, strieborné 5, zlaté 10; každých 50 bodov vráti stratený život), ohniská sú checkpointy. Ježka a vranu
-sa nedá zašliapnuť — mňauknutie ich na pár sekúnd vystraší a vtedy sa dá cez ne prejsť. Pazúrikmi (C) sa dá vrana hneď vyhnať z levelu; ježko\nutečie, len keď je zvinutý od strachu — nevystrašený mačku popichá. Dosky s puklinami
+sa nedá zašliapnuť — mňauknutie ich na pár sekúnd vystraší a vtedy sa dá cez ne prejsť. Pazúrikmi (C) sa dá vrana hneď vyhnať z levelu; ježko
+utečie, len keď je zvinutý od strachu — nevystrašený mačku popichá. Hadík mňaukania sa nebojí: v pravidelnom cykle
+sa zastaví, nafúkne kapucňu a vystrekne okolo seba fialový oblak jedu — pazúrikmi ho treba vyhnať v chvíľke pokoja
+medzi vlnami. Dosky s puklinami
 sa pod mačkou po chvíli zrútia. Ružové klbko vlny mačku „nafúkne“ — zásah ju potom len zmenší. Mačka má 3 životy (hlávky vpravo hore); keď dôjdu, hra končí a level začína odznova.
 
 ## Technológie

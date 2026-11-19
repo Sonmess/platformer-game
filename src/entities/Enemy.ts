@@ -3,7 +3,7 @@ import { DEPTH, ENEMY, FLEE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { Scare } from '../core/meow';
 
-export type EnemyKind = 'hedgehog' | 'crow';
+export type EnemyKind = 'hedgehog' | 'crow' | 'snake';
 
 /**
  * Shared enemy behaviour: an invisible Arcade hitbox (all physics and tests use it) with a sprite that
@@ -25,6 +25,8 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
     gone = false;
     /** Spines: clawing it unscared pricks the cat (see clawOutcome). */
     abstract readonly spiky: boolean;
+    /** A meow does nothing to it (the snake). */
+    readonly fearless: boolean = false;
 
     /** `spriteOriginY`: the sprite row (0..1) that sits on the hitbox bottom (a crow's feet dangle below it). */
     constructor (scene: Phaser.Scene, readonly kind: EnemyKind, x: number, y: number, width: number, height: number, texture: string, spriteOriginY = 1)
@@ -61,6 +63,7 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
 
     scare (): void
     {
+        if (this.fearless) return;
         const wasScared = this.fright.scared;
         this.fright.scare();
         this.body.setVelocity(0, 0);
@@ -105,6 +108,12 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
             this.shakeOffset = 0;
             this.move(deltaMs, player);
         }
+    }
+
+    /** Does a hazard of its own (the snake's poison cloud) reach `box`, the cat's hitbox? */
+    poisons (_box: Phaser.Geom.Rectangle): boolean
+    {
+        return false;
     }
 
     /** Normal (unscared) behaviour for one frame; `player` only for looking at the cat, never for chasing. */

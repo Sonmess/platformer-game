@@ -52,6 +52,15 @@ const SFX = {
         note({ wave: 'noise', from: 9000, to: 6000, at: 0.07, dur: 0.03, vol: 0.2, decay: 3 })
     ],
     // A clawed enemy runs off: a yelp, then quick pattering steps fading away.
+    // A snake puffs up its hood: a rising, rattling hiss ("ssSSS") as a warning.
+    hiss: [
+        note({ wave: 'noise', from: 4000, to: 8000, dur: 0.45, vol: 0.3, attack: 0.15, decay: 0.8, vibrato: [18, 0.08] })
+    ],
+    // The snake sprays poison: a wet burst ("pššš") with a low gurgle under it.
+    spray: [
+        note({ wave: 'noise', from: 6000, to: 2000, dur: 0.4, vol: 0.4, attack: 0.01, decay: 1.6 }),
+        note({ wave: 'triangle', from: 180, to: 90, dur: 0.25, vol: 0.3, decay: 1.5, vibrato: [24, 0.1] })
+    ],
     flee: [
         note({ from: 1200, to: 1700, dur: 0.05, vol: 0.25, duty: 0.25, decay: 0 }),
         note({ from: 1700, to: 900, at: 0.05, dur: 0.1, vol: 0.25, duty: 0.25, decay: 1.5 }),

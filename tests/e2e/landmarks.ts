@@ -30,3 +30,8 @@ export const CRUMBLES = ofType('crumble').map(box);
 
 export const HEDGEHOGS = ofType('hedgehog').map(box);
 
+export const SNAKES = ofType('snake').map(box);
+
+/** Index of the i-th snake in getState().enemies (hedgehogs, then crows, then snakes). */
+export const snakeIndex = (i = 0) => HEDGEHOGS.length + CROWS.length + i;
+

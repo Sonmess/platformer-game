@@ -136,7 +136,7 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
 
 ### Fáza B — útok a nový nepriateľ
 
-- [ ] **5. Útok pazúrikmi** — kláves C: rýchle švihnutie labkou (~1 dlaždica pred mačkou, krátky cooldown).
+- [x] **5. Útok pazúrikmi** — kláves C: rýchle švihnutie labkou (~1 dlaždica pred mačkou, krátky cooldown).
   **Vrana**: zasiahnuteľná hneď. **Ježko**: iba keď je vystrašený mňauknutím; zaútočiť na nevystrašeného =
   mačka sa popichá (zásah). Zasiahnutý nepriateľ komicky **uteká / odletí z levelu** a do reštartu levelu sa
   nevráti.
@@ -144,11 +144,16 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
   Stav: dosah = od stredu mačky po 14 px pred jej hitbox (±12 px na výšku), cooldown 0,4 s, aj vo vzduchu. Vlastná snímka
   s vystretou labkou, tri šmuhy pazúrov, chumáč srsti a zvuky (švih, výkrik + cupot). Utečený nepriateľ ostáva preč aj
   po smrti mačky, vráti sa až s novou hrou. Logika v `src/core/claw.ts` (unit testy), scenáre v `tests/e2e/claw.spec.ts`.
-  Pocit a čitateľnosť: čaká na playtest.
+  Pocit a čitateľnosť: overené playtestom.
 - [ ] **6. Hadík** — nový nepriateľ: plazí sa na krátkom úseku a v pravidelnom cykle **strieka jed okolo seba**
   (oblak v okruhu ~1,5 dlaždice). Pred striekaním sa varovne nafúkne; medzi vlnami je chvíľa, keď sa dá
   zaútočiť pazúrikmi. Mňauknutie naňho nepôsobí. Dotyk hadíka aj jedu = zásah.
   Test: cyklus jedu, jed zraňuje, útok v pauze ho vyženie, mňauknutie nič.
+  Stav: cyklus 1,8 s pokoj (plazí sa) → 0,7 s varovanie (zastaví sa, kobria kapucňa s fialovými škvrnami, syčanie)
+  → 0,7 s jed (fialový oblak s polomerom presne 1,5 dlaždice, kvapky, „pššš“). Hitbox 16×8, vlastné sprity a zvuky.
+  Tiled typ `snake` (obdĺžnik = úsek, spodná hrana = zem). Zatiaľ jeden hadík v leveli (stĺpce 76–79, pred stenou za
+  druhým checkpointom), poriadne rozmiestnenie v kroku 8. Logika v `src/core/venom.ts` (unit testy), scenáre
+  v `tests/e2e/snake.spec.ts`. Pocit a férovosť: čaká na playtest.
 
 ### Fáza C — šplhanie
 

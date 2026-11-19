@@ -74,7 +74,9 @@ export const AUDIO = {
         CRUMBLE: { key: 'sfx-crumble', url: 'assets/own/sfx/crumble.wav', volume: 0.45, detune: 60 },
         MEOW: { key: 'sfx-meow', url: 'assets/own/sfx/meow.wav', volume: 0.5, detune: 70 },
         CLAW: { key: 'sfx-claw', url: 'assets/own/sfx/claw.wav', volume: 0.4, detune: 120 },
-        FLEE: { key: 'sfx-flee', url: 'assets/own/sfx/flee.wav', volume: 0.45, detune: 80 }
+        FLEE: { key: 'sfx-flee', url: 'assets/own/sfx/flee.wav', volume: 0.45, detune: 80 },
+        HISS: { key: 'sfx-hiss', url: 'assets/own/sfx/hiss.wav', volume: 0.4, detune: 60 },
+        SPRAY: { key: 'sfx-spray', url: 'assets/own/sfx/spray.wav', volume: 0.45, detune: 60 }
     },
     // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
     MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 },
@@ -122,6 +124,9 @@ export const JUICE = {
     SCARE: { drops: 8, tint: [0xffffff, 0xbfe3ff] },     // a burst of "sweat" over a scared enemy
     // Claw swipe: three short slash lines in front of the paw, sliding and fading; a hit enemy gets a puff of fur.
     CLAW: { LINES: 3, LENGTH_PX: 9, SPACING_PX: 4, SLANT_PX: 4, SLIDE_PX: 4, MS: 160, LINE: 1, COLOR: 0xffffff, HIT_SPARKS: 10, HIT_TINT: [0xffffff, 0xd0d0d0, 0x8a8a9a] },
+    // Snake poison: a translucent cloud of exactly the hurting radius swells and fades, with drops bursting out.
+    POISON: { COLOR: 0xa64fd1, ALPHA: 0.3, RIM_ALPHA: 0.7, RIM_LINE: 1, FROM_SCALE: 0.4, GROW_MS: 120, DROPS: 22, TINT: [0xe2b8ff, 0xa64fd1, 0x6e2a99], WARN_DROPS: 4,
+        DROP_SPEED: { min: 10, max: 40 }, DROP_LIFESPAN: { min: 400, max: 600 } },     // ≤ 24 px: inside the cloud
     RESPAWN: { fromScale: 0.5, ms: 220, blinkMs: 90, blinkAlpha: 0.35 }     // blinks while invulnerable
 } as const;
 
@@ -177,7 +182,8 @@ export const CLAW = {
 export const FLEE = {
     MS: 650,
     hedgehog: { dx: 72, dy: 0, hopPx: 8, animScale: 3 },
-    crow: { dx: 80, dy: -90, hopPx: 0, animScale: 2.5 }
+    crow: { dx: 80, dy: -90, hopPx: 0, animScale: 2.5 },
+    snake: { dx: 64, dy: 0, hopPx: 4, animScale: 3 }
 } as const;
 
 // Enemies are scared by a meow (src/core/meow.ts): harmless and frozen, shaking, for SCARE_MS.
@@ -200,6 +206,19 @@ export const CROW = {
     WIDTH: 14,                  // hitbox; the sprite is 20×16
     HEIGHT: 10,
     SPRITE_ORIGIN_Y: 0.75       // body bottom at sprite row 12; the feet hang below the hitbox
+} as const;
+
+// Snake (src/core/venom.ts): slithers along its patrol range; every cycle it stops, puffs up its hood (warning) and
+// sprays a poison cloud around itself. A meow does nothing to it; the claw drives it away (best between the sprays).
+export const SNAKE = {
+    SPEED: 14,                  // px/s, only while calm
+    WIDTH: 16,                  // hitbox; the sprite is 24×12
+    HEIGHT: 8,
+    CALM_MS: 1800,
+    WARN_MS: 700,
+    SPRAY_MS: 700,
+    CLOUD_RADIUS_PX: 24,        // 1.5 tiles around the cloud centre
+    CLOUD_RAISE_PX: 4           // cloud centre above the hitbox centre (about the cat's middle)
 } as const;
 
 // Moving platforms: a Tiled rectangle of type "platform" is the path (wider than tall = left-right, otherwise
@@ -265,7 +284,8 @@ export const CAMERA = {
     deadzoneW: 32,          // px the player can move without the camera following
     deadzoneH: 64,
     lookAhead: 48,          // px the view leads in the facing direction
-    lookAheadRate: 0.04     // per-frame (at 60 FPS) approach rate of the look-ahead offset
+    lookAheadRate: 0.04,    // per-frame (at 60 FPS) approach rate of the look-ahead offset
+    OFFSCREEN_MARGIN_PX: 32 // a snake's cycle further off screen than this is neither drawn nor heard
 } as const;
 
 // Tiled map names (src/levels/*.json). The spawn point marks the player's feet.
@@ -283,6 +303,7 @@ export const LEVEL = {
     PLATFORM_TYPE: 'platform',
     CRUMBLE_TYPE: 'crumble',
     CROW_TYPE: 'crow',              // rectangle = flight path: wider than tall = back and forth, else up and down
+    SNAKE_TYPE: 'snake',            // rectangle = patrol range, bottom edge = the ground it slithers on
     YARN_TYPE: 'yarn',              // point = a yarn ball power-up
     GOAL_TYPE: 'goal'
 } as const;
@@ -437,6 +458,12 @@ export const ASSETS = {
         walk: { key: 'hedgehog-walk', url: 'assets/own/hedgehog-walk.png', frames: 2, frameRate: 6 },
         scared: { key: 'hedgehog-scared', url: 'assets/own/hedgehog-scared.png' }
     },
+    SNAKE: {
+        frameWidth: 24, frameHeight: 12,
+        slither: { key: 'snake-slither', url: 'assets/own/snake-slither.png', frames: 2, frameRate: 4 },
+        warn: { key: 'snake-warn', url: 'assets/own/snake-warn.png', frames: 2, frameRate: 12 },     // hood up, trembling
+        spray: { key: 'snake-spray', url: 'assets/own/snake-spray.png' }
+    },
     FONT: { key: 'PixelifySans', url: 'assets/fonts/PixelifySans.ttf' }
 } as const;
 
@@ -451,6 +478,8 @@ export const ANIM = {
     CAT_CLAW: 'cat-claw',
     HEDGEHOG_WALK: 'hedgehog-walk',
     CROW_FLY: 'crow-fly',
+    SNAKE_SLITHER: 'snake-slither',
+    SNAKE_WARN: 'snake-warn',
     CAMPFIRE: 'campfire-burn'
 } as const;
 

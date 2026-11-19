@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { AUDIO, JUICE, PLAYER_FEEL, type FeatherKind } from '../config/constants';
 import { EV, events } from '../core/events';
+import { nearView } from './view';
 
 type Sfx = typeof AUDIO.SFX[keyof typeof AUDIO.SFX];
 
@@ -38,6 +39,8 @@ export class SoundEffects
             [EV.ENEMY_SCARE, () => this.play(AUDIO.SFX.SCARE)],
             [EV.PLAYER_CLAW, () => this.play(AUDIO.SFX.CLAW)],
             [EV.ENEMY_FLEE, () => this.play(AUDIO.SFX.FLEE)],
+            [EV.SNAKE_WARN, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.HISS, p)],
+            [EV.SNAKE_SPRAY, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.SPRAY, p)],
             [EV.CRUMBLE_SHAKE, () => this.play(AUDIO.SFX.CRACK)],
             [EV.CRUMBLE_FALL, () => this.play(AUDIO.SFX.CRUMBLE)]
         ];
@@ -62,6 +65,12 @@ export class SoundEffects
         this.comboSteps = now - this.lastCoinMs <= windowMs ? Math.min(this.comboSteps + 1, maxSteps) : 0;
         this.lastCoinMs = now;
         this.play(AUDIO.SFX.COIN, 1, AUDIO.FEATHER_PITCH[kind] + this.comboSteps * stepCents);
+    }
+
+    /** Sounds of a source that repeats on its own (a snake's cycle): only while it is on screen, or near it. */
+    private playNear (sfx: Sfx, { x, y }: { x: number; y: number }): void
+    {
+        if (nearView(this.scene.cameras.main, x, y)) this.play(sfx);
     }
 
     private play (sfx: Sfx, volumeScale = 1, detune = 0): void

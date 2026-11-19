@@ -42,6 +42,10 @@ export class Preload extends Scene
         const { CROW } = ASSETS;
         this.load.spritesheet(CROW.fly.key, CROW.fly.url, { frameWidth: CROW.frameWidth, frameHeight: CROW.frameHeight });
         this.load.image(CROW.scared.key, CROW.scared.url);
+        const { SNAKE } = ASSETS;
+        this.load.spritesheet(SNAKE.slither.key, SNAKE.slither.url, { frameWidth: SNAKE.frameWidth, frameHeight: SNAKE.frameHeight });
+        this.load.spritesheet(SNAKE.warn.key, SNAKE.warn.url, { frameWidth: SNAKE.frameWidth, frameHeight: SNAKE.frameHeight });
+        this.load.image(SNAKE.spray.key, SNAKE.spray.url);
         this.load.font(ASSETS.FONT.key, ASSETS.FONT.url);
         for (const sfx of Object.values(AUDIO.SFX)) this.load.audio(sfx.key, sfx.url);
         this.load.audio(AUDIO.MUSIC.key, AUDIO.MUSIC.url);
@@ -76,6 +80,9 @@ export class Preload extends Scene
         this.anims.create({ key: ANIM.HEDGEHOG_WALK, frames: frames(HEDGEHOG.walk.key, HEDGEHOG.walk.frames), frameRate: HEDGEHOG.walk.frameRate, repeat: -1 });
         const { CROW } = ASSETS;
         this.anims.create({ key: ANIM.CROW_FLY, frames: frames(CROW.fly.key, CROW.fly.frames), frameRate: CROW.fly.frameRate, repeat: -1 });
+        const { SNAKE } = ASSETS;
+        this.anims.create({ key: ANIM.SNAKE_SLITHER, frames: frames(SNAKE.slither.key, SNAKE.slither.frames), frameRate: SNAKE.slither.frameRate, repeat: -1 });
+        this.anims.create({ key: ANIM.SNAKE_WARN, frames: frames(SNAKE.warn.key, SNAKE.warn.frames), frameRate: SNAKE.warn.frameRate, repeat: -1 });
         // Feathers: a glint slides down the vane now and then.
         for (const f of Object.values(FEATHERS)) {
             this.anims.create({ key: f.anim, frames: frames(f.key, FEATHER_SHEET.frames), frameRate: FEATHER_SHEET.frameRate, repeat: -1, repeatDelay: FEATHER_SHEET.glintEveryMs });

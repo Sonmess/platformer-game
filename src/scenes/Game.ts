@@ -11,6 +11,7 @@ import { CrumblePlatform } from '../entities/CrumblePlatform';
 import type { Enemy } from '../entities/Enemy';
 import { Goal } from '../entities/Goal';
 import { Hedgehog } from '../entities/Hedgehog';
+import { Snake } from '../entities/Snake';
 import { Yarn } from '../entities/Yarn';
 import { MovingPlatform } from '../entities/MovingPlatform';
 import { Player } from '../entities/Player';
@@ -91,8 +92,9 @@ export class Game extends Scene
         const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
         const hedgehogs = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, rect(o), ground));
         const crows = this.objectsOfType(LEVEL.CROW_TYPE).map(o => new Crow(this, rect(o)));
-        this.enemies = [...hedgehogs, ...crows];
-        this.physics.add.collider(hedgehogs, ground);     // crows fly a fixed path
+        const snakes = this.objectsOfType(LEVEL.SNAKE_TYPE).map(o => new Snake(this, rect(o), ground));
+        this.enemies = [...hedgehogs, ...crows, ...snakes];
+        this.physics.add.collider([...hedgehogs, ...snakes], ground);     // crows fly a fixed path
         this.physics.add.overlap(this.player, this.enemies, (_p, e) => { if ((e as Enemy).harmful) this.killPlayer('enemy'); });
         // A meow scares every enemy within its reach (enemies never read the player directly).
         const onMeow = (wave: MeowWave) => this.enemies.forEach(e => { if (!e.gone && inMeowRange(wave, e.body.center)) e.scare(); });
@@ -147,6 +149,7 @@ export class Game extends Scene
         for (const crumble of this.crumbles) crumble.update(delta);
         const playerBounds = this.player.getBounds();
         for (const enemy of this.enemies) enemy.update(delta, playerBounds);
+        if (this.enemies.some(e => e.poisons(playerBounds))) this.killPlayer('poison');
     }
 
     private objectsOfType (type: string)

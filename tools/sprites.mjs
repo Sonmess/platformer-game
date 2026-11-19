@@ -37,7 +37,11 @@ const PALETTE = {
     q: '#fff8e6',   // feather quill (all kinds)
     M: '#e8607f',   // yarn ball
     m: '#a8344f',   //   wound strands (dark)
-    t: '#ffb6c8'    //   highlight
+    t: '#ffb6c8',   //   highlight
+    G: '#7ccf3c',   // snake scales: bright lime, so it reads against the dark bushes and the brown ground
+    H: '#3d7a26',   //   its dark pattern
+    u: '#e8e27a',   //   belly
+    P: '#a64fd1'    //   poison (hood spots, venom); the poison cloud uses the same purple
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -282,6 +286,65 @@ const CROW = {
     ].map(fit)]
 };
 
+// ── Snake (enemy): 24×12 frames, facing right, lying on the bottom row ───────────────────────────
+// The body is a wave along the ground (tail on the left), drawn from a sine so the two slither frames only shift
+// its phase; the neck rises at the right into a head. Warning: a cobra hood with purple spots flares out and the
+// body swells; spraying: the hood stays up and the mouth gapes, dripping poison.
+const SW = 24, SH = 12;
+const SNAKE_HEAD = [            // 7 wide, rows 3..11: head, then the neck down to the body
+    '.GGGG..',
+    'GGGKGG.',
+    'GGGGGG.',
+    'GGu....',
+    'GGu....',
+    'GGu....',
+    'GGu....',
+    'GGu....',
+    'GGu....'
+];
+const SNAKE_HEAD_TONGUE = SNAKE_HEAD.map((r, y) => y === 2 ? 'GGGGGGr' : y === 3 ? 'GGu...r' : r);
+const SNAKE_HOOD = [            // 9 wide, rows 1..11: head over a flared hood
+    '...GGGG..',
+    '..GGGKGG.',
+    '..GGGGGG.',
+    '.GGGuGGG.',
+    'GPGGuGGPG',
+    'GPGGuGGPG',
+    'GGHGuGHGG',
+    '.GGGuGGG.',
+    '..GGu....',
+    '..GGu....',
+    '..GGu....'
+];
+const SNAKE_HOOD_SPRAY = SNAKE_HOOD.map((r, y) => y === 1 ? '..GGGKGGP' : y === 2 ? '..GGGnnnP' : y === 3 ? '.GGGuGGP.' : r);
+function snakeFrame ({ phase, swell = 0, head, headX, headY })
+{
+    const g = Array.from({ length: SH }, () => Array(SW).fill('.'));
+    for (let x = 0; x < 18; x++) {
+        const lift = Math.round((1 - Math.cos(x * Math.PI / 4 + phase)) / 2 * 2);     // 0..2 px: humps
+        const thick = x < 2 ? 1 : x < 4 ? 2 : 2 + swell;
+        const bottom = SH - 1 - lift;
+        for (let t = 0; t < thick; t++) {
+            const y = bottom - t;
+            g[y][x] = t === 0 && thick > 1 ? 'u' : t === thick - 1 && x % 3 === 0 ? 'H' : 'G';
+        }
+    }
+    head.forEach((row, dy) => [...row].forEach((c, dx) => { if (c !== '.') g[headY + dy][headX + dx] = c; }));
+    return g.map(r => r.join(''));
+}
+const SNAKE = {
+    slither: [
+        snakeFrame({ phase: 0, head: SNAKE_HEAD, headX: 16, headY: 3 }),
+        snakeFrame({ phase: Math.PI, head: SNAKE_HEAD_TONGUE, headX: 16, headY: 3 })
+    ],
+    // Hood up and trembling: the two frames swell the body by turns.
+    warn: [
+        snakeFrame({ phase: 0, swell: 1, head: SNAKE_HOOD, headX: 14, headY: 1 }),
+        snakeFrame({ phase: 0, swell: 0, head: SNAKE_HOOD, headX: 14, headY: 1 })
+    ],
+    spray: [snakeFrame({ phase: 0, swell: 1, head: SNAKE_HOOD_SPRAY, headX: 14, headY: 1 })]
+};
+
 // ── Feather (collectible): 14×16 frames, leaning right, quill at the bottom left ───────────────
 // One template, recoloured per kind (normal = blue, silver, gold): V = vane, v = its light edge, q = quill.
 // Four frames: plain, then a white glint sliding down the vane.
@@ -442,3 +505,6 @@ write('hedgehog-scared', HEDGEHOG.scared, true);
 // A black bird vanishes against the dark bushes: a light rim keeps it readable as a hazard.
 write('crow-fly', CROW.fly, true, '', 'L');
 write('crow-scared', CROW.scared, true, '', 'L');
+write('snake-slither', SNAKE.slither, true);
+write('snake-warn', SNAKE.warn, true);
+write('snake-spray', SNAKE.spray, true);

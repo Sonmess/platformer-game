@@ -4,6 +4,7 @@ import { EV, events, type DeathCause } from '../core/events';
 import type { ClawSwipe } from '../core/claw';
 import type { MeowWave } from '../core/meow';
 import type { Player } from '../entities/Player';
+import { nearView } from './view';
 
 /** Bakes the square particle textures (once; textures outlive scene restarts). */
 export function bakeEffectTextures (scene: Phaser.Scene): void
@@ -34,6 +35,7 @@ export class Effects
     private readonly deathBits: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly scareDrops: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly furPuff: Phaser.GameObjects.Particles.ParticleEmitter;
+    private readonly poisonDrops: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly handlers: [string, (...args: never[]) => void][];
     // The cat sprite's tweens, kept apart so a jump's squash never cuts the respawn blink short.
     private popTween?: Phaser.Tweens.Tween;
@@ -70,6 +72,16 @@ export class Effects
         this.deathBits = sparks(JUICE.DEATH.tint);
         this.scareDrops = sparks(JUICE.SCARE.tint);
         this.furPuff = sparks(JUICE.CLAW.HIT_TINT);
+        // Slower than sparks: the drops stay inside the cloud, so they never suggest a bigger hazard than it is.
+        this.poisonDrops = scene.add.particles(0, 0, JUICE.SPARK.key, {
+            speed: JUICE.POISON.DROP_SPEED,
+            angle: { min: 0, max: 360 },
+            lifespan: JUICE.POISON.DROP_LIFESPAN,
+            scale: { start: 2, end: 1 },
+            alpha: { start: 1, end: 0 },
+            tint: [...JUICE.POISON.TINT],
+            emitting: false
+        }).setDepth(DEPTH.EFFECTS);
 
         this.handlers = [
             [EV.PLAYER_JUMP, this.onJump],
@@ -85,6 +97,8 @@ export class Effects
             [EV.ENEMY_SCARE, this.onEnemyScare],
             [EV.PLAYER_CLAW, this.onClaw],
             [EV.ENEMY_FLEE, this.onEnemyFlee],
+            [EV.SNAKE_WARN, this.onSnakeWarn],
+            [EV.SNAKE_SPRAY, this.onSnakeSpray],
             [EV.CRUMBLE_FALL, this.onCrumbleFall]
         ];
         for (const [name, fn] of this.handlers) events.on(name, fn, this);
@@ -96,7 +110,7 @@ export class Effects
     /** Live particles across all emitters; exposed to the test API. */
     get particles (): number
     {
-        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff]
+        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff, this.poisonDrops]
             .reduce((n, e) => n + e.getAliveParticleCount(), 0);
     }
 
@@ -223,6 +237,35 @@ export class Effects
     private onEnemyFlee ({ x, y }: { x: number; y: number }): void
     {
         this.furPuff.explode(JUICE.CLAW.HIT_SPARKS, x, y);
+    }
+
+    /** The snake puffs up its hood: a few drops of poison drip around it (the sprite shows the hood). */
+    private onSnakeWarn ({ x, y }: { x: number; y: number }): void
+    {
+        if (!nearView(this.scene.cameras.main, x, y)) return;
+        this.poisonDrops.explode(JUICE.POISON.WARN_DROPS, x, y);
+    }
+
+    /**
+     * The poison cloud: a translucent disc of exactly the hurting radius swells up, then fades out over the time it
+     * hurts, with drops bursting out of it.
+     */
+    private onSnakeSpray ({ x, y, radius, ms }: { x: number; y: number; radius: number; ms: number }): void
+    {
+        const P = JUICE.POISON;
+        if (!nearView(this.scene.cameras.main, x, y)) return;
+        const g = this.scene.add.graphics().setDepth(DEPTH.EFFECTS).setPosition(x, y).setScale(P.FROM_SCALE);
+        g.fillStyle(P.COLOR, P.ALPHA).fillCircle(0, 0, radius);
+        g.lineStyle(P.RIM_LINE, P.COLOR, P.RIM_ALPHA).strokeCircle(0, 0, radius);
+        this.scene.tweens.chain({
+            targets: g,
+            tweens: [
+                { scale: 1, duration: P.GROW_MS, ease: 'Back.easeOut' },
+                { alpha: 0, duration: ms - P.GROW_MS, ease: 'Quad.easeIn' }
+            ],
+            onComplete: () => g.destroy()
+        });
+        this.poisonDrops.explode(P.DROPS, x, y);
     }
 
     /** Dust puffs along the whole width of a crumbling platform as it gives way. */

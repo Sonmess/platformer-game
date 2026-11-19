@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { PLAYER, TILE } from '../../src/config/constants';
+import { SNAKES, snakeIndex } from './landmarks';
 
 // Each obstacle in src/levels/level1.json must stay clearable with the current jump tuning.
 // Scripted like a player: run up, press jump at the take-off column, keep holding right.
@@ -27,6 +28,28 @@ async function settleAt (page: Page, col: number, row: number)
     });
 }
 
+/**
+ * The jump tuning is under test, not the enemies: a snake guarding an obstacle is driven away first, like a player
+ * would do it (in the calm after a spray, from its left, with the claw).
+ */
+async function driveAwaySnakes (page: Page, o: Obstacle)
+{
+    for (const [i, s] of SNAKES.entries()) {
+        if (s.col + s.width / TILE <= o.startCol || s.col >= o.passCol) continue;
+        const idx = snakeIndex(i);
+        await settleAt(page, o.startCol - 2, o.standRow);
+        await page.waitForFunction(j => window.__game!.getState().enemies[j].phase === 'spray', idx);
+        await page.waitForFunction(j => window.__game!.getState().enemies[j].phase === 'calm', idx);
+        await page.evaluate(async ([j, y]) => {
+            const g = window.__game!;
+            await g.press(['right'], 30);
+            g.teleport(g.getState().enemies[j].x - 28, y);
+            await g.press(['claw'], 50);
+        }, [idx, feetToCentre(o.standRow)]);
+        await page.waitForFunction(j => window.__game!.getState().enemies[j].gone, idx);
+    }
+}
+
 test.beforeEach(async ({ page }) => {
     await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
@@ -34,6 +57,7 @@ test.beforeEach(async ({ page }) => {
 
 for (const o of OBSTACLES) {
     test(`can clear: ${o.name}`, async ({ page }) => {
+        await driveAwaySnakes(page, o);
         await settleAt(page, o.startCol, o.standRow);
         const deathsBefore = (await page.evaluate(() => window.__game!.getState())).deaths;
 

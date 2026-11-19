@@ -99,6 +99,12 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   (type `crow`) flies its rectangle back and forth (wider than tall) or up and down, eased by `pingPong()`
   (`src/core/path.ts`), with no gravity (`body.moves = false`, positioned directly). Enemies keep patrolling
   after the cat dies; they reset only with the level. Level specs place the cat away from patrols.
+- Snake (`src/entities/Snake.ts`, Tiled rectangle of type `snake` = patrol range on the ground): `fearless` (a meow
+  does nothing), not `spiky` (the claw always drives it away). Its poison cycle is `Venom` in `src/core/venom.ts` (pure,
+  unit-tested): calm (slithers) → warn (stops, hood up, `snake:warn`) → spray (`snake:spray`, a cloud `inCloud()` of
+  `SNAKE.CLOUD_RADIUS_PX`). `Game.update` kills the cat with cause `poison` when any `Enemy.poisons(playerBounds)`.
+  Audio plays its hiss/spray only when it is near the camera (`playNear`; Effects skips them too, via `nearView()` in `src/systems/view.ts`). Snakes come last in `enemies` (after crows);
+  the test API adds `phase` and `cloud` (null for other enemies); specs use `snakeIndex()` from landmarks.
 - Moving platforms (`src/entities/MovingPlatform.ts`): Tiled rectangle of type `platform` = path (wider than tall =
   sideways), int property `tiles` = width; textures are baked from the tileset in Preload. An invisible immovable
   body moved by velocity (steered along `pingPong()`), so Arcade carries a rider sideways via `friction.x`, plus a

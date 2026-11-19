@@ -6,6 +6,7 @@ import type { Hud } from './scenes/Hud';
 import type { LevelComplete } from './scenes/LevelComplete';
 import type { Title } from './scenes/Title';
 import { EV, events } from './core/events';
+import { Snake } from './entities/Snake';
 import { sfxLog } from './systems/Audio';
 import { music } from './systems/Music';
 import type { ClawSwipe } from './core/claw';
@@ -51,9 +52,10 @@ export interface GameState {
     checkpoint: { x: number; y: number };
     /**
      * Enemies in level order: hitbox centre, facing, scared and how much fright is left (ms), harmful; `gone` = clawed
-     * and fled (no hitbox until the level restarts), `spriteAlpha` fades as it runs off.
+     * and fled (no hitbox until the level restarts), `spriteAlpha` fades as it runs off. Snakes only: `phase` of the
+     * poison cycle (calm/warn/spray) and the poison `cloud` while it sprays; null for other enemies.
      */
-    enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string; gone: boolean; spriteAlpha: number }[];
+    enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string; gone: boolean; spriteAlpha: number; phase: string | null; cloud: { x: number; y: number; radius: number } | null }[];
     /** Moving platforms in level order: top-left corner and velocity. */
     platforms: { x: number; y: number; width: number; vx: number; vy: number; drawX: number; drawY: number }[];
     /** Crumbling platforms in level order: top-left corner, phase (solid/shaking/falling/gone) and the drawn image. */
@@ -162,7 +164,7 @@ export function installTestApi (game: Phaser.Game): void
                 meow: { cooldownMs: p?.meowCooldown.remainingMs ?? 0, count: meowLog.count, last: meowLog.last },
                 claw: { cooldownMs: p?.clawCooldown.remainingMs ?? 0, count: clawLog.count, last: clawLog.last },
                 checkpoint: { ...state.checkpoint },
-                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key, gone: e.gone, spriteAlpha: e.sprite.alpha })) ?? [],
+                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key, gone: e.gone, spriteAlpha: e.sprite.alpha, phase: e instanceof Snake ? e.phase : null, cloud: e instanceof Snake ? e.cloud : null })) ?? [],
                 platforms: g?.platforms.map(p => ({ x: p.x, y: p.y, width: p.width, vx: p.body.velocity.x, vy: p.body.velocity.y, drawX: p.image.x, drawY: p.image.y })) ?? [],
                 crumbles: g?.crumbles.map(c => ({ x: c.x, y: c.y, width: c.width, phase: c.phase, solid: c.solid, imageX: c.image.x, imageY: c.image.y, visible: c.image.visible })) ?? [],
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],

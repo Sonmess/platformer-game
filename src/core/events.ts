@@ -20,10 +20,12 @@ export const EV = {
     ENEMY_SCARE: 'enemy:scare',         // { x, y, kind }
     ENEMY_RECOVER: 'enemy:recover',     // { x, y, kind }
     ENEMY_FLEE: 'enemy:flee',           // { x, y, kind, dir } (clawed: leaves the level until it restarts)
+    SNAKE_WARN: 'snake:warn',           // { x, y } (stops and puffs up its hood: a spray is coming)
+    SNAKE_SPRAY: 'snake:spray',         // { x, y, radius, ms } (the poison cloud: centre, radius, how long it hurts)
     CRUMBLE_SHAKE: 'crumble:shake',     // { x, y, width } (top-left corner)
     CRUMBLE_FALL: 'crumble:fall'        // { x, y, width }
 } as const;
 
-export type DeathCause = 'pit' | 'spikes' | 'enemy';
+export type DeathCause = 'pit' | 'spikes' | 'enemy' | 'poison';
 
 export const events = new Phaser.Events.EventEmitter();
