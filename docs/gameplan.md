@@ -108,7 +108,7 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 
 ## Milestone 3 — „Lepšia mačka“
 
-> Stav: **SCHVÁLENÉ** (2026-11-19). Rozsah: [ADR 0008](decisions/0008-rozsah-m3.md).
+> Stav: **HOTOVÉ** (2026-11-19), schválené 2026-11-19. Rozsah: [ADR 0008](decisions/0008-rozsah-m3.md).
 
 Pred ďalšími levelmi vylepšiť samotnú hru: smrť s animáciou a férovým respawnom, 3 životy a klbko vlny
 ako power-up, pierka namiesto čerešní, útok pazúrikmi, nový nepriateľ hadík a šplhanie po lianach a kmeňoch.
@@ -183,9 +183,15 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
   hadík č. 2 stráži útes za checkpointom 190 (stĺpce 193–195, klbko pred ním). Liana v stĺpci 219 končí nad zemou,
   chytá sa výskokom so šípkou hore a vedie na strechu jaskyne so strieborným pierkom. Body z pierok 61 → 84
   (hranica 50 za život ostáva). `route.spec` hrá celý level v 7 úsekoch (od štartu, s pazúrikmi na hadíky, šplhaním
-  po kmeňoch a lianach). Férovosť: čaká na playtest.
-- [ ] **9. Finálna kontrola M3** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry,
+  po kmeňoch a lianach). Férovosť: overené playtestom.
+- [x] **9. Finálna kontrola M3** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry,
   aktualizácia dokumentov.
+  Stav: unit testy (70) a všetky e2e testy (126) prechádzajú, build je v poriadku. FPS test (> 55 FPS) prechádza
+  so zapojenou nabíjačkou (3× za sebou bez opakovania); na batérii notebook obmedzí GPU a hra má len ~40 FPS. Test „reštart 10×“ teraz špiní
+  aj stav z M3 (vystrašený a utečený ježko, šplhanie po liane, klbko a veľká mačka, body) a porovnáva aj body,
+  klbká a liany/kmene. Úvodná obrazovka ukazuje pazúry a šplhanie a „pierka“ namiesto „čerešní“ (text posunutý
+  vyššie, aby sa neprekrýval s „Enter = hrať“). README a backlog aktualizované. Playtest celej hry
+  od úvodnej obrazovky po výsledky: v poriadku.
 
 ### Predvolené rozhodnutia M3 (zmeníme, ak pri playteste nebudú sedieť)
 

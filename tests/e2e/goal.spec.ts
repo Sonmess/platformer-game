@@ -1,10 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 import { LIVES, RESULTS, TILE } from '../../src/config/constants';
-import { CRUMBLES, GOAL } from './landmarks';
+import { CRUMBLES, GOAL, VINES } from './landmarks';
 
 // Landmarks in src/levels/level1.json (tile coordinates).
 const PLATEAU_COIN = { x: 38 * TILE + TILE / 2, y: 11 * TILE + TILE / 2 };
 const FIRST_PIT = { x: 51 * TILE, y: 12 * TILE };
+const FIRST_YARN = { x: 36.5 * TILE, y: 11.5 * TILE };                     // on the plateau
+const GROUND_Y = 15 * TILE - 7;                                             // cat centre standing on row 15
 
 const state = (page: Page) => page.evaluate(() => window.__game!.getState());
 const teleport = (page: Page, p: { x: number; y: number }) =>
@@ -26,6 +28,7 @@ async function initialSnapshot (page: Page)
     return {
         player: s.player, camera: s.camera, coins: s.coins, coinsLeft: s.coinsLeft, coinsTotal: s.coinsTotal,
         deaths: s.deaths, lives: s.lives, checkpoint: s.checkpoint, hud: s.hud, listeners: s.listeners,
+        points: s.points, pointsTotal: s.pointsTotal, yarnsLeft: s.yarnsLeft, climbables: s.climbables, clawCooldownMs: s.claw.cooldownMs,
         parallax: s.parallax, parallaxListeners: s.parallaxListeners,
         paused: s.paused, meowCooldownMs: s.meow.cooldownMs, campfiresLit: s.campfiresLit,
         enemies: s.enemies.map(e => ({ kind: e.kind, scared: e.scared, harmful: e.harmful, gone: e.gone })),
@@ -94,8 +97,22 @@ test('restarting 10× yields an identical initial state', async ({ page }) => {
     expect(first.deaths).toBe(0);
 
     for (let i = 0; i < 10; i++) {
-        // Dirty the run: meow, pause and resume, collect a coin, die, set a crumbling platform shaking, then finish.
-        await page.evaluate(() => window.__game!.press(['meow'], 50));
+        // Dirty the run: scare and claw away the first hedgehog, climb a vine, take a yarn ball (big cat), pause and
+        // resume, collect a coin, die, set a crumbling platform shaking, then finish.
+        await page.evaluate(async ([y]) => {
+            const g = window.__game!;
+            await g.press(['right'], 30);                                    // face it
+            g.teleport(g.getState().enemies[0].x - 3 * 16, y);
+            await g.press(['meow'], 50);
+            g.teleport(g.getState().enemies[0].x - 20, y);
+            await g.press(['claw'], 50);
+        }, [GROUND_Y]);
+        await page.waitForFunction(() => window.__game!.getState().enemies[0].gone);
+        await teleport(page, { x: VINES[0].x + VINES[0].width / 2, y: 13.5 * TILE });     // below its feathers
+        await page.evaluate(() => window.__game!.press(['up'], 200));
+        expect((await state(page)).player!.climbing).toBe(true);
+        await teleport(page, FIRST_YARN);
+        await page.waitForFunction(() => window.__game!.getState().player!.big);
         await page.evaluate(() => window.__game!.press(['pause'], 50));
         await page.waitForFunction(() => window.__game!.getState().paused);
         await page.evaluate(() => window.__game!.press(['pause'], 50));

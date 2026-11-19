@@ -431,8 +431,8 @@ export const TITLE = {
     NAME_SIZE: '48px',
     LINE_SIZE: '16px',
     PROMPT_SIZE: '24px',
-    NAME_Y: 56,
-    CONTROLS_Y: 96,
+    NAME_Y: 48,
+    CONTROLS_Y: 84,
     PROMPT_Y: 216,
     PANEL: { COLOR: 0x0d1410, ALPHA: 0.55, PADDING: 8 },   // behind the controls, for contrast with the forest
     CAT_X: 128,                 // the cat runs in place on the ground strip
@@ -443,8 +443,9 @@ export const TITLE = {
         CONTROLS: [
             'beh: šípky alebo A, D',
             'skok: medzerník alebo W (podrž = vyššie)',     // Z is a jump key too, but reads as "2" in this font
-            'mňau: X, pauza: Esc alebo P, hudba: M',
-            'cieľ: dobehni do jaskyne, zbieraj čerešne'
+            'mňau: X, pazúry: c, pauza: Esc alebo P, hudba: M',     // a capital C reads as "0" in this font
+            'šplhanie: W a S pri liane alebo kmeni',
+            'cieľ: dobehni do jaskyne, zbieraj pierka'
         ],
         PROMPT: 'Enter = hrať'
     }

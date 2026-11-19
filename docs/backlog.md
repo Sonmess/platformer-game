@@ -8,12 +8,11 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 - Nepriatelia — namiesto stompu ich mačka vystraší mňauknutím
 - Pohyblivé a prepadávacie plošiny, predĺžený level
 
-## Naplánované v M3 (pozri `docs/gameplan.md`, návrh)
+## Hotové v M3 (pozri `docs/gameplan.md`)
 
-- Animácia smrti, 3 životy + klbko vlny, pierka, útok pazúrikmi, hadík, šplhanie (2026-11-19)
-
-- [ ] Úvodná obrazovka: doplniť do ovládania pazúry (C) a šplhanie (šípka hore/dole pri liane), „čerešne“ → „pierka“
-  (krok 9 M3) (2026-11-19)
+- Animácia smrti a férový respawn, 3 životy + klbko vlny, pierka (1/5/10 bodov), útok pazúrikmi, hadík s jedom,
+  šplhanie po lianach a kmeňoch, úprava levelu
+- Úvodná obrazovka: ovládanie doplnené o pazúry a šplhanie, „čerešne“ → „pierka“
 
 ## M4
 

@@ -2,9 +2,10 @@
 
 2D plošinovka do webového prehliadača s parallax scrollovacím pozadím. Cieľom je hra, ktorá sa hrá plynulo a vyzerá profesionálne.
 
-**Stav:** Milestone 2 je hotový — hra **Lost Cat**: úvodná obrazovka, pauza, hudba a jeden dlhý lesný level
-(~8 obrazoviek, 6 checkpointov) s ježkami a vranami, ktoré mačka vystraší mňauknutím, s pohyblivými
-a prepadávacími plošinami. Ďalšie levely sú plánované v M3. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
+**Stav:** Milestone 3 je hotový — hra **Lost Cat**: úvodná obrazovka, pauza, hudba
+a jeden dlhý lesný level (~8 obrazoviek, 6 checkpointov) s ježkami, vranami a hadíkmi, s pohyblivými a prepadávacími
+plošinami, lianami a stromami na šplhanie. Mačka má 3 životy, mňaukanie, pazúriky a klbko vlny ako power-up.
+Ďalšie levely sú plánované v M4. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 
 ## Ovládanie
 
@@ -12,6 +13,8 @@ a prepadávacími plošinami. Ďalšie levely sú plánované v M3. Postup a roz
 |---|---|
 | ← → alebo A D | beh |
 | Medzerník, ↑, W alebo Z | skok (dlhším podržaním vyššie) |
+| ↑ / W a ↓ / S pri liane alebo kmeni | chytiť sa a šplhať hore / dole (pri liane a kmeni skáče len medzerník) |
+| Medzerník pri šplhaní | so smerom = odraz do strany, bez smeru = pustiť sa |
 | X | mňau (vystraší nepriateľov pred mačkou; potom ~2 s nabíjanie) |
 | C | útok pazúrikmi (zasiahnutý nepriateľ utečie z levelu) |
 | Esc alebo P | pauza (v pauze Q = úvodná obrazovka) |
@@ -24,7 +27,8 @@ sa nedá zašliapnuť — mňauknutie ich na pár sekúnd vystraší a vtedy sa 
 utečie, len keď je zvinutý od strachu — nevystrašený mačku popichá. Hadík mňaukania sa nebojí: v pravidelnom cykle
 sa zastaví, nafúkne kapucňu a vystrekne okolo seba fialový oblak jedu — pazúrikmi ho treba vyhnať v chvíľke pokoja
 medzi vlnami. Dosky s puklinami
-sa pod mačkou po chvíli zrútia. Ružové klbko vlny mačku „nafúkne“ — zásah ju potom len zmenší. Mačka má 3 životy (hlávky vpravo hore); keď dôjdu, hra končí a level začína odznova.
+sa pod mačkou po chvíli zrútia. Ružové klbko vlny mačku „nafúkne“ — zásah ju potom len zmenší. Po lianach a kmeňoch stromov sa dá šplhať
+(na kmeň sa mačka chytí aj skokom proti nemu); na ich vrchoch bývajú vzácnejšie pierka. Mačka má 3 životy (hlávky vpravo hore); keď dôjdu, hra končí a level začína odznova.
 
 ## Technológie
 
