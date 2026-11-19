@@ -24,7 +24,10 @@ const PALETTE = {
     b: '#3b3734',   // hedgehog spines (dark); cool grey so it stands out from the orange-brown ground
     B: '#7a7068',   // hedgehog spines
     h: '#e6c9a0',   // hedgehog face and belly
-    n: '#2a1a14'    // hedgehog nose and feet
+    n: '#2a1a14',   // hedgehog nose and feet
+    c: '#22222e',   // crow feathers
+    C: '#4d4d6b',   // crow wing highlight
+    L: '#b8bcd6'    // crow rim (light outline)
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -169,6 +172,66 @@ const HEDGEHOG = {
     ]]
 };
 
+// ── Crow (enemy): 20×16 frames, facing right, feet on row 14 ─────────────────────────────────
+// A body shared by the flap frames, plus a wing drawn up or down over it. Scared: feathers puffed
+// up, wings flung out, beak open, eye wide.
+const CROW_BODY = [
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '....................',
+    '.............ccc....',
+    '............cccwc...',
+    'cc.........ccccKcyy.',
+    '.ccc...cccccccccyyy.',
+    '..cccccccccccccc....',
+    '...cccccccccccc.....',
+    '.....cccccccc.......',
+    '.......c..c.........',
+    '.......y..y.........',
+    '......yy.yy.........',
+    '....................'
+];
+function crowFrame (wing)
+{
+    const grid = CROW_BODY.map(r => [...r]);
+    for (const [x, y, ch] of wing) grid[y][x] = ch;
+    return grid.map(r => r.join(''));
+}
+// [x, y, char] points of a wing.
+const WING_UP = [
+    [3, 1, 'c'], [3, 2, 'c'], [4, 2, 'c'], [4, 3, 'c'], [5, 3, 'c'], [4, 4, 'c'], [5, 4, 'C'], [6, 4, 'c'],
+    [5, 5, 'c'], [6, 5, 'C'], [7, 5, 'c'], [5, 6, 'c'], [6, 6, 'C'], [7, 6, 'C'], [8, 6, 'c'],
+    [6, 7, 'c'], [7, 7, 'C'], [8, 7, 'C'], [9, 7, 'c'], [8, 8, 'C'], [9, 8, 'C']
+];
+const WING_DOWN = [
+    [6, 9, 'C'], [7, 9, 'C'], [8, 9, 'C'], [5, 10, 'C'], [6, 10, 'C'], [7, 10, 'C'],
+    [3, 11, 'c'], [4, 11, 'C'], [5, 11, 'C'], [6, 11, 'c'], [2, 12, 'c'], [3, 12, 'C'], [4, 12, 'c'], [2, 13, 'c'], [3, 13, 'c']
+];
+const fit = r => r.padEnd(20, '.').slice(0, 20);
+const CROW = {
+    fly: [crowFrame(WING_UP), crowFrame(WING_DOWN)],
+    scared: [[
+        '....................',
+        '....................',
+        '............c.c.....',
+        '...........ccccc....',
+        '..........cccwwc....',
+        'c.........cccwKcyy..',
+        'cc.......ccccccc.yy.',
+        '.cc....ccccccccc....',
+        '..ccccccccccccccc...',
+        '.cCCccccccccccccc...',
+        'cCCCcccccccccccc....',
+        '.cc..cccccccccc.....',
+        '.......c..c.........',
+        '.......y..y.........',
+        '......yy.yy.........',
+        '....................'
+    ].map(fit)]
+};
+
 const FW = 24;
 const FIRE_BASE = [            // rows 18..23
     '....kllk........kllk....',
@@ -207,23 +270,23 @@ const FIRE = {
 // ── Rendering ─────────────────────────────────────────────────────────────────────────────
 const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16), 255];
 
-function withOutline (frame, skip = '')
+function withOutline (frame, skip = '', edge = 'o')
 {
     const h = frame.length, w = frame[0].length;
     const filled = (x, y) => x >= 0 && y >= 0 && x < w && y < h && frame[y][x] !== '.' && !skip.includes(frame[y][x]);
     return frame.map((row, y) => [...row].map((c, x) => {
         if (c !== '.') return c;
-        return filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1) ? 'o' : '.';
+        return filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1) ? edge : '.';
     }).join(''));
 }
 
-function sheet (frames, outline, skip)
+function sheet (frames, outline, skip, edge)
 {
     const fw = frames[0][0].length, fh = frames[0].length;
     for (const f of frames) {
         if (f.length !== fh || f.some(r => r.length !== fw)) throw new Error(`frame size mismatch (want ${fw}×${fh})`);
     }
-    const out = frames.map(f => outline ? withOutline(f, skip) : f);
+    const out = frames.map(f => outline ? withOutline(f, skip, edge) : f);
     const w = fw * out.length, h = fh;
     const rgba = Buffer.alloc(w * h * 4);
     out.forEach((f, i) => f.forEach((row, y) => [...row].forEach((c, x) => {
@@ -253,8 +316,8 @@ function png ({ w, h, rgba })
 
 const OUT = 'public/assets/own';
 mkdirSync(OUT, { recursive: true });
-const write = (name, frames, outline, skip) => {
-    writeFileSync(`${OUT}/${name}.png`, png(sheet(frames, outline, skip)));
+const write = (name, frames, outline, skip, edge) => {
+    writeFileSync(`${OUT}/${name}.png`, png(sheet(frames, outline, skip, edge)));
     console.log(`${OUT}/${name}.png  ${frames.length} frame(s) ${frames[0][0].length}×${frames[0].length}`);
 };
 write('cat-idle', CAT.idle, true);
@@ -265,3 +328,6 @@ write('campfire-unlit', FIRE.unlit, true);
 write('campfire-lit', FIRE.lit, true, 'rYy');      // no outline around the flames
 write('hedgehog-walk', HEDGEHOG.walk, true);
 write('hedgehog-scared', HEDGEHOG.scared, true);
+// A black bird vanishes against the dark bushes: a light rim keeps it readable as a hazard.
+write('crow-fly', CROW.fly, true, '', 'L');
+write('crow-scared', CROW.scared, true, '', 'L');

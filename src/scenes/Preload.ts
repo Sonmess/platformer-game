@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { ANIM, ASSETS, AUDIO, LEVEL, PARALLAX } from '../config/constants';
+import { bakePlatformTextures } from '../entities/MovingPlatform';
 import { bakeEffectTextures } from '../systems/Effects';
 import { bakeParallaxTextures, parallaxSourceKey } from '../systems/Parallax';
 import level1 from '../levels/level1.json';
@@ -31,6 +32,9 @@ export class Preload extends Scene
         const { HEDGEHOG } = ASSETS;
         this.load.spritesheet(HEDGEHOG.walk.key, HEDGEHOG.walk.url, { frameWidth: HEDGEHOG.frameWidth, frameHeight: HEDGEHOG.frameHeight });
         this.load.image(HEDGEHOG.scared.key, HEDGEHOG.scared.url);
+        const { CROW } = ASSETS;
+        this.load.spritesheet(CROW.fly.key, CROW.fly.url, { frameWidth: CROW.frameWidth, frameHeight: CROW.frameHeight });
+        this.load.image(CROW.scared.key, CROW.scared.url);
         this.load.font(ASSETS.FONT.key, ASSETS.FONT.url);
         for (const sfx of Object.values(AUDIO.SFX)) this.load.audio(sfx.key, sfx.url);
         this.load.audio(AUDIO.MUSIC.key, AUDIO.MUSIC.url);
@@ -41,6 +45,7 @@ export class Preload extends Scene
         this.createAnimations();
         bakeParallaxTextures(this.textures);
         bakeEffectTextures(this);
+        bakePlatformTextures(this.textures);
         // Dev only: "?play" skips the title screen (e2e tests start in the level).
         const skipTitle = import.meta.env.DEV && new URLSearchParams(location.search).has('play');
         this.scene.start(skipTitle ? 'Game' : 'Title');
@@ -59,6 +64,8 @@ export class Preload extends Scene
         this.anims.create({ key: ANIM.CAT_MEOW, frames: [{ key: CAT.meow.key }] });
         const { HEDGEHOG } = ASSETS;
         this.anims.create({ key: ANIM.HEDGEHOG_WALK, frames: frames(HEDGEHOG.walk.key, HEDGEHOG.walk.frames), frameRate: HEDGEHOG.walk.frameRate, repeat: -1 });
+        const { CROW } = ASSETS;
+        this.anims.create({ key: ANIM.CROW_FLY, frames: frames(CROW.fly.key, CROW.fly.frames), frameRate: CROW.fly.frameRate, repeat: -1 });
         this.anims.create({ key: ANIM.CHERRY, frames: frames(CHERRY.key, CHERRY.frames), frameRate: CHERRY.frameRate, repeat: -1 });
         this.anims.create({ key: ANIM.CAMPFIRE, frames: frames(CAMPFIRE.lit.key, CAMPFIRE.lit.frames), frameRate: CAMPFIRE.lit.frameRate, repeat: -1 });
     }

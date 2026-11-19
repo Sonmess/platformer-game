@@ -41,9 +41,9 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 
 ### Vlastná grafika projektu — `own/`
 
-- **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`), **ohnisko** (`campfire-unlit`, `campfire-lit`) a **ježko**
-  (`hedgehog-walk`, `hedgehog-scared`) nakreslené pre tento projekt ako textový pixel art v `tools/sprites.mjs`;
-  PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
+- **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
+  **ježko** (`hedgehog-walk`, `hedgehog-scared`) a **vrana** (`crow-fly`, `crow-scared`) nakreslené pre tento projekt
+  ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
 - **Zvukové efekty** (`sfx/`: skok, dopad, čerešňa, ohnisko, smrť, cieľ, mňau, vystrašenie) — 8-bitové zvuky syntetizované pre tento
   projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
 - **Hudba** (`music/forest.wav`) — pokojná 8-bitová slučka (30 s) skomponovaná pre tento projekt v

@@ -15,6 +15,8 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 
 ## Neskôr
 
+- [ ] Doladiť plynulosť vodorovnej pohyblivej plošiny — po oprave v kroku 7 M2 ostalo jemné chvenie
+  (fyzika beží po 60 Hz krokoch bez interpolácie, kamera sa hýbe inak ako plošina) (2026-11-19)
 - [ ] Dvojskok / wall jump — rozšírenie pohybu
 - [ ] Dotykové ovládanie pre mobil + gamepad
 - [ ] Adaptívna hudba

@@ -76,17 +76,17 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 - [x] **4. Mňaukanie** — kláves X: mačka mňaukne (snímka s otvorenou papuľou, vlna, zvuk), event
   `player:meow`. Dosah ~4 dlaždice pred mačkou, cooldown ~2 s (viditeľný na mačke alebo v HUD).
   Test: cooldown blokuje opakovanie, event nesie pozíciu a smer.
-- [ ] **5. Ježko** — chodí tam a späť, na okraji plošiny alebo pri stene sa otočí. Dotyk = smrť mačky.
+- [x] **5. Ježko** — chodí tam a späť, na okraji plošiny alebo pri stene sa otočí. Dotyk = smrť mačky.
   Po mňauknutí v dosahu sa ~3 s zvinie do gule, trasie sa a je neškodný (dá sa cezeň prejsť),
   potom pokračuje.
   Test: patrola neprepadne z plošiny, dotyk zabije, vystrašený nezabije, po ~3 s opäť nebezpečný.
-- [ ] **6. Vrána** — lieta hore-dole (alebo tam a späť) v zadanom rozsahu. Dotyk = smrť. Po mňauknutí
+- [x] **6. Vrána** — lieta hore-dole (alebo tam a späť) v zadanom rozsahu. Dotyk = smrť. Po mňauknutí
   ~3 s zamrzne vo vzduchu, trasie sa a je neškodná.
   Test: drží sa svojej dráhy, vystrašenie funguje rovnako ako pri ježkovi.
 
 ### Fáza C — plošiny a level
 
-- [ ] **7. Pohyblivé plošiny** — vodorovné a zvislé; mačka sa na nich vezie a dá sa z nich skákať.
+- [x] **7. Pohyblivé plošiny** — vodorovné a zvislé; mačka sa na nich vezie a dá sa z nich skákať.
   Test: hráč stojiaci na plošine sa pohybuje s ňou a neprepadne; skok z pohybujúcej sa plošiny funguje.
 - [ ] **8. Prepadávacie plošiny** — po dotyku sa ~0,5 s trasú, potom padnú a po chvíli sa vrátia;
   po smrti sú späť na mieste.

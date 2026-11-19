@@ -1,13 +1,15 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, HAZARD, LEVEL, PLAYER, TILE, TITLE } from '../config/constants';
+import { ASSETS, HAZARD, LEVEL, PLATFORM, PLAYER, TILE, TITLE } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { inMeowRange, type MeowWave } from '../core/meow';
 import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Coin } from '../entities/Coin';
+import { Crow } from '../entities/Crow';
 import type { Enemy } from '../entities/Enemy';
 import { Goal } from '../entities/Goal';
 import { Hedgehog } from '../entities/Hedgehog';
+import { MovingPlatform } from '../entities/MovingPlatform';
 import { Player } from '../entities/Player';
 import { SoundEffects } from '../systems/Audio';
 import { CameraRig } from '../systems/CameraRig';
@@ -26,6 +28,7 @@ export class Game extends Scene
     effects: Effects;
     checkpoints: Checkpoint[] = [];
     enemies: Enemy[] = [];
+    platforms: MovingPlatform[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
     private lastDeathFrame = -1;
     private completed = false;
@@ -61,6 +64,9 @@ export class Game extends Scene
 
         this.player = new Player(this, spawn.x!, spawn.y! - PLAYER.HEIGHT / 2);
         this.physics.add.collider(this.player, ground);
+        this.platforms = this.objectsOfType(LEVEL.PLATFORM_TYPE).map(o => new MovingPlatform(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! },
+            (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === PLATFORM.TILES_PROPERTY)?.value ?? PLATFORM.DEFAULT_TILES));
+        this.physics.add.collider(this.player, this.platforms, (_p, platform) => this.player.standOnPlatform(platform as MovingPlatform));
         this.physics.add.overlap(this.player, this.createSpikes(), () => this.killPlayer('spikes'));
         this.physics.add.overlap(this.player, this.createCheckpoints(), (_p, cp) => this.reachCheckpoint(cp as Checkpoint));
 
@@ -68,8 +74,11 @@ export class Game extends Scene
         this.physics.add.overlap(this.player, this.coins, (_p, coin) => this.collectCoin(coin as Coin));
         this.physics.add.overlap(this.player, this.createGoals(), () => this.completeLevel());
 
-        this.enemies = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! }, ground));
-        this.physics.add.collider(this.enemies, ground);
+        const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
+        const hedgehogs = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, rect(o), ground));
+        const crows = this.objectsOfType(LEVEL.CROW_TYPE).map(o => new Crow(this, rect(o)));
+        this.enemies = [...hedgehogs, ...crows];
+        this.physics.add.collider(hedgehogs, ground);     // crows fly a fixed path
         this.physics.add.overlap(this.player, this.enemies, (_p, e) => { if ((e as Enemy).harmful) this.killPlayer('enemy'); });
         // A meow scares every enemy within its reach (enemies never read the player directly).
         const onMeow = (wave: MeowWave) => this.enemies.forEach(e => { if (inMeowRange(wave, e.body.center)) e.scare(); });

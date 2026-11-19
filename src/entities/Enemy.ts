@@ -20,14 +20,15 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
     private shakeMs = 0;
     private shakeOffset = 0;
 
-    constructor (scene: Phaser.Scene, readonly kind: EnemyKind, x: number, y: number, width: number, height: number, texture: string)
+    /** `spriteOriginY`: the sprite row (0..1) that sits on the hitbox bottom (a crow's feet dangle below it). */
+    constructor (scene: Phaser.Scene, readonly kind: EnemyKind, x: number, y: number, width: number, height: number, texture: string, spriteOriginY = 1)
     {
         super(scene, x, y, width, height);
         scene.add.existing(this);
         scene.physics.add.existing(this);
         this.setVisible(false);
 
-        this.sprite = scene.add.sprite(x, y, texture).setOrigin(0.5, 1).setDepth(DEPTH.PLAYER - 1);
+        this.sprite = scene.add.sprite(x, y, texture).setOrigin(0.5, spriteOriginY).setDepth(DEPTH.PLAYER - 1);
         scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
         this.once(Phaser.GameObjects.Events.DESTROY, () => {
             scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
@@ -75,12 +76,12 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
             }
         } else {
             this.shakeOffset = 0;
-            this.move(deltaMs);
+            this.move(deltaMs, player);
         }
     }
 
-    /** Normal (unscared) behaviour for one frame. */
-    protected abstract move (deltaMs: number): void;
+    /** Normal (unscared) behaviour for one frame; `player` only for looking at the cat, never for chasing. */
+    protected abstract move (deltaMs: number, player: Phaser.Geom.Rectangle): void;
 
     /** Animation and frame for the current state. */
     protected abstract show (sprite: Phaser.GameObjects.Sprite): void;

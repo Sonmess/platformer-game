@@ -47,6 +47,7 @@ export const PHYSICS = derivePhysics(PLAYER_FEEL, TILE);
 /** Draw order; higher is in front. */
 export const DEPTH = {
     PARALLAX: -100,         // background layers stack upwards from here, behind the tilemap (0)
+    PLATFORMS: 5,           // moving platforms, above the tilemap
     PLAYER: 10,
     EFFECTS: 20
 } as const;
@@ -151,6 +152,25 @@ export const HEDGEHOG = {
     HEIGHT: 10
 } as const;
 
+export const CROW = {
+    SPEED: 36,                  // px/s along its path (eased: slower at the ends)
+    WIDTH: 14,                  // hitbox; the sprite is 20×16
+    HEIGHT: 10,
+    SPRITE_ORIGIN_Y: 0.75       // body bottom at sprite row 12; the feet hang below the hitbox
+} as const;
+
+// Moving platforms: a Tiled rectangle of type "platform" is the path (wider than tall = left-right, otherwise
+// up-down); the custom property "tiles" sets the platform width. Drawn from the level tileset.
+export const PLATFORM = {
+    SPEED: 40,                  // px/s along the path (eased: slower at the ends)
+    DEFAULT_TILES: 3,
+    TILES_PROPERTY: 'tiles',
+    GIDS: { LEFT: 37, MID: 38, RIGHT: 39 },     // floating-platform top row of the tileset, as in level1.json
+    TILESET_COLUMNS: 7,
+    TEXTURE_PREFIX: 'platform-',
+    MAX_TILES: 6
+} as const;
+
 export const PLAYER = {
     WIDTH: 18,              // hitbox, sized to the cat's body (ears and tail stick out, on purpose)
     HEIGHT: 14
@@ -178,6 +198,8 @@ export const LEVEL = {
     CHECKPOINT_TYPE: 'checkpoint',
     COIN_TYPE: 'coin',
     HEDGEHOG_TYPE: 'hedgehog',      // rectangle = patrol range, bottom edge = the ground it walks on
+    PLATFORM_TYPE: 'platform',
+    CROW_TYPE: 'crow',              // rectangle = flight path: wider than tall = back and forth, else up and down
     GOAL_TYPE: 'goal'
 } as const;
 
@@ -286,6 +308,11 @@ export const ASSETS = {
     },
     CHERRY: { key: 'cherry', url: 'assets/sunny-land/sprites/cherry.png', frameWidth: 21, frameHeight: 21, frames: 5, frameRate: 10 },
     SPIKES: { key: 'spikes', url: 'assets/sunny-land/props/spikes.png' },
+    CROW: {
+        frameWidth: 20, frameHeight: 16,
+        fly: { key: 'crow-fly', url: 'assets/own/crow-fly.png', frames: 2, frameRate: 8 },
+        scared: { key: 'crow-scared', url: 'assets/own/crow-scared.png' }
+    },
     HEDGEHOG: {
         frameWidth: 20, frameHeight: 14,
         walk: { key: 'hedgehog-walk', url: 'assets/own/hedgehog-walk.png', frames: 2, frameRate: 6 },
@@ -302,6 +329,7 @@ export const ANIM = {
     CAT_FALL: 'cat-fall',
     CAT_MEOW: 'cat-meow',
     HEDGEHOG_WALK: 'hedgehog-walk',
+    CROW_FLY: 'crow-fly',
     CHERRY: 'cherry-spin',
     CAMPFIRE: 'campfire-burn'
 } as const;

@@ -4,6 +4,7 @@ import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
 import { Cooldown, type MeowWave } from '../core/meow';
 import type { InputSnapshot } from '../systems/Input';
+import type { MovingPlatform } from './MovingPlatform';
 
 /**
  * The player's physics hitbox (an invisible rectangle). The visible cat is a separate sprite that
@@ -24,6 +25,12 @@ export class Player extends Phaser.GameObjects.Rectangle
     /** Kept across respawns, so the HUD's refill bar stays in sync. */
     readonly meowCooldown = new Cooldown(MEOW.COOLDOWN_MS);
     private meowPoseMs = 0;
+    /**
+     * The moving platform under the cat after the latest physics step (null if none), and the one found
+     * during the step in progress. Per physics step, not per frame: on fast screens many frames run no step.
+     */
+    private standingOn: MovingPlatform | null = null;
+    private contact: MovingPlatform | null = null;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
@@ -37,8 +44,11 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.sprite.play(ANIM.CAT_IDLE);
         // POST_UPDATE runs after Arcade has moved the body for this frame (no one-frame lag).
         scene.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
+        const world = scene.physics.world;
+        world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, this.countStep, this);
         this.once(Phaser.GameObjects.Events.DESTROY, () => {
             scene.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncSprite, this);
+            world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, this.countStep, this);
             this.sprite.destroy();
         });
         this.body.setCollideWorldBounds(true);
@@ -47,7 +57,28 @@ export class Player extends Phaser.GameObjects.Rectangle
 
     get onGround (): boolean
     {
-        return this.body.blocked.down;
+        // Tiles set blocked.down (kept between steps); a moving platform (another body) only reports in its
+        // collider callback, so remember whether the latest physics step found the cat on one.
+        return this.body.blocked.down || this.standingOn !== null;
+    }
+
+    /** WORLD_STEP comes after the colliders: whatever they reported is the state until the next step. */
+    private countStep (): void
+    {
+        this.standingOn = this.contact;
+        this.contact = null;
+    }
+
+    /**
+     * Called from the platform collider when the cat stands on top of one (during a physics step).
+     * The cat takes the platform's vertical speed, so it rides instead of falling a little each frame on the way
+     * down or being flung off when the platform slows at the top. (A jump sets its own speed later this frame.)
+     */
+    standOnPlatform (platform: MovingPlatform): void
+    {
+        if (this.body.bottom > platform.body.top + 1) return;     // side or head bump, not standing
+        this.contact = platform;
+        this.body.setVelocityY(platform.body.velocity.y);
     }
 
     update (input: InputSnapshot, deltaMs: number): void
@@ -119,7 +150,14 @@ export class Player extends Phaser.GameObjects.Rectangle
     private syncSprite (): void
     {
         const body = this.body;
-        this.sprite.setPosition(body.center.x, body.bottom);
+        const platform = this.standingOn;
+        if (platform) {
+            // Snap to the platform's drawn pixel grid, so cat and platform move as one (no 1 px shimmer).
+            // body.x, not body.center: a platform carry moves x during the collider, center catches up a step later.
+            this.sprite.setPosition(platform.drawX + Math.round(body.x + body.halfWidth - platform.body.x), platform.drawY);
+        } else {
+            this.sprite.setPosition(body.center.x, body.bottom);
+        }
         this.sprite.setFlipX(this.facing < 0);
 
         let anim: string;
@@ -131,6 +169,7 @@ export class Player extends Phaser.GameObjects.Rectangle
 
     teleport (x: number, y: number): void
     {
+        this.standingOn = null;
         this.body.reset(x, y);
     }
 
@@ -138,6 +177,7 @@ export class Player extends Phaser.GameObjects.Rectangle
     respawn (feetX: number, feetY: number): void
     {
         this.body.reset(feetX, feetY - PLAYER.HEIGHT / 2);
+        this.standingOn = null;
         this.body.setAcceleration(0, 0);
         this.wasOnGround = true;    // no landing event for the respawn itself
         this.jump.reset();

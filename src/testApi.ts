@@ -16,7 +16,7 @@ import { virtualKeys, type VirtualKey } from './systems/Input';
 export interface GameState {
     scene: string;
     fps: number;
-    player: { x: number; y: number; vx: number; vy: number; onGround: boolean; anim: string; flipX: boolean } | null;
+    player: { x: number; y: number; vx: number; vy: number; onGround: boolean; anim: string; flipX: boolean; spriteX: number; spriteY: number } | null;
     level: { width: number; height: number } | null;
     camera: { scrollX: number; scrollY: number; width: number; height: number } | null;
     deaths: number;
@@ -31,6 +31,8 @@ export interface GameState {
     checkpoint: { x: number; y: number };
     /** Enemies in level order: hitbox centre, facing, scared and how much fright is left (ms), harmful. */
     enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string }[];
+    /** Moving platforms in level order: top-left corner and velocity. */
+    platforms: { x: number; y: number; width: number; vx: number; vy: number; drawX: number; drawY: number }[];
     /** Per checkpoint (level order): is its campfire burning? */
     campfiresLit: boolean[];
     timeMs: number;
@@ -110,7 +112,8 @@ export function installTestApi (game: Phaser.Game): void
                     vx: p.body.velocity.x, vy: p.body.velocity.y,
                     onGround: p.onGround,
                     anim: p.anim,
-                    flipX: p.sprite.flipX
+                    flipX: p.sprite.flipX,
+                    spriteX: p.sprite.x, spriteY: p.sprite.y
                 } : null,
                 level: map ? { width: map.widthInPixels, height: map.heightInPixels } : null,
                 camera: cam ? { scrollX: cam.scrollX, scrollY: cam.scrollY, width: cam.width, height: cam.height } : null,
@@ -122,6 +125,7 @@ export function installTestApi (game: Phaser.Game): void
                 meow: { cooldownMs: p?.meowCooldown.remainingMs ?? 0, count: meowLog.count, last: meowLog.last },
                 checkpoint: { ...state.checkpoint },
                 enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key })) ?? [],
+                platforms: g?.platforms.map(p => ({ x: p.x, y: p.y, width: p.width, vx: p.body.velocity.x, vy: p.body.velocity.y, drawX: p.image.x, drawY: p.image.y })) ?? [],
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
                 parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],

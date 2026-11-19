@@ -66,9 +66,25 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - Enemies (`src/entities/Enemy.ts`): invisible hitbox + sprite like the Player; the base owns the fright (`Scare`
   in `src/core/meow.ts`: frozen, shaking, harmless for `ENEMY.SCARE_MS`, recovers only once the cat is off it).
   `Game` routes `player:meow` to every enemy in reach and kills the cat on touching a `harmful` one. A hedgehog
-  is a Tiled rectangle of type `hedgehog`: its width is the patrol range, its bottom edge the ground. Enemies keep
-  patrolling after the cat dies; they reset only with the level. Level specs place the cat away from patrols
-  (first hedgehog: cols 18–31, second: 119–127).
+  is a Tiled rectangle of type `hedgehog`: its width is the patrol range, its bottom edge the ground. A crow
+  (type `crow`) flies its rectangle back and forth (wider than tall) or up and down, eased by `pingPong()`
+  (`src/core/path.ts`), with no gravity (`body.moves = false`, positioned directly). Enemies keep patrolling
+  after the cat dies; they reset only with the level. Level specs place the cat away from patrols (hedgehogs:
+  cols 18–31 and 119–127, crow: col 133 rows 8–14).
+- Moving platforms (`src/entities/MovingPlatform.ts`): Tiled rectangle of type `platform` = path (wider than tall =
+  sideways), int property `tiles` = width; textures are baked from the tileset in Preload. An invisible immovable
+  body moved by velocity (steered along `pingPong()`), so Arcade carries a rider sideways via `friction.x`, plus a
+  tile image drawn at whole pixels. Gotchas (all found the hard way):
+  - Arcade runs fixed 60 Hz steps, and on 120/144 Hz screens many frames run none. Anything that moves bodies or
+    tracks contact works per physics step (`WORLD_STEP`, emitted after the colliders), never per frame: the
+    platform sets its velocity there, and `Player` keeps "standing on a platform" from step to step.
+  - Standing on another body sets no `blocked.down`, and overlaps with zones also set `touching`, so the platform
+    collider calls `Player.standOnPlatform()`; it copies the platform's vertical speed (no drop each step on the
+    way down, no fling at the top, no bounce on landing).
+  - A rider's sprite snaps to the platform's drawn pixel grid, using `body.x` — `body.center` lags a step behind a
+    friction carry — or cat and platform shimmer 1 px against each other.
+  - To see frame-rate problems locally, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit`.
+  Platforms: vertical cols 116–117 rows 7–12, horizontal row 7 cols 119–131.
 - The in-app browser pane throttles the page when hidden (game time stops); verify with
   headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
