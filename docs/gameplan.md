@@ -52,7 +52,7 @@ sa automaticky testovať nedajú a odškrtávajú sa až po tvojom vyskúšaní.
 
 ## Milestone 2 — „Hra s obsahom“
 
-> Stav: **SCHVÁLENÉ** (2026-11-05). Rozsah: [ADR 0007](decisions/0007-rozsah-m2.md).
+> Stav: **HOTOVÉ** (2026-11-19), schválené 2026-11-05. Rozsah: [ADR 0007](decisions/0007-rozsah-m2.md).
 
 Z prototypu krátka hra, ktorú sa oplatí dohrať: úvodná obrazovka, pauza, hudba, nepriatelia, ktorých mačka
 **vystraší mňauknutím** (bez stomp mechaniky), a pohyblivé a prepadávacie plošiny. Stále jeden level
@@ -97,7 +97,7 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 
 ### Fáza D — záver
 
-- [ ] **10. Finálna kontrola M2** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry
+- [x] **10. Finálna kontrola M2** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry
   od úvodnej obrazovky po výsledky, aktualizácia dokumentov.
 
 ### Predvolené rozhodnutia M2 (zmeníme, ak pri playteste nebudú sedieť)
@@ -105,6 +105,68 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 - Nepriatelia po smrti mačky **neresetujú** pozíciu (pokračujú v patrole); pri reštarte levelu áno.
 - Stav vystrašenia je na nepriateľovi, nie globálny; jedno mňauknutie vystraší všetkých v dosahu.
 - Hlasitosť hudby a stlmenie sa pamätajú len počas hry (ukladanie nastavení → backlog).
+
+## Milestone 3 — „Lepšia mačka“
+
+> Stav: **NÁVRH** (2026-11-19) — čaká na schválenie. Rozsah: [ADR 0008](decisions/0008-rozsah-m3.md).
+
+Pred ďalšími levelmi vylepšiť samotnú hru: smrť s animáciou a férovým respawnom, 9 životov a klbko vlny
+ako power-up, pierka namiesto čerešní, útok pazúrikmi, nový nepriateľ hadík a šplhanie po lianach a kmeňoch.
+Stále jeden level (ďalšie levely až v M4). Každý krok prináša aj vlastnú grafiku, zvuky a efekty k novej veci.
+Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
+
+### Fáza A — smrť, životy, zásahy
+
+- [ ] **1. Animácia smrti a férový respawn** — mačka sa po smrti nezjaví hneď: krátka animácia (vyskočí, pretočí sa
+  a spadne / zbledne, ~0,8 s), počas nej je ovládanie vypnuté a kamera stojí. Na checkpointe sa objaví s krátkym
+  efektom a **nepohne sa, kým hráč nepustí a znova nestlačí smer** (držaná šípka sa ignoruje), ~1 s bliká
+  a je nezraniteľná.
+  Test: počas animácie sa mačka nehýbe ani pri držanej šípke; po respawne sa nepohne, kým sa šípka nepustí.
+- [ ] **2. 9 životov a koniec hry** — v HUD počet životov (mačacia hlávka × 9). Každá smrť = život dole; pri 0
+  obrazovka „Koniec hry“ (Enter = level odznova, Esc = úvodná obrazovka). Výsledky ukážu aj zostávajúce životy.
+  Test: smrť uberie život, pri 0 koniec hry, nová hra začína s 9 životmi.
+- [ ] **3. Pierka namiesto čerešní** — vlastná grafika: bežné pierko (1 bod), strieborné (5 bodov), zlaté
+  (10 bodov); jemne sa vznášajú a lesknú. HUD ukazuje body, výsledky body z celkového počtu. Každých 100 bodov
+  = život navyše (najviac 9). Čerešne zo Sunny Land vypadnú z hry aj z `CREDITS.md`.
+  Test: hodnoty pierok, súčet bodov, život navyše za 100 bodov.
+- [ ] **4. Klbko vlny (power-up)** — mačka zoberie klbko a „nafúkne sa“ (väčšia, nadýchaná srsť). Zásah
+  (bodáky, nepriateľ, jed) ju vtedy len zmenší a na ~1,5 s je nezraniteľná; zásah malej mačky = smrť. Pád do jamy
+  je vždy smrť. Klbká sú v leveli na vybraných miestach.
+  Test: klbko → veľká; zásah → malá a nezraniteľná; druhý zásah → život dole.
+
+### Fáza B — útok a nový nepriateľ
+
+- [ ] **5. Útok pazúrikmi** — kláves C: rýchle švihnutie labkou (~1 dlaždica pred mačkou, krátky cooldown).
+  **Vrana**: zasiahnuteľná hneď. **Ježko**: iba keď je vystrašený mňauknutím; zaútočiť na nevystrašeného =
+  mačka sa popichá (zásah). Zasiahnutý nepriateľ komicky **uteká / odletí z levelu** a do reštartu levelu sa
+  nevráti.
+  Test: dosah a cooldown, vrana odletí, vystrašený ježko utečie, nevystrašený ježko mačku zraní.
+- [ ] **6. Hadík** — nový nepriateľ: plazí sa na krátkom úseku a v pravidelnom cykle **strieka jed okolo seba**
+  (oblak v okruhu ~1,5 dlaždice). Pred striekaním sa varovne nafúkne; medzi vlnami je chvíľa, keď sa dá
+  zaútočiť pazúrikmi. Mňauknutie naňho nepôsobí. Dotyk hadíka aj jedu = zásah.
+  Test: cyklus jedu, jed zraňuje, útok v pauze ho vyženie, mňauknutie nič.
+
+### Fáza C — šplhanie
+
+- [ ] **7. Liany a kmene** — visiace liany a šplhateľné kmene (Tiled objekty `vine` a `trunk`). Pri liane/kmeni
+  šípka hore (W) chytí a šplhá hore, dole (S) zlieza, do strán sa dá z kmeňa/liany odraziť skokom (medzerník).
+  Na kmeň sa mačka chytí aj pri skoku proti nemu. Vlastná grafika lián a kmeňov s kôrou, animácia šplhania.
+  Test: chytenie, šplhanie hore/dole, odraz skokom, pustenie na vrchu.
+
+### Fáza D — level a záver
+
+- [ ] **8. Úprava levelu** — pierka (aj strieborné a zlaté na ťažších miestach), klbká, hadíky a liany/kmene
+  zakomponované do levelu; každá novinka sa najprv predstaví v bezpečnej situácii.
+  Test: `route.spec` prejde celý level (aj s útokmi, šplhaním a hadíkmi). Férovosť: overené playtestom.
+- [ ] **9. Finálna kontrola M3** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry,
+  aktualizácia dokumentov.
+
+### Predvolené rozhodnutia M3 (zmeníme, ak pri playteste nebudú sedieť)
+
+- Kláves útoku je **C** (vedľa X = mňau). Šípka hore / W pri liane alebo kmeni šplhá, inde skáče ako doteraz.
+- Utečení nepriatelia sa vrátia až pri reštarte levelu alebo po konci hry, nie po smrti mačky.
+- Koniec hry vracia na začiatok levelu (checkpointy sa zabudnú), body z pierok sa nulujú.
+- Veľká mačka (s klbkom) má rovnako široký hitbox ako malá, len o niečo vyšší — level sa nemusí prerábať.
 
 ## Rozhodnutia
 
@@ -122,6 +184,7 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 | 10 | Mačka, checkpoint, cieľ | Vlastná mačka a ohnisko (`tools/sprites.mjs`), cieľ = vchod do jaskyne | [0005](decisions/0005-macka-ohnisko-jaskyna.md) |
 | 11 | Zvukové efekty | Vlastné 8-bit zvuky generované skriptom `tools/sfx.mjs` | [0006](decisions/0006-vlastne-zvuky.md) |
 | 12 | Rozsah M2 | Úvodná obrazovka, pauza, hudba, ježko a vrána vystrašení mňauknutím (bez stompu), pohyblivé a prepadávacie plošiny; ďalšie levely v M3 | [0007](decisions/0007-rozsah-m2.md) |
+| 13 | Rozsah M3 | Animácia smrti, 9 životov + klbko vlny, pierka (1/5/10 bodov), útok pazúrikmi, hadík s jedom, šplhanie po lianach a kmeňoch; ďalšie levely v M4 | [0008](decisions/0008-rozsah-m3.md) |
 
 ## Mimo rozsahu M1
 
@@ -131,3 +194,8 @@ Viac levelov, menu s nastaveniami, ukladanie postupu, leaderboard, multiplayer.
 
 Ďalšie levely a palety (M3), stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad,
 menu s nastaveniami a ich ukladanie, verejné nasadenie.
+
+## Mimo rozsahu M3
+
+Ďalšie levely a palety (M4), stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad,
+menu s nastaveniami a ich ukladanie (aj ukladanie postupu), verejné nasadenie.

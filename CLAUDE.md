@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** Milestone 1 complete and playtested (2026-11-05). Milestone 2 (ADR 0007) complete except the user's
-final playtest (step 10); M3 (more levels) is in `docs/backlog.md` — checklist in
+**Status:** Milestones 1 (2026-11-05) and 2 (2026-11-19, ADR 0007) complete and playtested. Milestone 3 (game
+improvements, ADR 0008) is planned in `docs/gameplan.md`, awaiting the user's approval before any code; more
+levels moved to M4. Checklists in
 `docs/gameplan.md`.
 
 ## Stack
