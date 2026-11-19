@@ -31,9 +31,9 @@ test.beforeEach(async ({ page }) => {
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 });
 
-test('both climbables are in the level', async ({ page }) => {
+test('the level has its trunks and vines', async ({ page }) => {
     const s = await state(page);
-    expect(s.climbables.map(c => c.kind)).toEqual(['trunk', 'vine']);
+    expect(s.climbables.map(c => c.kind)).toEqual([...TRUNKS.map(() => 'trunk'), ...VINES.map(() => 'vine')]);
     expect(s.climbables[0]).toMatchObject({ x: T.x, y: T.y, height: T.height });
 });
 

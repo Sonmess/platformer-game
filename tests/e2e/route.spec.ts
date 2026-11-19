@@ -1,10 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 import { PLAYER, TILE } from '../../src/config/constants';
-import { CROWS, PLATFORMS } from './landmarks';
+import { CROWS, PLATFORMS, SNAKES, TRUNKS, VINES, snakeIndex } from './landmarks';
 
-// The second half of src/levels/level1.json (cols 113-229) played through section by section, like a player:
-// hold right, jump at the edges, meow at enemies in reach, wait for platforms and crows. Each test starts at the
-// section's checkpoint and must reach the next one without dying.
+// The whole of src/levels/level1.json played through section by section, like a player: hold right, jump at the
+// edges, meow at enemies in reach, claw snakes in the calm between their sprays, climb trunks and vines for the
+// feathers, wait for platforms and crows. Each test starts at the section's checkpoint (the first at the start) and
+// must reach the next one without dying.
 
 const feet = (row: number) => row * TILE - PLAYER.HEIGHT / 2;     // centre y of the cat standing on `row`
 const at = (col: number) => col * TILE + TILE / 2;
@@ -19,6 +20,7 @@ declare global {
             until (pred: string, timeoutMs?: number): Promise<void>;
             runRight (toX: number, opts?: { jumps?: number[]; jumpMs?: number; meow?: boolean; timeoutMs?: number }): Promise<void>;
             jumpRight (releaseAtX: number, jumpMs?: number): Promise<void>;
+            clawSnake (index: number): Promise<void>;
         };
     }
 }
@@ -47,7 +49,7 @@ function installBot ()
                     const s = g().getState();
                     if (died(start)) throw new Error(`bot: died near x=${Math.round(s.player!.x / 16)} tiles`);
                     if (s.player!.x >= toX) return;
-                    if (t > timeoutMs) throw new Error('bot: runRight timed out');
+                    if (t > timeoutMs) throw new Error(`bot: runRight timed out at x=${(s.player!.x / 16).toFixed(1)}, y=${(s.player!.y / 16).toFixed(1)} tiles`);
                     while (pending.length && s.player!.x >= pending[0]) {
                         pending.shift();
                         g().press(['jump'], jumpMs);
@@ -80,6 +82,15 @@ function installBot ()
                 await g().wait(16);
             }
             if (died(start)) throw new Error('bot: died during jumpRight');
+        },
+        /** Waits for a fresh calm between the snake's sprays, walks up to it and claws it away. */
+        async clawSnake (index)
+        {
+            await this.until(`s.enemies[${index}].phase === 'spray'`);
+            await this.until(`s.enemies[${index}].phase === 'calm'`);
+            await this.runRight(g().getState().enemies[index].x - 30);
+            await g().press(['claw'], 50);
+            await this.until(`s.enemies[${index}].gone`, 2000);
         }
     };
 }
@@ -95,11 +106,75 @@ const runRight = (page: Page, toX: number, opts?: Parameters<Window['__bot']['ru
     page.evaluate(([x, o]) => window.__bot.runRight(x, o), [toX, opts] as const);
 const jumpRight = (page: Page, releaseAtX: number, jumpMs?: number) =>
     page.evaluate(([x, ms]) => window.__bot.jumpRight(x, ms), [releaseAtX, jumpMs] as const);
+const clawSnake = (page: Page, index: number) => page.evaluate(i => window.__bot.clawSnake(i), index);
+const hold = (page: Page, keys: string[]) => page.evaluate(k => window.__game!.hold(k as never), keys);
+const release = (page: Page, keys: string[]) => page.evaluate(k => window.__game!.release(k as never), keys);
+const state = (page: Page) => page.evaluate(() => window.__game!.getState());
+const centre = (z: { x: number; width: number }) => z.x + z.width / 2;
+/** The snake (its index in getState().enemies) patrolling a column. */
+const snakeAt = (col: number) => snakeIndex(SNAKES.findIndex(sn => sn.col <= col && col < sn.col + sn.width / TILE));
+/** The trunk / vine standing in a column. */
+const trunkAt = (col: number) => TRUNKS.find(t => t.col === col)!;
+const vineAt = (col: number) => VINES.find(v => v.col === col)!;
 
 test.beforeEach(async ({ page }) => {
     await page.addInitScript(installBot);
     await page.goto('/?play');      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
+});
+
+test('start: up the tree and down the vine for the feathers, past the hedgehog, over the plateau and the first pit', async ({ page }) => {
+    const vine = vineAt(7);
+    await startAt(page, 1, 15);
+    await hold(page, ['up']);                                                   // up the trunk, pulled up at the top
+    await until(page, "s.climb.lastLetGo === 'top'");
+    await release(page, ['up']);
+    await hold(page, ['right']);                                                // onto the ledge (silver feather), off its end
+    await until(page, `s.player.x >= ${vine.x - 4}`);
+    await hold(page, ['up']);                                                   // catch the vine while falling
+    await until(page, 's.player.climbing');
+    await release(page, ['right']);
+    await until(page, 's.points >= 6');                                         // the feather above
+    await release(page, ['up']);
+    await hold(page, ['down']);                                                 // and the two below, down to the ground
+    await until(page, '!s.player.climbing && s.player.onGround');
+    await release(page, ['down']);
+    expect((await state(page)).points).toBe(8);
+
+    await runRight(page, at(56), { meow: true, jumps: [12.5, 30.5, 34.8, 38.6, 49].map(c => c * TILE), jumpMs: 400 });
+    const s = await state(page);
+    expect(s.deaths).toBe(0);
+    expect(s.checkpoint.x).toBe(at(56));
+});
+
+test('wide pit: up the trunk to the gold feather, down onto the floating platform, across', async ({ page }) => {
+    const tree = trunkAt(59);
+    await startAt(page, 56, 15);
+    await runRight(page, centre(tree) - 4);                                     // walking up to a trunk does not grab it
+    await hold(page, ['up']);
+    await until(page, "s.climb.lastLetGo === 'top'");
+    await release(page, ['up']);
+    await hold(page, ['right']);
+    await until(page, `s.player.onGround && s.player.y < ${feet(8)}`);        // on the ledge
+    await until(page, `s.player.onGround && s.player.y > ${feet(10)}`);       // off its end, down onto the floating platform
+    await release(page, ['right']);
+    expect((await state(page)).player!.y).toBeCloseTo(feet(12), 0);
+    expect((await state(page)).points).toBe(11);                                // the gold one and the blue over the platform
+    await runRight(page, 67 * TILE);
+    await jumpRight(page, at(70));                                              // lands short of the checkpoint (not over it)
+    await runRight(page, at(74));
+    const s = await state(page);
+    expect(s.deaths).toBe(0);
+    expect(s.checkpoint.x).toBe(at(73));
+});
+
+test('climb section: claw the snake, over the wall and the spikes, under the platforms, over the last pit', async ({ page }) => {
+    await startAt(page, 73, 15);
+    await clawSnake(page, snakeAt(77));
+    await runRight(page, at(113), { jumps: [78, 85.5, 107].map(c => c * TILE), jumpMs: 400 });
+    const s = await state(page);
+    expect(s.deaths).toBe(0);
+    expect(s.checkpoint.x).toBe(at(113));
 });
 
 test('hedgehogs section: meow past the hedgehog, under the ledge, over the spikes', async ({ page }) => {
@@ -145,12 +220,31 @@ test('crumbling bridge: freeze the crow with a meow and run across before the pl
     expect(s.checkpoint.x).toBe(at(190));
 });
 
-test('finale: the spikes, the up-and-down crow, the hedgehog and into the cave', async ({ page }) => {
+test('finale: the snake on the cliff, the spikes, the crow, the hedgehog, up the vine to the cave roof and in', async ({ page }) => {
+    const vine = vineAt(219);
     await startAt(page, 190, 9);
-    await runRight(page, 204.5 * TILE, { jumps: [200.2 * TILE] });             // off the cliff, over the spikes
+    await clawSnake(page, snakeAt(194));
+    await hold(page, ['left']);                                                 // back to the campfire for a run-up
+    await until(page, `s.player.x <= ${at(190)}`);
+    await release(page, ['left']);
+    await runRight(page, 204.5 * TILE, { jumps: [199.5 * TILE] });             // off the cliff, over the spikes (buffered on landing)
     const top = CROWS[FINALE_CROW].y;
     await until(page, `s.enemies.filter(e => e.kind === 'crow')[${FINALE_CROW}].y < ${top + 20}`);
-    await runRight(page, 222 * TILE, { meow: true });
+    await runRight(page, centre(vine) - 4, { meow: true });
+    // The vine ends above the cat's reach: up jumps and catches it on the way.
+    await hold(page, ['up']);
+    await until(page, 's.player.climbing');
+    await until(page, `s.player.y < ${7.5 * TILE}`);
+    await release(page, ['up']);
+    const before = (await state(page)).points;
+    await hold(page, ['right']);
+    await page.evaluate(() => window.__game!.press(['jump'], 200));            // jump off onto the roof
+    await until(page, `s.player.onGround && s.player.x > ${226 * TILE}`);    // past the silver feather
+    await release(page, ['right']);
+    expect((await state(page)).points).toBe(before + 5);
+    await hold(page, ['left']);                                                 // off the roof, down in front of the cave
+    await until(page, `s.player.onGround && s.player.y > ${feet(14)}`);
+    await release(page, ['left']);
     await page.evaluate(() => window.__game!.hold(['right']));
     await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
     await page.evaluate(() => window.__game!.release(['right']));

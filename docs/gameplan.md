@@ -170,13 +170,20 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
   mačka zozadu s dvomi snímkami šplhania), zvuky (škrabnutie pri chytení, ťuknutia pri šplhaní) a úlomky kôry/lístky.
   Zatiaľ jeden kmeň (stĺpec 1, s rímsou na riadku 7, stĺpce 3–5) a jedna liana (stĺpec 7) pri štarte, poriadne
   rozmiestnenie v kroku 8. Logika v `src/core/climb.ts` (unit testy), scenáre v `tests/e2e/climb.spec.ts`.
-  Pocit a čitateľnosť: čaká na playtest.
+  Pocit a čitateľnosť: overené playtestom.
 
 ### Fáza D — level a záver
 
-- [ ] **8. Úprava levelu** — pierka (aj strieborné a zlaté na ťažších miestach), klbká, hadíky a liany/kmene
+- [x] **8. Úprava levelu** — pierka (aj strieborné a zlaté na ťažších miestach), klbká, hadíky a liany/kmene
   zakomponované do levelu; každá novinka sa najprv predstaví v bezpečnej situácii.
   Test: `route.spec` prejde celý level (aj s útokmi, šplhaním a hadíkmi). Férovosť: overené playtestom.
+  Stav: štart (stĺpce 0–15) predstaví šplhanie bez rizika — kmeň so strieborným pierkom na rímse, liana s tromi
+  modrými pierkami. Za checkpointom 56 kmeň (stĺpec 59) na rímsu nad širokou jamou so zlatým pierkom, z nej sa
+  zoskakuje na plošinu (nepovinná odbočka). Hadík č. 1 ostáva na rovine za checkpointom 73 (bezpečné predstavenie),
+  hadík č. 2 stráži útes za checkpointom 190 (stĺpce 193–195, klbko pred ním). Liana v stĺpci 219 končí nad zemou,
+  chytá sa výskokom so šípkou hore a vedie na strechu jaskyne so strieborným pierkom. Body z pierok 61 → 84
+  (hranica 50 za život ostáva). `route.spec` hrá celý level v 7 úsekoch (od štartu, s pazúrikmi na hadíky, šplhaním
+  po kmeňoch a lianach). Férovosť: čaká na playtest.
 - [ ] **9. Finálna kontrola M3** — všetky testy, FPS ~60, reštart 10× bez rozdielov, playtest celej hry,
   aktualizácia dokumentov.
 

@@ -56,8 +56,9 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   or tests flake when the machine is loaded. Pick test spots from known level landmarks (e.g. flat cols 90–107).
   Objects of the level's second half (goal, crows, platforms, crumbles, hedgehogs) come from
   `tests/e2e/landmarks.ts`, which reads `level1.json`, so specs follow the level when it changes; the arrays are
-  in level order, as in `getState()`. `route.spec.ts` plays the second half section by section with a small
-  in-page bot (`hold()`/`release()` from the test API): each section must be passable without dying. When
+  in level order, as in `getState()`. `route.spec.ts` plays the whole level section by section (checkpoint to
+  checkpoint) with a small in-page bot (`hold()`/`release()` from the test API; `clawSnake()` waits for a calm and
+  claws): each section must be passable without dying. Jump points near hazards need margin: frames jitter by a few px. When
   editing the level, keep the cat's test spots clear of patrols and spikes, and keep every section passable.
 - The game boots into the `Title` scene; level specs open `/?play` (dev-only, handled in `Preload`) to start
   straight in `Game`. Only `boot.spec.ts` and `title.spec.ts` open `/`.
@@ -178,4 +179,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),
   136–157 moving platforms over a wide pit up to a cliff, 157–190 a crumbling bridge under a crow, 190–229 the
   finale (spikes, an up-and-down crow, a hedgehog) and the cave. Checkpoints at 56, 73, 113, 136, 157, 190.
-  Left of the spawn a trunk (col 1) with a ledge beside its top (row 7, cols 3–5); a vine at col 7 (M3 step 7 test spot).
+  M3 additions: at the start a trunk (col 1, ledge row 7 cols 3–5, silver feather) and a vine (col 7, three blue
+  feathers); a trunk at col 59 up to a ledge (row 7, cols 61–63, gold feather) over the wide pit; snakes at 76–79 and on
+  the finale cliff 193–195; a vine at col 219 (ends at row 13: reached by jumping with up held) to the cave roof (silver).
+  84 feather points in all.
