@@ -6,6 +6,7 @@ import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Coin } from '../entities/Coin';
 import { Crow } from '../entities/Crow';
+import { CrumblePlatform } from '../entities/CrumblePlatform';
 import type { Enemy } from '../entities/Enemy';
 import { Goal } from '../entities/Goal';
 import { Hedgehog } from '../entities/Hedgehog';
@@ -29,6 +30,7 @@ export class Game extends Scene
     checkpoints: Checkpoint[] = [];
     enemies: Enemy[] = [];
     platforms: MovingPlatform[] = [];
+    crumbles: CrumblePlatform[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
     private lastDeathFrame = -1;
     private completed = false;
@@ -67,6 +69,10 @@ export class Game extends Scene
         this.platforms = this.objectsOfType(LEVEL.PLATFORM_TYPE).map(o => new MovingPlatform(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! },
             (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === PLATFORM.TILES_PROPERTY)?.value ?? PLATFORM.DEFAULT_TILES));
         this.physics.add.collider(this.player, this.platforms, (_p, platform) => this.player.standOnPlatform(platform as MovingPlatform));
+        this.crumbles = this.objectsOfType(LEVEL.CRUMBLE_TYPE).map(o => new CrumblePlatform(this, { x: o.x!, y: o.y!, width: o.width! }, () => this.player.getBounds()));
+        this.physics.add.collider(this.player, this.crumbles,
+            (_p, c) => { if (this.player.standOnPlatform(c as CrumblePlatform)) (c as CrumblePlatform).touch(); },
+            (_p, c) => (c as CrumblePlatform).solid);     // a fallen one lets the cat through
         this.physics.add.overlap(this.player, this.createSpikes(), () => this.killPlayer('spikes'));
         this.physics.add.overlap(this.player, this.createCheckpoints(), (_p, cp) => this.reachCheckpoint(cp as Checkpoint));
 
@@ -117,6 +123,7 @@ export class Game extends Scene
         this.player.update(input, delta);
         if (this.player.body.top > this.map.heightInPixels + HAZARD.FALL_MARGIN) this.killPlayer('pit');
         this.cameraRig.update(delta);
+        for (const crumble of this.crumbles) crumble.update(delta);
         const playerBounds = this.player.getBounds();
         for (const enemy of this.enemies) enemy.update(delta, playerBounds);
     }
@@ -191,6 +198,7 @@ export class Game extends Scene
 
         const { x, y } = state.checkpoint;
         this.player.respawn(x, y);
+        this.crumbles.forEach(c => c.reset());     // a second try starts with every crumbling platform in place
         this.cameraRig.snap();
         events.emit(EV.PLAYER_RESPAWN, { x, y });
     }

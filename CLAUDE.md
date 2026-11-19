@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** Milestone 1 complete and playtested (2026-11-05). Milestone 2 (ADR 0007) in progress — checklist in
+**Status:** Milestone 1 complete and playtested (2026-11-05). Milestone 2 (ADR 0007) complete except the user's
+final playtest (step 10); M3 (more levels) is in `docs/backlog.md` — checklist in
 `docs/gameplan.md`.
 
 ## Stack
@@ -53,6 +54,11 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   Physics assertions use tolerances and game time, not wall-clock time: wait with
   `window.__game.wait(ms)` (game-loop time, survives scene switches), never `setTimeout`/`waitForTimeout`,
   or tests flake when the machine is loaded. Pick test spots from known level landmarks (e.g. flat cols 90–107).
+  Objects of the level's second half (goal, crows, platforms, crumbles, hedgehogs) come from
+  `tests/e2e/landmarks.ts`, which reads `level1.json`, so specs follow the level when it changes; the arrays are
+  in level order, as in `getState()`. `route.spec.ts` plays the second half section by section with a small
+  in-page bot (`hold()`/`release()` from the test API): each section must be passable without dying. When
+  editing the level, keep the cat's test spots clear of patrols and spikes, and keep every section passable.
 - The game boots into the `Title` scene; level specs open `/?play` (dev-only, handled in `Preload`) to start
   straight in `Game`. Only `boot.spec.ts` and `title.spec.ts` open `/`.
 - Pause: `Game` launches the `Pause` overlay and pauses itself (physics, timers, tweens, anims and particles
@@ -69,8 +75,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   is a Tiled rectangle of type `hedgehog`: its width is the patrol range, its bottom edge the ground. A crow
   (type `crow`) flies its rectangle back and forth (wider than tall) or up and down, eased by `pingPong()`
   (`src/core/path.ts`), with no gravity (`body.moves = false`, positioned directly). Enemies keep patrolling
-  after the cat dies; they reset only with the level. Level specs place the cat away from patrols (hedgehogs:
-  cols 18–31 and 119–127, crow: col 133 rows 8–14).
+  after the cat dies; they reset only with the level. Level specs place the cat away from patrols.
 - Moving platforms (`src/entities/MovingPlatform.ts`): Tiled rectangle of type `platform` = path (wider than tall =
   sideways), int property `tiles` = width; textures are baked from the tileset in Preload. An invisible immovable
   body moved by velocity (steered along `pingPong()`), so Arcade carries a rider sideways via `friction.x`, plus a
@@ -83,8 +88,11 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
     way down, no fling at the top, no bounce on landing).
   - A rider's sprite snaps to the platform's drawn pixel grid, using `body.x` — `body.center` lags a step behind a
     friction carry — or cat and platform shimmer 1 px against each other.
-  - To see frame-rate problems locally, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit`.
-  Platforms: vertical cols 116–117 rows 7–12, horizontal row 7 cols 119–131.
+  - To see frame-rate problems locally, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit`.- Crumbling platforms (`src/entities/CrumblePlatform.ts`, Tiled type `crumble`, width = tiles): the phases live in
+  `Crumble` (`src/core/crumble.ts`, pure: solid → shaking → falling → gone → solid). The body never moves; only
+  the image shakes, falls and fades, and the collider's process callback skips it once it is not `solid`. Standing
+  goes through the same `Player.standOnPlatform()` (any `Rideable`). `Game` resets them all when the cat
+  respawns.
 - The in-app browser pane throttles the page when hidden (game time stops); verify with
   headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
@@ -130,4 +138,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   applies a frame late. Particle `x`/`y` ops are ignored when `explode(n, x, y)` gets a position; spread with an
   `emitZone`. For screenshots of effects freeze with `game.loop.sleep()` (a paused scene's camera keeps following).
 - Level `src/levels/level1.json` uses the Tall Forest tileset (autotiled 3×3 block); it opens in Tiled because the
-  tileset image path is relative to the map.
+  tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).
+  230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),
+  136–157 moving platforms over a wide pit up to a cliff, 157–190 a crumbling bridge under a crow, 190–229 the
+  finale (spikes, an up-and-down crow, a hedgehog) and the cave. Checkpoints at 56, 73, 113, 136, 157, 190.

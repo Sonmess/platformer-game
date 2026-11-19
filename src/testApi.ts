@@ -33,6 +33,8 @@ export interface GameState {
     enemies: { kind: string; x: number; y: number; dir: number; scared: boolean; scaredMs: number; harmful: boolean; anim: string }[];
     /** Moving platforms in level order: top-left corner and velocity. */
     platforms: { x: number; y: number; width: number; vx: number; vy: number; drawX: number; drawY: number }[];
+    /** Crumbling platforms in level order: top-left corner, phase (solid/shaking/falling/gone) and the drawn image. */
+    crumbles: { x: number; y: number; width: number; phase: string; solid: boolean; imageX: number; imageY: number; visible: boolean }[];
     /** Per checkpoint (level order): is its campfire burning? */
     campfiresLit: boolean[];
     timeMs: number;
@@ -61,6 +63,9 @@ export interface GameTestApi {
     getState(): GameState;
     /** Hold virtual inputs for `ms` of game time, then release. */
     press(keys: VirtualKey[], ms: number): Promise<void>;
+    /** Hold virtual inputs until release() (for scripted runs that steer while polling the state). */
+    hold(keys: VirtualKey[]): void;
+    release(keys: VirtualKey[]): void;
     teleport(x: number, y: number): void;
     /** Resolve after `ms` of game time (robust when the machine or the tab runs slowly). */
     wait(ms: number): Promise<void>;
@@ -126,6 +131,7 @@ export function installTestApi (game: Phaser.Game): void
                 checkpoint: { ...state.checkpoint },
                 enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key })) ?? [],
                 platforms: g?.platforms.map(p => ({ x: p.x, y: p.y, width: p.width, vx: p.body.velocity.x, vy: p.body.velocity.y, drawX: p.image.x, drawY: p.image.y })) ?? [],
+                crumbles: g?.crumbles.map(c => ({ x: c.x, y: c.y, width: c.width, phase: c.phase, solid: c.solid, imageX: c.image.x, imageY: c.image.y, visible: c.image.visible })) ?? [],
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
                 parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],
@@ -139,6 +145,8 @@ export function installTestApi (game: Phaser.Game): void
                 listeners: Object.fromEntries(Object.values(EV).map(e => [e, events.listenerCount(e)]))
             };
         },
+        hold: keys => keys.forEach(k => virtualKeys.add(k)),
+        release: keys => keys.forEach(k => virtualKeys.delete(k)),
         press: (keys, ms) => new Promise(resolve => {
             keys.forEach(k => virtualKeys.add(k));
             afterGameTime(ms, () => {

@@ -88,10 +88,10 @@ a efekty k novej veci, nie až na konci. Postup ako v M1: po každom kroku testy
 
 - [x] **7. Pohyblivé plošiny** — vodorovné a zvislé; mačka sa na nich vezie a dá sa z nich skákať.
   Test: hráč stojiaci na plošine sa pohybuje s ňou a neprepadne; skok z pohybujúcej sa plošiny funguje.
-- [ ] **8. Prepadávacie plošiny** — po dotyku sa ~0,5 s trasú, potom padnú a po chvíli sa vrátia;
+- [x] **8. Prepadávacie plošiny** — po dotyku sa ~0,5 s trasú, potom padnú a po chvíli sa vrátia;
   po smrti sú späť na mieste.
   Test: časovanie pádu a návratu, reset po respawne.
-- [ ] **9. Úprava levelu** — zakomponovať nepriateľov a plošiny do `level1` (prípadne ho predĺžiť), aby
+- [x] **9. Úprava levelu** — zakomponovať nepriateľov a plošiny do `level1` (prípadne ho predĺžiť), aby
   každá nová vec mala svoje miesto a level mal stúpajúcu obtiažnosť.
   Test: traversal testy pre všetky nové úseky (aj s nepriateľmi a mňaukaním). Férovosť: overené playtestom.
 

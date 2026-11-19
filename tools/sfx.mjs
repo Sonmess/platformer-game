@@ -42,6 +42,18 @@ const SFX = {
         note({ from: 1900, to: 700, at: 0.05, dur: 0.16, vol: 0.25, duty: 0.25, decay: 1.5 }),
         note({ wave: 'noise', from: 3000, to: 1500, dur: 0.12, vol: 0.15, decay: 2 })
     ],
+    // A crumbling platform starts to give: two dry cracks.
+    crack: [
+        note({ wave: 'noise', from: 6000, to: 3000, dur: 0.04, vol: 0.4, decay: 3 }),
+        note({ wave: 'noise', from: 5000, to: 2500, at: 0.09, dur: 0.05, vol: 0.35, decay: 3 }),
+        note({ wave: 'square', from: 220, to: 160, at: 0.09, dur: 0.05, vol: 0.12, duty: 0.25, decay: 2 })
+    ],
+    // ...and gives way: a falling rumble of pieces.
+    crumble: [
+        note({ wave: 'noise', from: 1400, to: 300, dur: 0.35, vol: 0.45, decay: 1.5 }),
+        note({ wave: 'noise', from: 4000, to: 1500, at: 0.04, dur: 0.12, vol: 0.2, decay: 2.5 }),
+        note({ wave: 'triangle', from: 140, to: 70, dur: 0.3, vol: 0.35, decay: 1.5 })
+    ],
     // Short fanfare: arpeggio, then a held chord.
     goal: [
         ...[C5, E5, G5].map((f, i) => note({ from: f, at: i * 0.1, dur: 0.12, vol: 0.22, duty: 0.25 })),

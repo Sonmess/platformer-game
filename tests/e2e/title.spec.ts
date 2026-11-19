@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { RESULTS, TILE, TITLE } from '../../src/config/constants';
-
-const GOAL = { x: 143 * TILE + TILE, y: 14 * TILE };       // inside the goal zone in the cave mouth
+import { RESULTS, TITLE } from '../../src/config/constants';
+import { GOAL } from './landmarks';
 
 const state = (page: Page) => page.evaluate(() => window.__game!.getState());
 const wait = (page: Page, ms: number) => page.evaluate(m => window.__game!.wait(m), ms);

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { AUDIO, PLAYER, TILE } from '../../src/config/constants';
+import { GOAL } from './landmarks';
 
 // Landmarks in src/levels/level1.json (tile coordinates).
 const GROUND_Y = 15 * TILE - PLAYER.HEIGHT / 2;
@@ -7,7 +8,6 @@ const FLAT_X = 98 * TILE;                                   // flat ground, cols
 const PLATEAU_COIN = { x: 38 * TILE + TILE / 2, y: 11 * TILE + TILE / 2 };
 const CHECKPOINT_1 = { x: 56 * TILE + TILE / 2, y: 13 * TILE };
 const FIRST_PIT = { x: 51 * TILE, y: 12 * TILE };
-const GOAL = { x: 143 * TILE + TILE, y: 14 * TILE };
 const { SFX } = AUDIO;
 
 const sfx = async (page: Page) => (await page.evaluate(() => window.__game!.getState())).sfx;

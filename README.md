@@ -2,8 +2,9 @@
 
 2D plošinovka do webového prehliadača s parallax scrollovacím pozadím. Cieľom je hra, ktorá sa hrá plynulo a vyzerá profesionálne.
 
-**Stav:** Milestone 1 je hotový — jeden hrateľný lesný level s mačkou, parallax pozadím, efektmi a zvukmi.
-Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
+**Stav:** Milestone 2 je hotový — hra **Lost Cat**: úvodná obrazovka, pauza, hudba a jeden dlhý lesný level
+(~8 obrazoviek, 6 checkpointov) s ježkami a vranami, ktoré mačka vystraší mňauknutím, s pohyblivými
+a prepadávacími plošinami. Ďalšie levely sú plánované v M3. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 
 ## Ovládanie
 
@@ -14,9 +15,12 @@ Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 | X | mňau (vystraší nepriateľov pred mačkou; potom ~2 s nabíjanie) |
 | Esc alebo P | pauza (v pauze Q = úvodná obrazovka) |
 | M | hudba zapnúť / vypnúť |
-| Enter alebo R | hrať znova (na obrazovke s výsledkami) |
+| Enter | hrať (na úvodnej obrazovke) |
+| Enter alebo R / Esc | hrať znova / úvodná obrazovka (na obrazovke s výsledkami) |
 
-Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj čerešne, ohniská sú checkpointy.
+Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj čerešne, ohniská sú checkpointy. Ježka a vranu
+sa nedá zašliapnuť — mňauknutie ich na pár sekúnd vystraší a vtedy sa dá cez ne prejsť. Dosky s puklinami
+sa pod mačkou po chvíli zrútia.
 
 ## Technológie
 

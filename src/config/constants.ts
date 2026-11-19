@@ -66,6 +66,8 @@ export const AUDIO = {
         DIE: { key: 'sfx-die', url: 'assets/own/sfx/die.wav', volume: 0.5, detune: 0 },
         GOAL: { key: 'sfx-goal', url: 'assets/own/sfx/goal.wav', volume: 0.55, detune: 0 },
         SCARE: { key: 'sfx-scare', url: 'assets/own/sfx/scare.wav', volume: 0.45, detune: 80 },
+        CRACK: { key: 'sfx-crack', url: 'assets/own/sfx/crack.wav', volume: 0.4, detune: 60 },
+        CRUMBLE: { key: 'sfx-crumble', url: 'assets/own/sfx/crumble.wav', volume: 0.45, detune: 60 },
         MEOW: { key: 'sfx-meow', url: 'assets/own/sfx/meow.wav', volume: 0.5, detune: 70 }
     },
     // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
@@ -95,6 +97,7 @@ export const JUICE = {
     COIN: { sparks: 8, tint: [0xffffff, 0xffe066, 0xff6a6a], hudPopScale: 1.4, hudPopMs: 160 },
     CHECKPOINT: { sparks: 14, sparkHeight: 8, tint: [0xffe066, 0xffa030, 0xff5a20] },
     DEATH: { particles: 16, shakeMs: 160, shakeIntensity: 0.006, tint: [0xffffff, 0xd0d0d0] },
+    CRUMBLE: { spacing: 12, dustPerPuff: 3, offsetY: 12 },     // dust along a crumbling platform as it falls
     SCARE: { drops: 8, tint: [0xffffff, 0xbfe3ff] },     // a burst of "sweat" over a scared enemy
     RESPAWN: { fromScale: 0.5, ms: 220 }
 } as const;
@@ -171,6 +174,21 @@ export const PLATFORM = {
     MAX_TILES: 6
 } as const;
 
+// Crumbling platforms: a Tiled rectangle of type "crumble" (width = tiles, one tile tall). Stand on one and it
+// shakes, then falls away (not solid any more), and comes back later — or at once when the cat respawns.
+export const CRUMBLE = {
+    SHAKE_MS: 500,
+    FALL_MS: 700,               // how long the falling pieces are visible
+    RESPAWN_MS: 3000,
+    FALL_GRAVITY: 900,          // px/s², the look of the fall only
+    SHAKE_PX: 1,
+    SHAKE_STEP_MS: 50,
+    FADE_IN_MS: 300,
+    TEXTURE_PREFIX: 'crumble-',
+    CRACK_COLOR: '#2e1d14',     // cracks drawn over the platform tiles, so it reads as fragile
+    CRACKS: [[4, 3], [5, 4], [5, 5], [6, 6], [11, 2], [10, 3], [10, 4], [11, 5], [12, 6], [8, 9], [7, 10], [8, 11]]
+} as const;
+
 export const PLAYER = {
     WIDTH: 18,              // hitbox, sized to the cat's body (ears and tail stick out, on purpose)
     HEIGHT: 14
@@ -199,6 +217,7 @@ export const LEVEL = {
     COIN_TYPE: 'coin',
     HEDGEHOG_TYPE: 'hedgehog',      // rectangle = patrol range, bottom edge = the ground it walks on
     PLATFORM_TYPE: 'platform',
+    CRUMBLE_TYPE: 'crumble',
     CROW_TYPE: 'crow',              // rectangle = flight path: wider than tall = back and forth, else up and down
     GOAL_TYPE: 'goal'
 } as const;

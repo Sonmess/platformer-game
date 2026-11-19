@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { ANIM, ASSETS, AUDIO, LEVEL, PARALLAX } from '../config/constants';
+import { bakeCrumbleTextures } from '../entities/CrumblePlatform';
 import { bakePlatformTextures } from '../entities/MovingPlatform';
 import { bakeEffectTextures } from '../systems/Effects';
 import { bakeParallaxTextures, parallaxSourceKey } from '../systems/Parallax';
@@ -46,6 +47,7 @@ export class Preload extends Scene
         bakeParallaxTextures(this.textures);
         bakeEffectTextures(this);
         bakePlatformTextures(this.textures);
+        bakeCrumbleTextures(this.textures);
         // Dev only: "?play" skips the title screen (e2e tests start in the level).
         const skipTitle = import.meta.env.DEV && new URLSearchParams(location.search).has('play');
         this.scene.start(skipTitle ? 'Game' : 'Title');

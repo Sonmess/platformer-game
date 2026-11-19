@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { AUDIO, RESULTS, TILE, TITLE } from '../../src/config/constants';
+import { AUDIO, RESULTS, TITLE } from '../../src/config/constants';
+import { GOAL } from './landmarks';
 
-const GOAL = { x: 143 * TILE + TILE, y: 14 * TILE };       // inside the goal zone in the cave mouth
 const { MUSIC } = AUDIO;
 
 const music = async (page: Page) => (await page.evaluate(() => window.__game!.getState())).music;

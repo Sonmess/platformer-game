@@ -2,12 +2,11 @@
 
 Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky popis (zdroj/dátum)`
 
-## Naplánované v M2 (pozri `docs/gameplan.md`)
+## Hotové v M2 (pozri `docs/gameplan.md`)
 
-- Titulná obrazovka — v M1 hra začína rovno levelom (2026-11-03)
-- Nepriatelia — namiesto stompu ich mačka vystraší mňauknutím (2026-11-05)
-- Pohyblivé a prepadávacie plošiny
-- Hudba (jednoduchá slučka)
+- Titulná obrazovka, pauza, hudba (jednoduchá slučka)
+- Nepriatelia — namiesto stompu ich mačka vystraší mňauknutím
+- Pohyblivé a prepadávacie plošiny, predĺžený level
 
 ## M3
 

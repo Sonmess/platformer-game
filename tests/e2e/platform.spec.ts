@@ -1,10 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
 import { PLAYER, TILE } from '../../src/config/constants';
+import { PLATFORMS } from './landmarks';
 
-// Landmarks in src/levels/level1.json: a 2-tile platform moves up and down in cols 116-117 (top between
-// rows 7 and 12) and a 3-tile platform moves left and right on row 7 between cols 119 and 131.
-const VERTICAL = { x: 116 * TILE, topMin: 7 * TILE, topMax: 12 * TILE };
-const HORIZONTAL = { y: 7 * TILE, xMin: 119 * TILE, xMax: 132 * TILE - 3 * TILE };
+// The first up-and-down and the first sideways moving platform of src/levels/level1.json (over the wide pit
+// of the moving-platform section). V/H are their indexes in getState().platforms; paths are their Tiled rectangles.
+const V = PLATFORMS.findIndex(p => p.vertical);
+const H = PLATFORMS.findIndex(p => !p.vertical);
+const H_TILES = 3;
+const VERTICAL = { x: PLATFORMS[V].x, topMin: PLATFORMS[V].y, topMax: PLATFORMS[V].y + PLATFORMS[V].height - TILE };
+const HORIZONTAL = { y: PLATFORMS[H].y, xMin: PLATFORMS[H].x, xMax: PLATFORMS[H].x + PLATFORMS[H].width - H_TILES * TILE };
 
 const state = (page: Page) => page.evaluate(() => window.__game!.getState());
 const wait = (page: Page, ms: number) => page.evaluate(m => window.__game!.wait(m), ms);
@@ -43,7 +47,8 @@ test.beforeEach(async ({ page }) => {
 test('platforms travel back and forth along their paths', async ({ page }) => {
     const v: number[] = [], h: number[] = [];
     for (let i = 0; i < 20; i++) {
-        const [pv, ph] = (await state(page)).platforms;
+        const { platforms } = await state(page);
+        const pv = platforms[V], ph = platforms[H];
         expect(pv.x).toBe(VERTICAL.x);
         expect(ph.y).toBe(HORIZONTAL.y);
         v.push(pv.y);
@@ -55,12 +60,12 @@ test('platforms travel back and forth along their paths', async ({ page }) => {
     expect(Math.max(...v) - Math.min(...v)).toBeGreaterThan(3 * TILE);
     expect(Math.min(...h)).toBeGreaterThanOrEqual(HORIZONTAL.xMin - 1);
     expect(Math.max(...h)).toBeLessThanOrEqual(HORIZONTAL.xMax + 1);
-    expect(Math.max(...h) - Math.min(...h)).toBeGreaterThan(6 * TILE);
+    expect(Math.max(...h) - Math.min(...h)).toBeGreaterThan(HORIZONTAL.xMax - HORIZONTAL.xMin - TILE);     // (nearly) end to end
 });
 
 test('the cat rides a sideways platform without sliding', async ({ page }) => {
-    await boardPlatform(page, 1);
-    const ride = await rideOffsets(page, 1, 3000);
+    await boardPlatform(page, H);
+    const ride = await rideOffsets(page, H, 3000);
     expect(ride.every(r => r.onGround)).toBe(true);
     expect(Math.max(...ride.map(r => r.px)) - Math.min(...ride.map(r => r.px))).toBeGreaterThan(2 * TILE);
     const dx = ride.map(r => r.dx);
@@ -69,8 +74,8 @@ test('the cat rides a sideways platform without sliding', async ({ page }) => {
 });
 
 test('the cat rides an up-and-down platform both ways and stays standing', async ({ page }) => {
-    await boardPlatform(page, 0);
-    const ride = await rideOffsets(page, 0, 4500);                        // more than one full round trip
+    await boardPlatform(page, V);
+    const ride = await rideOffsets(page, V, 4500);                        // more than one full round trip
     expect(ride.every(r => r.onGround)).toBe(true);
     expect(Math.max(...ride.map(r => r.py)) - Math.min(...ride.map(r => r.py))).toBeGreaterThan(3 * TILE);
     for (const r of ride) expect(r.dy).toBeCloseTo(PLAYER.HEIGHT / 2, 0);  // feet on the platform top
@@ -78,7 +83,7 @@ test('the cat rides an up-and-down platform both ways and stays standing', async
 });
 
 test('drawn every frame, the riding cat keeps the same pixel offset to the platform (no shimmer)', async ({ page }) => {
-    for (const i of [0, 1]) {
+    for (const i of [V, H]) {
         await boardPlatform(page, i);
         await wait(page, 300);
         const offsets = await page.evaluate(idx => new Promise<string[]>(resolve => {
@@ -98,9 +103,9 @@ test('drawn every frame, the riding cat keeps the same pixel offset to the platf
 
 test('landing on the up-and-down platform does not bounce, whichever way it moves', async ({ page }) => {
     for (const phase of ['up', 'down'] as const) {
-        const result = await page.evaluate(([ph, halfHeight]) => new Promise<{ touched: boolean; maxGap: number }>(resolve => {
+        const result = await page.evaluate(([ph, halfHeight, v]) => new Promise<{ touched: boolean; maxGap: number }>(resolve => {
             const g = window.__game!;
-            const platform = () => g.getState().platforms[0];
+            const platform = () => g.getState().platforms[v];
             const moving = () => ph === 'up' ? platform().vy < -20 : platform().vy > 20;
             const start = () => {
                 if (!moving()) { requestAnimationFrame(start); return; }
@@ -109,7 +114,7 @@ test('landing on the up-and-down platform does not bounce, whichever way it move
                 let touched = false, maxGap = 0, frames = 0;
                 const watch = () => {
                     const s = g.getState();
-                    const gap = s.platforms[0].y - (s.player!.y + halfHeight);     // platform top - cat feet
+                    const gap = s.platforms[v].y - (s.player!.y + halfHeight);     // platform top - cat feet
                     if (gap < 0.5) touched = true;
                     else if (touched) maxGap = Math.max(maxGap, gap);
                     if (++frames < 120) requestAnimationFrame(watch); else resolve({ touched, maxGap });
@@ -117,14 +122,14 @@ test('landing on the up-and-down platform does not bounce, whichever way it move
                 requestAnimationFrame(watch);
             };
             start();
-        }), [phase, PLAYER.HEIGHT / 2] as const);
+        }), [phase, PLAYER.HEIGHT / 2, V] as const);
         expect(result.touched, phase).toBe(true);
         expect(result.maxGap, phase).toBeLessThan(0.5);
     }
 });
 
 test('the cat can jump off a moving platform', async ({ page }) => {
-    await boardPlatform(page, 1);
+    await boardPlatform(page, H);
     await wait(page, 300);
     const before = await state(page);
     const peak = await page.evaluate(async () => {

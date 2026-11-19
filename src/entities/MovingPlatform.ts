@@ -2,8 +2,15 @@ import Phaser from 'phaser';
 import { ASSETS, DEPTH, PLATFORM, TILE } from '../config/constants';
 import { pingPong } from '../core/path';
 
-/** Bakes one texture per platform width (2..MAX_TILES tiles) from the level tileset: left end, middle, right end. */
-export function bakePlatformTextures (textures: Phaser.Textures.TextureManager): void
+/**
+ * Bakes one texture per platform width (2..MAX_TILES tiles) under `prefix + n` from the level tileset: left end,
+ * middle tiles, right end. `decorate` may draw over each tile (crumbling platforms add cracks).
+ */
+export function bakePlatformTextures (
+    textures: Phaser.Textures.TextureManager,
+    prefix: string = PLATFORM.TEXTURE_PREFIX,
+    decorate?: (ctx: CanvasRenderingContext2D, tileX: number) => void
+): void
 {
     const src = textures.get(ASSETS.TILESET.key).getSourceImage() as HTMLImageElement;
     const tileAt = (gid: number) => {
@@ -11,13 +18,14 @@ export function bakePlatformTextures (textures: Phaser.Textures.TextureManager):
         return { sx: (i % PLATFORM.TILESET_COLUMNS) * TILE, sy: Math.floor(i / PLATFORM.TILESET_COLUMNS) * TILE };
     };
     for (let n = 2; n <= PLATFORM.MAX_TILES; n++) {
-        const key = PLATFORM.TEXTURE_PREFIX + n;
+        const key = prefix + n;
         if (textures.exists(key)) continue;
         const canvas = textures.createCanvas(key, n * TILE, TILE)!;
         for (let i = 0; i < n; i++) {
             const gid = i === 0 ? PLATFORM.GIDS.LEFT : i === n - 1 ? PLATFORM.GIDS.RIGHT : PLATFORM.GIDS.MID;
             const { sx, sy } = tileAt(gid);
             canvas.context.drawImage(src, sx, sy, TILE, TILE, i * TILE, 0, TILE, TILE);
+            decorate?.(canvas.context, i * TILE);
         }
         canvas.refresh();
     }

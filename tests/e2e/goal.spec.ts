@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { RESULTS, TILE } from '../../src/config/constants';
+import { CRUMBLES, GOAL } from './landmarks';
 
 // Landmarks in src/levels/level1.json (tile coordinates).
-const GOAL = { x: 143 * TILE + TILE, y: 14 * TILE };    // inside the 2×3 goal zone in the cave mouth
 const PLATEAU_COIN = { x: 38 * TILE + TILE / 2, y: 11 * TILE + TILE / 2 };
 const FIRST_PIT = { x: 51 * TILE, y: 12 * TILE };
 
@@ -26,7 +26,11 @@ async function initialSnapshot (page: Page)
     return {
         player: s.player, camera: s.camera, coins: s.coins, coinsLeft: s.coinsLeft, coinsTotal: s.coinsTotal,
         deaths: s.deaths, checkpoint: s.checkpoint, hud: s.hud, listeners: s.listeners,
-        parallax: s.parallax, parallaxListeners: s.parallaxListeners
+        parallax: s.parallax, parallaxListeners: s.parallaxListeners,
+        paused: s.paused, meowCooldownMs: s.meow.cooldownMs, campfiresLit: s.campfiresLit,
+        enemies: s.enemies.map(e => ({ kind: e.kind, scared: e.scared, harmful: e.harmful })),
+        crumbles: s.crumbles.map(c => ({ phase: c.phase, visible: c.visible, imageX: c.imageX, imageY: c.imageY })),
+        musicInstances: s.music.instances
     };
 }
 
@@ -83,17 +87,25 @@ test('confirm held from the moment the results appear does not skip them', async
     await waitForPlaying(page);
 });
 
-test('restarting 5× yields an identical initial state', async ({ page }) => {
+test('restarting 10× yields an identical initial state', async ({ page }) => {
+    test.setTimeout(180_000);
     const first = await initialSnapshot(page);
     expect(first.coins).toBe(0);
     expect(first.deaths).toBe(0);
 
-    for (let i = 0; i < 5; i++) {
-        // Dirty the run: collect a coin, die, then finish.
+    for (let i = 0; i < 10; i++) {
+        // Dirty the run: meow, pause and resume, collect a coin, die, set a crumbling platform shaking, then finish.
+        await page.evaluate(() => window.__game!.press(['meow'], 50));
+        await page.evaluate(() => window.__game!.press(['pause'], 50));
+        await page.waitForFunction(() => window.__game!.getState().paused);
+        await page.evaluate(() => window.__game!.press(['pause'], 50));
+        await page.waitForFunction(() => !window.__game!.getState().paused);
         await teleport(page, PLATEAU_COIN);
         await page.waitForFunction(() => window.__game!.getState().coins === 1);
         await teleport(page, FIRST_PIT);
         await page.waitForFunction(() => window.__game!.getState().deaths === 1);
+        await teleport(page, { x: CRUMBLES[0].x + CRUMBLES[0].width / 2, y: CRUMBLES[0].y - 12 });
+        await page.waitForFunction(() => window.__game!.getState().crumbles[0].phase !== 'solid');
         await finishLevel(page);
         await restartFromResults(page);
 

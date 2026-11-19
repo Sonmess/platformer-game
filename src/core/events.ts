@@ -12,7 +12,9 @@ export const EV = {
     COIN_COLLECT: 'coin:collect',       // { x, y, coins, coinsTotal }
     LEVEL_COMPLETE: 'level:complete',   // { coins, coinsTotal, deaths, timeMs }
     ENEMY_SCARE: 'enemy:scare',         // { x, y, kind }
-    ENEMY_RECOVER: 'enemy:recover'      // { x, y, kind }
+    ENEMY_RECOVER: 'enemy:recover',     // { x, y, kind }
+    CRUMBLE_SHAKE: 'crumble:shake',     // { x, y, width } (top-left corner)
+    CRUMBLE_FALL: 'crumble:fall'        // { x, y, width }
 } as const;
 
 export type DeathCause = 'pit' | 'spikes' | 'enemy';

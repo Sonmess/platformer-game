@@ -4,7 +4,15 @@ import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
 import { Cooldown, type MeowWave } from '../core/meow';
 import type { InputSnapshot } from '../systems/Input';
-import type { MovingPlatform } from './MovingPlatform';
+
+/** Anything solid the cat can stand on that is a body, not a tile (moving and crumbling platforms). */
+export interface Rideable
+{
+    body: Phaser.Physics.Arcade.Body;
+    /** Top-left corner as drawn, in whole pixels. */
+    readonly drawX: number;
+    readonly drawY: number;
+}
 
 /**
  * The player's physics hitbox (an invisible rectangle). The visible cat is a separate sprite that
@@ -29,8 +37,8 @@ export class Player extends Phaser.GameObjects.Rectangle
      * The moving platform under the cat after the latest physics step (null if none), and the one found
      * during the step in progress. Per physics step, not per frame: on fast screens many frames run no step.
      */
-    private standingOn: MovingPlatform | null = null;
-    private contact: MovingPlatform | null = null;
+    private standingOn: Rideable | null = null;
+    private contact: Rideable | null = null;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
@@ -70,15 +78,16 @@ export class Player extends Phaser.GameObjects.Rectangle
     }
 
     /**
-     * Called from the platform collider when the cat stands on top of one (during a physics step).
+     * Called from a platform collider; returns whether the cat stands on top of it (during a physics step).
      * The cat takes the platform's vertical speed, so it rides instead of falling a little each frame on the way
      * down or being flung off when the platform slows at the top. (A jump sets its own speed later this frame.)
      */
-    standOnPlatform (platform: MovingPlatform): void
+    standOnPlatform (platform: Rideable): boolean
     {
-        if (this.body.bottom > platform.body.top + 1) return;     // side or head bump, not standing
+        if (this.body.bottom > platform.body.top + 1) return false;   // side or head bump, not standing
         this.contact = platform;
         this.body.setVelocityY(platform.body.velocity.y);
+        return true;
     }
 
     update (input: InputSnapshot, deltaMs: number): void

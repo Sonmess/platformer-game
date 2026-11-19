@@ -62,13 +62,16 @@ test('reaching a checkpoint moves the respawn point there', async ({ page }) => 
 });
 
 test('reaching a checkpoint lights its campfire and puts out the previous one', async ({ page }) => {
-    expect((await state(page)).campfiresLit).toEqual([false, false, false]);
+    const n = (await state(page)).campfiresLit.length;
+    const only = (i: number) => Array.from({ length: n }, (_, j) => j === i);
+    expect(n).toBeGreaterThanOrEqual(2);
+    expect((await state(page)).campfiresLit).toEqual(only(-1));
 
     await game(page).teleport(CHECKPOINT_1.col * TILE + TILE / 2, 13 * TILE);
     await page.waitForFunction(() => window.__game!.getState().campfiresLit[0]);
-    expect((await state(page)).campfiresLit).toEqual([true, false, false]);
+    expect((await state(page)).campfiresLit).toEqual(only(0));
 
     await game(page).teleport(73 * TILE + TILE / 2, 13 * TILE);           // second checkpoint
     await page.waitForFunction(() => window.__game!.getState().campfiresLit[1]);
-    expect((await state(page)).campfiresLit).toEqual([false, true, false]);
+    expect((await state(page)).campfiresLit).toEqual(only(1));
 });

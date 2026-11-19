@@ -67,7 +67,8 @@ export class Effects
             [EV.COIN_COLLECT, this.onCoin],
             [EV.CHECKPOINT_REACH, this.onCheckpoint],
             [EV.PLAYER_MEOW, this.onMeow],
-            [EV.ENEMY_SCARE, this.onEnemyScare]
+            [EV.ENEMY_SCARE, this.onEnemyScare],
+            [EV.CRUMBLE_FALL, this.onCrumbleFall]
         ];
         for (const [name, fn] of this.handlers) events.on(name, fn, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -154,6 +155,14 @@ export class Effects
     private onEnemyScare ({ x, y }: { x: number; y: number }): void
     {
         this.scareDrops.explode(JUICE.SCARE.drops, x, y);
+    }
+
+    /** Dust puffs along the whole width of a crumbling platform as it gives way. */
+    private onCrumbleFall ({ x, y, width }: { x: number; y: number; width: number }): void
+    {
+        for (let px = x + JUICE.CRUMBLE.spacing / 2; px < x + width; px += JUICE.CRUMBLE.spacing) {
+            this.dust.explode(JUICE.CRUMBLE.dustPerPuff, px, y + JUICE.CRUMBLE.offsetY);
+        }
     }
 
     /** Dust at the paws. Uses the hitbox: the sprite still sits where the last frame left it. */

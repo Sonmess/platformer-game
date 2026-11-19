@@ -31,7 +31,9 @@ export class SoundEffects
             [EV.PLAYER_DIE, () => this.play(AUDIO.SFX.DIE)],
             [EV.LEVEL_COMPLETE, () => this.play(AUDIO.SFX.GOAL)],
             [EV.PLAYER_MEOW, () => this.play(AUDIO.SFX.MEOW)],
-            [EV.ENEMY_SCARE, () => this.play(AUDIO.SFX.SCARE)]
+            [EV.ENEMY_SCARE, () => this.play(AUDIO.SFX.SCARE)],
+            [EV.CRUMBLE_SHAKE, () => this.play(AUDIO.SFX.CRACK)],
+            [EV.CRUMBLE_FALL, () => this.play(AUDIO.SFX.CRUMBLE)]
         ];
         for (const [name, fn] of this.handlers) events.on(name, fn, this);
         scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
