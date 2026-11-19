@@ -145,7 +145,7 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
   s vystretou labkou, tri šmuhy pazúrov, chumáč srsti a zvuky (švih, výkrik + cupot). Utečený nepriateľ ostáva preč aj
   po smrti mačky, vráti sa až s novou hrou. Logika v `src/core/claw.ts` (unit testy), scenáre v `tests/e2e/claw.spec.ts`.
   Pocit a čitateľnosť: overené playtestom.
-- [ ] **6. Hadík** — nový nepriateľ: plazí sa na krátkom úseku a v pravidelnom cykle **strieka jed okolo seba**
+- [x] **6. Hadík** — nový nepriateľ: plazí sa na krátkom úseku a v pravidelnom cykle **strieka jed okolo seba**
   (oblak v okruhu ~1,5 dlaždice). Pred striekaním sa varovne nafúkne; medzi vlnami je chvíľa, keď sa dá
   zaútočiť pazúrikmi. Mňauknutie naňho nepôsobí. Dotyk hadíka aj jedu = zásah.
   Test: cyklus jedu, jed zraňuje, útok v pauze ho vyženie, mňauknutie nič.
@@ -153,14 +153,24 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
   → 0,7 s jed (fialový oblak s polomerom presne 1,5 dlaždice, kvapky, „pššš“). Hitbox 16×8, vlastné sprity a zvuky.
   Tiled typ `snake` (obdĺžnik = úsek, spodná hrana = zem). Zatiaľ jeden hadík v leveli (stĺpce 76–79, pred stenou za
   druhým checkpointom), poriadne rozmiestnenie v kroku 8. Logika v `src/core/venom.ts` (unit testy), scenáre
-  v `tests/e2e/snake.spec.ts`. Pocit a férovosť: čaká na playtest.
+  v `tests/e2e/snake.spec.ts`. Pocit a férovosť: overené playtestom.
 
 ### Fáza C — šplhanie
 
-- [ ] **7. Liany a kmene** — visiace liany a šplhateľné kmene (Tiled objekty `vine` a `trunk`). Pri liane/kmeni
+- [x] **7. Liany a kmene** — visiace liany a šplhateľné kmene (Tiled objekty `vine` a `trunk`). Pri liane/kmeni
   šípka hore (W) chytí a šplhá hore, dole (S) zlieza, do strán sa dá z kmeňa/liany odraziť skokom (medzerník).
   Na kmeň sa mačka chytí aj pri skoku proti nemu. Vlastná grafika lián a kmeňov s kôrou, animácia šplhania.
   Test: chytenie, šplhanie hore/dole, odraz skokom, pustenie na vrchu.
+  Stav: Tiled obdĺžniky `trunk` (spodná hrana = zem; korene a koruna) a `vine` (visí z hornej hrany, zakrútený
+  koniec). Šípka hore / W chytí (aj vo vzduchu) a šplhá 72 px/s; pustená šípka = mačka visí na mieste (bez gravitácie);
+  dole / S zlieza, na zemi sa pustí. Medzerník + smer = odraz do strany (skok 3 dlaždice, dá sa skrátiť), medzerník bez
+  smeru = pustí sa. Na vrchu podržaná šípka hore mačku vytiahne malým poskokom (1,5 dlaždice), aby mohla vystúpiť na
+  rímsu vedľa. Kmeň chytí aj skok proti nemu (vo vzduchu so šípkou k nemu), chôdza okolo nie. Pri liane/kmeni skáče iba
+  medzerník (šípka hore šplhá), inde šípka hore skáče ako doteraz. Vlastná grafika (kôra, korene, koruna, liana,
+  mačka zozadu s dvomi snímkami šplhania), zvuky (škrabnutie pri chytení, ťuknutia pri šplhaní) a úlomky kôry/lístky.
+  Zatiaľ jeden kmeň (stĺpec 1, s rímsou na riadku 7, stĺpce 3–5) a jedna liana (stĺpec 7) pri štarte, poriadne
+  rozmiestnenie v kroku 8. Logika v `src/core/climb.ts` (unit testy), scenáre v `tests/e2e/climb.spec.ts`.
+  Pocit a čitateľnosť: čaká na playtest.
 
 ### Fáza D — level a záver
 

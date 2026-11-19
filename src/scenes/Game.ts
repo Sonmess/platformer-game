@@ -5,6 +5,7 @@ import { clawHits, clawOutcome, type ClawSwipe } from '../core/claw';
 import { inMeowRange, type MeowWave } from '../core/meow';
 import { state } from '../core/state';
 import { Checkpoint } from '../entities/Checkpoint';
+import { Climbable } from '../entities/Climbable';
 import { Coin } from '../entities/Coin';
 import { Crow } from '../entities/Crow';
 import { CrumblePlatform } from '../entities/CrumblePlatform';
@@ -34,6 +35,7 @@ export class Game extends Scene
     enemies: Enemy[] = [];
     platforms: MovingPlatform[] = [];
     crumbles: CrumblePlatform[] = [];
+    climbables: Climbable[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
     yarns: Phaser.Physics.Arcade.StaticGroup;
     private completed = false;
@@ -71,7 +73,15 @@ export class Game extends Scene
             (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === COIN.VALUE_PROPERTY)?.value ?? 1;
         state.reset(1, { x: spawn.x!, y: spawn.y! }, coinObjects.length, coinObjects.reduce((sum, o) => sum + valueOf(o), 0));
 
+        // Vines and trunks first: they are drawn behind everything that moves.
+        const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
+        this.climbables = [
+            ...this.objectsOfType(LEVEL.TRUNK_TYPE).map(o => new Climbable(this, 'trunk', rect(o))),
+            ...this.objectsOfType(LEVEL.VINE_TYPE).map(o => new Climbable(this, 'vine', rect(o)))
+        ];
+
         this.player = new Player(this, spawn.x!, spawn.y! - PLAYER.HEIGHT / 2);
+        this.player.climbables = this.climbables;
         this.physics.add.collider(this.player, ground);
         this.platforms = this.objectsOfType(LEVEL.PLATFORM_TYPE).map(o => new MovingPlatform(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! },
             (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === PLATFORM.TILES_PROPERTY)?.value ?? PLATFORM.DEFAULT_TILES));
@@ -89,7 +99,6 @@ export class Game extends Scene
         this.yarns = this.physics.add.staticGroup(this.objectsOfType(LEVEL.YARN_TYPE).map(o => new Yarn(this, o.x!, o.y!)));
         this.physics.add.overlap(this.player, this.yarns, (_p, y) => this.collectYarn(y as Yarn));
 
-        const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
         const hedgehogs = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, rect(o), ground));
         const crows = this.objectsOfType(LEVEL.CROW_TYPE).map(o => new Crow(this, rect(o)));
         const snakes = this.objectsOfType(LEVEL.SNAKE_TYPE).map(o => new Snake(this, rect(o), ground));

@@ -1,15 +1,20 @@
 import Phaser from 'phaser';
 import { EdgeLatch } from './inputEdges';
 
-export type VirtualKey = 'left' | 'right' | 'jump' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw';
+export type VirtualKey = 'left' | 'right' | 'jump' | 'up' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw';
 
 export interface InputSnapshot {
     left: boolean;
     right: boolean;
     down: boolean;
+    /** Up (↑/W) held: climbs at a vine or trunk. Up is also a jump key, so it counts in the jump fields too. */
+    up: boolean;
+    /** Any jump key (space, Z, ↑, W). */
     jumpHeld: boolean;
     jumpPressed: boolean;
     jumpReleased: boolean;
+    /** The jump button alone (space, Z), without up: at a vine or trunk only this one jumps. */
+    jumpButtonPressed: boolean;
     /** Menu confirm (Enter/R), edge-triggered. Not a gameplay action. */
     confirmPressed: boolean;
     /** Menu back (Esc), edge-triggered. */
@@ -32,8 +37,8 @@ export const virtualKeys = new Set<VirtualKey>();
 const K = Phaser.Input.Keyboard.KeyCodes;
 
 /** Actions read as edges (pressed/released), not only as held. */
-type EdgeAction = 'jump' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw';
-const EDGE_ACTIONS: EdgeAction[] = ['jump', 'confirm', 'back', 'pause', 'quit', 'mute', 'meow', 'claw'];
+type EdgeAction = 'jump' | 'up' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw';
+const EDGE_ACTIONS: EdgeAction[] = ['jump', 'up', 'confirm', 'back', 'pause', 'quit', 'mute', 'meow', 'claw'];
 
 /** One normalized snapshot per frame; the Player never reads devices directly. */
 export class Input
@@ -53,7 +58,8 @@ export class Input
             left: add(K.LEFT, K.A),
             right: add(K.RIGHT, K.D),
             down: add(K.DOWN, K.S),
-            jump: add(K.SPACE, K.UP, K.W, K.Z),
+            jump: add(K.SPACE, K.Z),
+            up: add(K.UP, K.W),         // also jumps (see read())
             confirm: add(K.ENTER, K.R),
             back: add(K.ESC),
             pause: add(K.ESC, K.P),
@@ -101,16 +107,19 @@ export class Input
 
     read (): InputSnapshot
     {
-        const [jump, confirm, back, pause, quit, mute, meow, claw] = EDGE_ACTIONS.map(a => this.edges(a));
+        const [jump, up, confirm, back, pause, quit, mute, meow, claw] = EDGE_ACTIONS.map(a => this.edges(a));
+        const jumpHeld = jump.held || up.held;
         this.downSeen.clear();
         this.upSeen.clear();
         return {
             left: this.held('left'),
             right: this.held('right'),
             down: this.held('down'),
-            jumpHeld: jump.held,
-            jumpPressed: jump.pressed,
-            jumpReleased: jump.released,
+            up: up.held,
+            jumpHeld,
+            jumpPressed: jump.pressed || up.pressed,
+            jumpReleased: (jump.released || up.released) && !jumpHeld,
+            jumpButtonPressed: jump.pressed,
             confirmPressed: confirm.pressed,
             backPressed: back.pressed,
             pausePressed: pause.pressed,

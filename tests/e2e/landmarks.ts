@@ -35,3 +35,7 @@ export const SNAKES = ofType('snake').map(box);
 /** Index of the i-th snake in getState().enemies (hedgehogs, then crows, then snakes). */
 export const snakeIndex = (i = 0) => HEDGEHOGS.length + CROWS.length + i;
 
+
+/** Climbable tree trunks (bottom edge on the ground) and hanging vines, each in level order. */
+export const TRUNKS = ofType('trunk').map(box);
+export const VINES = ofType('vine').map(box);

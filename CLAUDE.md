@@ -117,7 +117,14 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
     way down, no fling at the top, no bounce on landing).
   - A rider's sprite snaps to the platform's drawn pixel grid, using `body.x` — `body.center` lags a step behind a
     friction carry — or cat and platform shimmer 1 px against each other.
-  - To see frame-rate problems locally, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit`.- Crumbling platforms (`src/entities/CrumblePlatform.ts`, Tiled type `crumble`, width = tiles): the phases live in
+  - To see frame-rate problems locally, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit`.- Climbing (`src/core/climb.ts`, pure, unit-tested; `src/entities/Climbable.ts` draws them): Tiled rectangles of type
+  `trunk` (bottom edge = ground) and `vine` (hangs from its top edge). `Game` passes them to `player.climbables`;
+  `Player` grabs with `zoneAt()` + `wantsGrab()` (up, or for a trunk a jump against it), then `climbingOn` is set and the
+  body's gravity is off (`setAllowGravity(false)`, back on in `letGo()`, `die()`, `respawn()`, `teleport()`).
+  Input: the `up` action (↑/W) is separate from `jump` (space/Z) but still counts in `jumpPressed`; next to a climbable
+  only `jumpButtonPressed` jumps. Events `player:grab`, `player:climb-step`, `player:let-go` (`how`: jump/top/drop/
+  ground/end); the test API has `player.climbing`, `climbables` and a `climb` log. Tuning: `CLIMB`, `JUICE.CLIMB`.
+- Crumbling platforms (`src/entities/CrumblePlatform.ts`, Tiled type `crumble`, width = tiles): the phases live in
   `Crumble` (`src/core/crumble.ts`, pure: solid → shaking → falling → gone → solid). The body never moves; only
   the image shakes, falls and fades, and the collider's process callback skips it once it is not `solid`. Standing
   goes through the same `Player.standOnPlatform()` (any `Rideable`). `Game` resets them all when the cat
@@ -171,3 +178,4 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),
   136–157 moving platforms over a wide pit up to a cliff, 157–190 a crumbling bridge under a crow, 190–229 the
   finale (spikes, an up-and-down crow, a hedgehog) and the cave. Checkpoints at 56, 73, 113, 136, 157, 190.
+  Left of the spawn a trunk (col 1) with a ledge beside its top (row 7, cols 3–5); a vine at col 7 (M3 step 7 test spot).

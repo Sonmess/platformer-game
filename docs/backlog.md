@@ -12,6 +12,9 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 
 - Animácia smrti, 3 životy + klbko vlny, pierka, útok pazúrikmi, hadík, šplhanie (2026-11-19)
 
+- [ ] Úvodná obrazovka: doplniť do ovládania pazúry (C) a šplhanie (šípka hore/dole pri liane), „čerešne“ → „pierka“
+  (krok 9 M3) (2026-11-19)
+
 ## M4
 
 - [ ] Viac levelov s rôznymi paletami pozadia (2026-11-05, presunuté z M3 2026-11-19)

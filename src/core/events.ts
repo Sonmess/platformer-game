@@ -7,6 +7,9 @@ export const EV = {
     PLAYER_LAND: 'player:land',
     PLAYER_MEOW: 'player:meow',         // MeowWave & { cooldownMs }
     PLAYER_CLAW: 'player:claw',         // ClawSwipe & { cooldownMs }
+    PLAYER_GRAB: 'player:grab',         // { x, y, kind } (took hold of a vine or trunk; x, y = the paws)
+    PLAYER_CLIMB_STEP: 'player:climb-step', // { x, y, kind } (every CLIMB.STEP_PX climbed)
+    PLAYER_LET_GO: 'player:let-go',     // { x, y, kind, how } (how: 'jump' | 'top' | 'drop' | 'ground' | 'end')
     PLAYER_DIE: 'player:die',           // { x, y, cause, lives } (lives left after this death)
     GAME_OVER: 'game:over',             // { coins, coinsTotal, timeMs }
     LIVES_CHANGE: 'lives:change',       // { lives }

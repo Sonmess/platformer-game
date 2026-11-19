@@ -27,6 +27,8 @@ export interface GameState {
         dying: boolean; invulnerable: boolean; awaitingRelease: boolean; spriteAlpha: number; spriteAngle: number;
         /** Puffed up by a yarn ball; `spriteScale` is the sprite's current x scale. */
         big: boolean; spriteScale: number;
+        /** Holding on to a vine or trunk (gravity off), and which kind (null when not climbing). */
+        climbing: boolean; climbKind: string | null;
     } | null;
     level: { width: number; height: number } | null;
     camera: { scrollX: number; scrollY: number; width: number; height: number } | null;
@@ -60,6 +62,10 @@ export interface GameState {
     platforms: { x: number; y: number; width: number; vx: number; vy: number; drawX: number; drawY: number }[];
     /** Crumbling platforms in level order: top-left corner, phase (solid/shaking/falling/gone) and the drawn image. */
     crumbles: { x: number; y: number; width: number; phase: string; solid: boolean; imageX: number; imageY: number; visible: boolean }[];
+    /** Vines and trunks (trunks first, then vines, each in level order): the climbable rectangle. */
+    climbables: { kind: string; x: number; y: number; width: number; height: number }[];
+    /** Climbing events seen on this page: grabs, and the last let-go (how: jump/top/drop/ground/end). */
+    climb: { grabs: number; steps: number; lastLetGo: string | null };
     /** Per checkpoint (level order): is its campfire burning? */
     campfiresLit: boolean[];
     timeMs: number;
@@ -105,6 +111,10 @@ export function installTestApi (game: Phaser.Game): void
     // Installed once per page: counts every meow event, across restarts.
     const meowLog = { count: 0, last: null as MeowWave | null };
     events.on(EV.PLAYER_MEOW, (w: MeowWave) => { meowLog.count++; meowLog.last = { x: w.x, y: w.y, dir: w.dir, range: w.range, halfHeight: w.halfHeight, behind: w.behind }; });
+    const climbLog = { grabs: 0, steps: 0, lastLetGo: null as string | null };
+    events.on(EV.PLAYER_GRAB, () => { climbLog.grabs++; });
+    events.on(EV.PLAYER_CLIMB_STEP, () => { climbLog.steps++; });
+    events.on(EV.PLAYER_LET_GO, ({ how }: { how: string }) => { climbLog.lastLetGo = how; });
     const clawLog = { count: 0, last: null as ClawSwipe | null };
     events.on(EV.PLAYER_CLAW, (s: ClawSwipe) => { clawLog.count++; clawLog.last = { x: s.x, y: s.y, dir: s.dir, reach: s.reach, behind: s.behind, halfHeight: s.halfHeight }; });
     const gameScene = () => game.scene.getScene('Game') as Game;
@@ -148,6 +158,7 @@ export function installTestApi (game: Phaser.Game): void
                     spriteX: p.sprite.x, spriteY: p.sprite.y,
                     dying: p.dying, invulnerable: p.invulnerable, awaitingRelease: p.awaitingRelease,
                     big: p.big, spriteScale: p.sprite.scaleX,
+                    climbing: p.climbing, climbKind: p.climbingOn?.kind ?? null,
                     spriteAlpha: p.sprite.alpha, spriteAngle: p.sprite.angle
                 } : null,
                 level: map ? { width: map.widthInPixels, height: map.heightInPixels } : null,
@@ -167,6 +178,8 @@ export function installTestApi (game: Phaser.Game): void
                 enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key, gone: e.gone, spriteAlpha: e.sprite.alpha, phase: e instanceof Snake ? e.phase : null, cloud: e instanceof Snake ? e.cloud : null })) ?? [],
                 platforms: g?.platforms.map(p => ({ x: p.x, y: p.y, width: p.width, vx: p.body.velocity.x, vy: p.body.velocity.y, drawX: p.image.x, drawY: p.image.y })) ?? [],
                 crumbles: g?.crumbles.map(c => ({ x: c.x, y: c.y, width: c.width, phase: c.phase, solid: c.solid, imageX: c.image.x, imageY: c.image.y, visible: c.image.visible })) ?? [],
+                climbables: g?.climbables.map(c => ({ kind: c.kind, x: c.x, y: c.y, width: c.width, height: c.height })) ?? [],
+                climb: { ...climbLog },
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
                 parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],

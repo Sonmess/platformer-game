@@ -36,6 +36,8 @@ export class SoundEffects
             [EV.LEVEL_COMPLETE, () => this.play(AUDIO.SFX.GOAL)],
             [EV.GAME_OVER, () => this.play(AUDIO.SFX.GAME_OVER)],
             [EV.PLAYER_MEOW, () => this.play(AUDIO.SFX.MEOW)],
+            [EV.PLAYER_GRAB, () => this.play(AUDIO.SFX.GRAB)],
+            [EV.PLAYER_CLIMB_STEP, () => this.play(AUDIO.SFX.CLIMB)],
             [EV.ENEMY_SCARE, () => this.play(AUDIO.SFX.SCARE)],
             [EV.PLAYER_CLAW, () => this.play(AUDIO.SFX.CLAW)],
             [EV.ENEMY_FLEE, () => this.play(AUDIO.SFX.FLEE)],

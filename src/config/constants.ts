@@ -47,6 +47,7 @@ export const PHYSICS = derivePhysics(PLAYER_FEEL, TILE);
 /** Draw order; higher is in front. */
 export const DEPTH = {
     PARALLAX: -100,         // background layers stack upwards from here, behind the tilemap (0)
+    CLIMBABLES: 2,          // vines and tree trunks, above the tilemap (roots over the ground), behind platforms
     PLATFORMS: 5,           // moving platforms, above the tilemap
     PLAYER: 10,
     EFFECTS: 20
@@ -76,7 +77,9 @@ export const AUDIO = {
         CLAW: { key: 'sfx-claw', url: 'assets/own/sfx/claw.wav', volume: 0.4, detune: 120 },
         FLEE: { key: 'sfx-flee', url: 'assets/own/sfx/flee.wav', volume: 0.45, detune: 80 },
         HISS: { key: 'sfx-hiss', url: 'assets/own/sfx/hiss.wav', volume: 0.4, detune: 60 },
-        SPRAY: { key: 'sfx-spray', url: 'assets/own/sfx/spray.wav', volume: 0.45, detune: 60 }
+        SPRAY: { key: 'sfx-spray', url: 'assets/own/sfx/spray.wav', volume: 0.45, detune: 60 },
+        GRAB: { key: 'sfx-grab', url: 'assets/own/sfx/grab.wav', volume: 0.4, detune: 80 },
+        CLIMB: { key: 'sfx-climb', url: 'assets/own/sfx/climb.wav', volume: 0.25, detune: 150 }
     },
     // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
     MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 },
@@ -127,6 +130,9 @@ export const JUICE = {
     // Snake poison: a translucent cloud of exactly the hurting radius swells and fades, with drops bursting out.
     POISON: { COLOR: 0xa64fd1, ALPHA: 0.3, RIM_ALPHA: 0.7, RIM_LINE: 1, FROM_SCALE: 0.4, GROW_MS: 120, DROPS: 22, TINT: [0xe2b8ff, 0xa64fd1, 0x6e2a99], WARN_DROPS: 4,
         DROP_SPEED: { min: 10, max: 40 }, DROP_LIFESPAN: { min: 400, max: 600 } },     // ≤ 24 px: inside the cloud
+    // Climbing: bits of bark or leaves fly off where the paws grab, a few fall with every climbing step.
+    CLIMB: { GRAB_BITS: 6, STEP_BITS: 2, TINT: { trunk: [0x7a5538, 0x553829, 0x33211a], vine: [0x5f9e3c, 0x33703a, 0x1d4630] },
+        SPEED: { min: 15, max: 45 }, LIFESPAN: { min: 300, max: 500 }, GRAVITY_Y: 160 },
     RESPAWN: { fromScale: 0.5, ms: 220, blinkMs: 90, blinkAlpha: 0.35 }     // blinks while invulnerable
 } as const;
 
@@ -184,6 +190,21 @@ export const FLEE = {
     hedgehog: { dx: 72, dy: 0, hopPx: 8, animScale: 3 },
     crow: { dx: 80, dy: -90, hopPx: 0, animScale: 2.5 },
     snake: { dx: 64, dy: 0, hopPx: 4, animScale: 3 }
+} as const;
+
+// Climbing (src/core/climb.ts): Tiled rectangles of type "vine" (hanging) or "trunk" (a tree) are climbable areas.
+// Up (W) grabs and climbs, down (S) climbs down, the jump button (space) jumps off to the side held (no side = let
+// go). A trunk is also caught by jumping against it. Climbing on past the top pulls the cat up with a small hop.
+export const CLIMB = {
+    SPEED: 72,                  // px/s up and down
+    SIDE_MARGIN_PX: 4,          // the hitbox centre may be this far beside the zone and still grab it
+    REACH_PX: 4,                // the paws reach this far above/below the hitbox
+    TOP_HOP_TILES: 1.5,         // the pull-up at the top: enough to step onto a ledge beside the top
+    JUMP_TILES: 3,              // jumping off (held; letting go early cuts it like a normal jump)
+    KICK_SPEED: 130,            // px/s sideways when jumping off (≤ PLAYER_FEEL.runSpeed, the speed cap)
+    REGRAB_MS: 250,             // after letting go, no grab for a moment (a jump off must get away first)
+    STEP_PX: 12,                // a scratch (sound, bits) every this many px climbed
+    SPRITE_OFFSET_Y: 4          // the back-view climbing cat is drawn a little lower, its paws around the hitbox
 } as const;
 
 // Enemies are scared by a meow (src/core/meow.ts): harmless and frozen, shaking, for SCARE_MS.
@@ -305,6 +326,8 @@ export const LEVEL = {
     CROW_TYPE: 'crow',              // rectangle = flight path: wider than tall = back and forth, else up and down
     SNAKE_TYPE: 'snake',            // rectangle = patrol range, bottom edge = the ground it slithers on
     YARN_TYPE: 'yarn',              // point = a yarn ball power-up
+    VINE_TYPE: 'vine',              // rectangle = the climbable vine (drawn centred, hanging from its top)
+    TRUNK_TYPE: 'trunk',            // rectangle = the climbable trunk, bottom edge on the ground; a crown on top
     GOAL_TYPE: 'goal'
 } as const;
 
@@ -439,6 +462,7 @@ export const ASSETS = {
         meow: { key: 'cat-meow', url: 'assets/own/cat-meow.png' },
         hurt: { key: 'cat-hurt', url: 'assets/own/cat-hurt.png' },
         claw: { key: 'cat-claw', url: 'assets/own/cat-claw.png' },
+        climb: { key: 'cat-climb', url: 'assets/own/cat-climb.png', frames: 2, frameRate: 8 },     // seen from behind
         head: { key: 'cat-head', url: 'assets/own/cat-head.png' }        // HUD lives icon
     },
     YARN: { key: 'yarn', url: 'assets/own/yarn.png' },
@@ -464,6 +488,18 @@ export const ASSETS = {
         warn: { key: 'snake-warn', url: 'assets/own/snake-warn.png', frames: 2, frameRate: 12 },     // hood up, trembling
         spray: { key: 'snake-spray', url: 'assets/own/snake-spray.png' }
     },
+    // Climbables, drawn from pieces: a 16 px tile repeated down the trunk/vine, plus caps.
+    TRUNK: {
+        bark: { key: 'trunk-bark', url: 'assets/own/trunk-bark.png' },         // 16×16, repeats
+        roots: { key: 'trunk-roots', url: 'assets/own/trunk-roots.png' },      // 32×10, on the ground
+        crown: { key: 'trunk-crown', url: 'assets/own/trunk-crown.png' },      // 56×40, over the top
+        CROWN_OVERLAP_PX: 10                                                    // the crown hangs this far below the top
+    },
+    VINE: {
+        stem: { key: 'vine-stem', url: 'assets/own/vine-stem.png' },           // 14×16, repeats
+        tip: { key: 'vine-tip', url: 'assets/own/vine-tip.png' },              // 14×10, below the bottom
+        knot: { key: 'vine-knot', url: 'assets/own/vine-knot.png' }            // 18×8, where it hangs from (not at the level top)
+    },
     FONT: { key: 'PixelifySans', url: 'assets/fonts/PixelifySans.ttf' }
 } as const;
 
@@ -476,6 +512,8 @@ export const ANIM = {
     CAT_MEOW: 'cat-meow',
     CAT_HURT: 'cat-hurt',
     CAT_CLAW: 'cat-claw',
+    CAT_CLIMB: 'cat-climb',
+    CAT_CLING: 'cat-cling',
     HEDGEHOG_WALK: 'hedgehog-walk',
     CROW_FLY: 'crow-fly',
     SNAKE_SLITHER: 'snake-slither',

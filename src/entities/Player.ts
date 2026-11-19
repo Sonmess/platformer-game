@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { ANIM, ASSETS, CLAW, DEATH, DEPTH, MEOW, PHYSICS, PLAYER, PLAYER_FEEL, POWER, RUN_ANIM_THRESHOLD, TILE } from '../config/constants';
+import { ANIM, ASSETS, CLAW, CLIMB, DEATH, DEPTH, MEOW, PHYSICS, PLAYER, PLAYER_FEEL, POWER, RUN_ANIM_THRESHOLD, TILE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { JumpAssist, extraGravity } from '../core/jump';
 import type { ClawSwipe } from '../core/claw';
+import { atTop, climbVelocity, launchVelocity, pastBottom, wantsGrab, zoneAt, zoneCentreX, type Box, type ClimbZone } from '../core/climb';
 import { Cooldown, type MeowWave } from '../core/meow';
 import type { InputSnapshot } from '../systems/Input';
 
@@ -49,6 +50,14 @@ export class Player extends Phaser.GameObjects.Rectangle
     awaitingRelease = false;
     /** Puffed up by a yarn ball: a hit only shrinks it (see Game.killPlayer). The hitbox does not change. */
     big = false;
+    /** The level's vines and trunks (set by Game). */
+    climbables: readonly ClimbZone[] = [];
+    /** The vine or trunk the cat holds on to (null = not climbing). Gravity is off while climbing. */
+    climbingOn: ClimbZone | null = null;
+    /** After letting go, no new grab until this runs out. */
+    private regrabMs = 0;
+    /** Distance climbed since the last climbing step (sound, bits). */
+    private climbedPx = 0;
 
     constructor (scene: Phaser.Scene, x: number, y: number)
     {
@@ -71,6 +80,11 @@ export class Player extends Phaser.GameObjects.Rectangle
         });
         this.body.setCollideWorldBounds(true);
         this.body.setMaxVelocity(PLAYER_FEEL.runSpeed, PLAYER_FEEL.maxFallSpeed);
+    }
+
+    get climbing (): boolean
+    {
+        return this.climbingOn !== null;
     }
 
     get onGround (): boolean
@@ -131,6 +145,8 @@ export class Player extends Phaser.GameObjects.Rectangle
     die (): void
     {
         this.dying = true;
+        this.climbingOn = null;
+        this.body.setAllowGravity(true);
         this.meowPoseMs = 0;
         this.clawPoseMs = 0;
         this.body.stop();
@@ -141,14 +157,28 @@ export class Player extends Phaser.GameObjects.Rectangle
     update (input: InputSnapshot, deltaMs: number): void
     {
         const body = this.body;
-        const onGround = this.onGround;
         this.invulnerableMs = Math.max(0, this.invulnerableMs - deltaMs);
-
-        // Horizontal: acceleration while held, drag to stop; weaker in the air.
+        this.regrabMs = Math.max(0, this.regrabMs - deltaMs);
         if (this.awaitingRelease && !input.left && !input.right) this.awaitingRelease = false;
         const steer = !this.awaitingRelease;
         const dir = steer ? (input.right ? 1 : 0) - (input.left ? 1 : 0) : 0;
-        if (dir !== 0) {
+
+        // Climbing: a vine or trunk within reach; up grabs it (and does not jump there), a trunk also catches a jump.
+        const reachable = zoneAt(this.climbables, this.box, CLIMB.SIDE_MARGIN_PX, CLIMB.REACH_PX);
+        if (reachable && !this.climbing && this.regrabMs === 0
+            && wantsGrab({ kind: reachable.kind, up: input.up, onGround: this.onGround, dir, dx: zoneCentreX(reachable) - body.center.x })) {
+            this.grab(reachable);
+        }
+        if (this.climbing) this.climb(input, dir, deltaMs);
+        const nearClimbable = this.climbing || reachable !== null;
+        const onGround = this.onGround;
+
+        // Horizontal: acceleration while held, drag to stop; weaker in the air. Held by the paws: none of it.
+        if (this.climbing) {
+            body.setAcceleration(0, 0);
+            body.setDrag(0, 0);
+            this.jump.reset();
+        } else if (dir !== 0) {
             this.facing = dir > 0 ? 1 : -1;
             if (onGround && Math.sign(body.velocity.x) === -dir) body.setVelocityX(0); // snap-turn
             body.setAccelerationX(dir * PHYSICS.groundAccel * (onGround ? 1 : PLAYER_FEEL.airControl));
@@ -158,8 +188,8 @@ export class Player extends Phaser.GameObjects.Rectangle
             body.setDragX(PHYSICS.groundDecel * (onGround ? 1 : PLAYER_FEEL.airDragMult));
         }
 
-        // Jump with coyote time and buffer.
-        if (this.jump.update(deltaMs / 1000, onGround, input.jumpPressed)) {
+        // Jump with coyote time and buffer. At a vine or trunk up climbs, so only the jump button jumps there.
+        if (!this.climbing && this.jump.update(deltaMs / 1000, onGround, nearClimbable ? input.jumpButtonPressed : input.jumpPressed)) {
             body.setVelocityY(PHYSICS.jumpVelocity);
             events.emit(EV.PLAYER_JUMP);
             this.cut = false;
@@ -188,12 +218,88 @@ export class Player extends Phaser.GameObjects.Rectangle
             events.emit(EV.PLAYER_CLAW, { ...this.clawSwipe(), cooldownMs: CLAW.COOLDOWN_MS });
         }
 
-        // Asymmetric gravity: heavier fall, brief hang at the apex.
-        body.setGravityY(onGround ? 0 : extraGravity(body.velocity.y, PHYSICS, PLAYER_FEEL));
+        // Asymmetric gravity: heavier fall, brief hang at the apex. (Off altogether while climbing.)
+        body.setGravityY(onGround || this.climbing ? 0 : extraGravity(body.velocity.y, PHYSICS, PLAYER_FEEL));
 
-        if (!this.wasOnGround && onGround) events.emit(EV.PLAYER_LAND, { impact: this.lastVy });
-        this.wasOnGround = onGround;
+        if (!this.wasOnGround && onGround && !this.climbing) events.emit(EV.PLAYER_LAND, { impact: this.lastVy });
+        this.wasOnGround = onGround || this.climbing;     // climbing down onto the ground is no landing
         this.lastVy = body.velocity.y;
+    }
+
+    private get box (): Box
+    {
+        const b = this.body;
+        return { left: b.x, right: b.right, top: b.y, bottom: b.bottom };
+    }
+
+    /** Take hold: centred on the vine/trunk, gravity off, momentum gone. */
+    private grab (zone: ClimbZone): void
+    {
+        this.climbingOn = zone;
+        this.climbedPx = 0;
+        const body = this.body;
+        body.setAllowGravity(false);
+        body.setGravityY(0);
+        body.reset(zoneCentreX(zone), body.center.y);       // stops it, too
+        this.standingOn = this.contact = null;
+        this.cut = true;
+        this.meowPoseMs = this.clawPoseMs = 0;
+        events.emit(EV.PLAYER_GRAB, { x: body.center.x, y: body.y, kind: zone.kind });
+    }
+
+    /** One frame on a vine or trunk: climb up/down, jump off, pull up at the top, let go at the bottom. */
+    private climb (input: InputSnapshot, dir: number, deltaMs: number): void
+    {
+        const zone = this.climbingOn!;
+        const body = this.body;
+        if (dir !== 0) this.facing = dir > 0 ? 1 : -1;
+
+        if (input.jumpButtonPressed) {
+            if (dir === 0) {
+                this.letGo('drop');                          // no side held: just let go
+                return;
+            }
+            this.letGo('jump');
+            body.setVelocity(dir * CLIMB.KICK_SPEED, launchVelocity(CLIMB.JUMP_TILES * TILE, PHYSICS.gravity));
+            this.cut = false;                                // variable height, like any jump
+            events.emit(EV.PLAYER_JUMP, { fromClimb: true });
+            return;
+        }
+        const box = this.box;
+        if (input.up && !input.down && atTop(zone, box)) {
+            this.letGo('top');
+            body.setVelocityY(launchVelocity(CLIMB.TOP_HOP_TILES * TILE, PHYSICS.gravity));
+            return;
+        }
+        if (input.down && !input.up && body.blocked.down) {
+            this.letGo('ground');
+            return;
+        }
+        // Below the end of a vine (grabbed at the very tip, or climbed down off it) the cat drops, unless it climbs up.
+        if (!input.up && pastBottom(zone, box)) {
+            this.letGo('end');
+            return;
+        }
+
+        let vy = climbVelocity(input.up, input.down, CLIMB.SPEED);
+        if (vy < 0 && box.top + vy * deltaMs / 1000 < zone.y) vy = (zone.y - box.top) * 1000 / deltaMs;    // stop at the top
+        body.setVelocity(0, vy);
+        this.climbedPx += Math.abs(vy) * deltaMs / 1000;
+        if (this.climbedPx >= CLIMB.STEP_PX) {
+            this.climbedPx -= CLIMB.STEP_PX;
+            events.emit(EV.PLAYER_CLIMB_STEP, { x: body.center.x, y: body.y, kind: zone.kind });
+        }
+    }
+
+    /** Stop climbing (gravity back on); `how` says why, for effects and tests. */
+    private letGo (how: 'jump' | 'top' | 'drop' | 'ground' | 'end'): void
+    {
+        const zone = this.climbingOn;
+        if (!zone) return;
+        this.climbingOn = null;
+        this.regrabMs = CLIMB.REGRAB_MS;
+        this.body.setAllowGravity(true);
+        events.emit(EV.PLAYER_LET_GO, { x: this.body.center.x, y: this.body.y, kind: zone.kind, how });
     }
 
     /** What the meow reaches, from the cat's head forward. */
@@ -236,6 +342,12 @@ export class Player extends Phaser.GameObjects.Rectangle
         }
         const body = this.body;
         const platform = this.standingOn;
+        if (this.climbing) {
+            this.sprite.setPosition(body.center.x, body.bottom + CLIMB.SPRITE_OFFSET_Y);
+            this.sprite.setFlipX(this.facing < 0);
+            this.sprite.play(body.velocity.y !== 0 ? ANIM.CAT_CLIMB : ANIM.CAT_CLING, true);
+            return;
+        }
         if (platform) {
             // Snap to the platform's drawn pixel grid, so cat and platform move as one (no 1 px shimmer).
             // body.x, not body.center: a platform carry moves x during the collider, center catches up a step later.
@@ -256,6 +368,9 @@ export class Player extends Phaser.GameObjects.Rectangle
     teleport (x: number, y: number): void
     {
         this.standingOn = null;
+        this.climbingOn = null;
+        this.regrabMs = 0;
+        this.body.setAllowGravity(true);
         this.body.reset(x, y);
     }
 
@@ -270,6 +385,9 @@ export class Player extends Phaser.GameObjects.Rectangle
         this.invulnerableMs = DEATH.INVULNERABLE_MS;
         this.big = false;                               // a new life starts small
         this.awaitingRelease = true;
+        this.climbingOn = null;
+        this.regrabMs = 0;
+        this.body.setAllowGravity(true);
         this.body.reset(feetX, feetY - PLAYER.HEIGHT / 2);
         this.standingOn = null;
         this.body.setAcceleration(0, 0);

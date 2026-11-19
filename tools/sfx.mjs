@@ -66,6 +66,16 @@ const SFX = {
         note({ from: 1700, to: 900, at: 0.05, dur: 0.1, vol: 0.25, duty: 0.25, decay: 1.5 }),
         ...[0, 1, 2, 3].map(i => note({ wave: 'noise', from: 2500, to: 1500, at: 0.17 + i * 0.07, dur: 0.03, vol: 0.2 * (1 - i * 0.2), decay: 3 }))
     ],
+    // The cat grabs a vine or trunk: a quick double scratch of claws on bark, with a soft thump of the body.
+    grab: [
+        note({ wave: 'noise', from: 5000, to: 2500, dur: 0.04, vol: 0.35, decay: 2.5 }),
+        note({ wave: 'noise', from: 6000, to: 3000, at: 0.05, dur: 0.05, vol: 0.3, decay: 2.5 }),
+        note({ wave: 'triangle', from: 200, to: 120, dur: 0.06, vol: 0.3, decay: 2 })
+    ],
+    // One climbing step: a tiny, dry scratch (plays often, so it stays short and quiet).
+    climb: [
+        note({ wave: 'noise', from: 4500, to: 3000, dur: 0.035, vol: 0.3, decay: 3 })
+    ],
     // A crumbling platform starts to give: two dry cracks.
     crack: [
         note({ wave: 'noise', from: 6000, to: 3000, dur: 0.04, vol: 0.4, decay: 3 }),

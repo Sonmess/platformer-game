@@ -26,6 +26,10 @@ export class Preload extends Scene
         this.load.image(CAT.meow.key, CAT.meow.url);
         this.load.image(CAT.hurt.key, CAT.hurt.url);
         this.load.image(CAT.claw.key, CAT.claw.url);
+        this.load.spritesheet(CAT.climb.key, CAT.climb.url, cat);
+        for (const piece of [...Object.values(ASSETS.TRUNK), ...Object.values(ASSETS.VINE)]) {
+            if (typeof piece === 'object') this.load.image(piece.key, piece.url);
+        }
         this.load.image(CAT.head.key, CAT.head.url);
         this.load.image(ASSETS.YARN.key, ASSETS.YARN.url);
         for (const f of Object.values(FEATHERS)) {
@@ -76,6 +80,8 @@ export class Preload extends Scene
         this.anims.create({ key: ANIM.CAT_MEOW, frames: [{ key: CAT.meow.key }] });
         this.anims.create({ key: ANIM.CAT_HURT, frames: [{ key: CAT.hurt.key }] });
         this.anims.create({ key: ANIM.CAT_CLAW, frames: [{ key: CAT.claw.key }] });
+        this.anims.create({ key: ANIM.CAT_CLIMB, frames: frames(CAT.climb.key, CAT.climb.frames), frameRate: CAT.climb.frameRate, repeat: -1 });
+        this.anims.create({ key: ANIM.CAT_CLING, frames: [{ key: CAT.climb.key, frame: 0 }] });
         const { HEDGEHOG } = ASSETS;
         this.anims.create({ key: ANIM.HEDGEHOG_WALK, frames: frames(HEDGEHOG.walk.key, HEDGEHOG.walk.frames), frameRate: HEDGEHOG.walk.frameRate, repeat: -1 });
         const { CROW } = ASSETS;

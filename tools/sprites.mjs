@@ -41,7 +41,13 @@ const PALETTE = {
     G: '#7ccf3c',   // snake scales: bright lime, so it reads against the dark bushes and the brown ground
     H: '#3d7a26',   //   its dark pattern
     u: '#e8e27a',   //   belly
-    P: '#a64fd1'    //   poison (hood spots, venom); the poison cloud uses the same purple
+    P: '#a64fd1',   //   poison (hood spots, venom); the poison cloud uses the same purple
+    A: '#33211a',   // tree bark: dark (cracks, shaded edge)
+    D: '#553829',   //   bark
+    E: '#7a5538',   //   lit edge, ridges
+    N: '#1d4630',   // leaves: dark (also the vine stem)
+    O: '#33703a',   //   leaves
+    Q: '#5f9e3c'    //   light leaves
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -184,6 +190,133 @@ const CAT = {
         catFrame({ legs: [leg(1, BACK, true), leg(3, BACK, false), leg(13, FWD, true), leg(15, FWD, false)], head: HEAD_HURT, tail: TAIL_LOW })
     ]
 };
+
+// ── Climbing cat: 32×22 frames, seen from behind, hugging a vine or trunk ─────────────────────────
+// Back of the head with both ears, a striped back, the tail hanging down; the paws reach out to the sides. Frame 1
+// has the left front and right hind paw up, frame 2 is its mirror image, so the two alternate like climbing steps.
+function catClimbFrame ()
+{
+    const grid = Array.from({ length: H }, () => Array(W).fill('.'));
+    const put = (x, y, c) => { if (x >= 0 && x < W && y >= 0 && y < H) grid[y][x] = c; };
+    const rows = (x0, y0, lines) => lines.forEach((r, y) => [...r].forEach((c, x) => { if (c !== '.') put(x0 + x, y0 + y, c); }));
+    rows(11, 1, [           // head, 10 wide
+        '.g......g.',
+        '.gg....gg.',
+        '.gggggggg.',
+        'gggdggdggg',
+        'gggggggggg',
+        'ggggddgggg',
+        '.gggggggg.'
+    ]);
+    rows(11, 8, [           // back with stripes, 10 wide
+        '..gggggg..',
+        '.gggggggg.',
+        'ggddggddgg',
+        'gggggggggg',
+        'gggggggggg',
+        'ggddggddgg',
+        'gggggggggg',
+        '.gggggggg.',
+        '..gggggg..'
+    ]);
+    // Tail: hangs from the rump and curls at the tip.
+    for (const [x, y] of [[15, 17], [15, 18], [15, 19], [16, 20], [17, 21]]) { put(x, y, 'g'); put(x + 1, y, 'g'); }
+    // Paws: [shoulder/hip x, y] → arm pixels out to the side, white paw at the end.
+    const limb = (pts, paw) => { for (const [x, y] of pts) put(x, y, 'g'); for (const [x, y] of paw) put(x, y, 'w'); };
+    limb([[11, 8], [10, 7], [9, 6]], [[8, 5], [7, 5], [8, 4]]);             // left front: reaching up
+    limb([[21, 10], [22, 10]], [[23, 10], [24, 10], [23, 11]]);             // right front: holding at the shoulder
+    limb([[11, 15], [10, 16]], [[9, 17], [8, 17], [9, 18]]);                // left hind: low
+    limb([[21, 13], [22, 12]], [[23, 12], [24, 11], [23, 11]]);             // right hind: pulled up
+    return grid.map(r => r.join(''));
+}
+const climbA = catClimbFrame();
+const mirror = frame => frame.map(r => [...r].reverse().join(''));
+CAT.climb = [climbA, mirror(climbA)];
+
+// ── Tree trunk (climbable): a 16×16 bark tile repeated up the trunk, roots on the ground, a leafy crown on top ───
+// Bark: lit left edge, shaded right edge, two wavy cracks (period 8, so the tile repeats seamlessly) and a knot.
+const TRUNK_BARK = Array.from({ length: 16 }, (_, y) => {
+    const crack1 = 4 + (y % 8 < 4 ? 0 : 1), crack2 = 10 + (y % 8 < 4 ? 1 : 0);
+    return Array.from({ length: 16 }, (_, x) => {
+        if (x === 0 || x === 15) return 'A';
+        if (x === 1) return 'E';
+        if (x === 14) return 'A';
+        if (x === crack1 || x === crack2) return 'A';
+        if (y >= 5 && y <= 7 && x >= 7 && x <= 8) return y === 6 ? 'A' : 'E';      // knot
+        if (x === crack1 + 1 || x === crack2 + 1) return 'E';
+        return 'D';
+    }).join('');
+});
+const TRUNK_ROOTS = [          // 32×10: the trunk (cols 8..23) flaring into roots on the ground
+    '........AEDDADDDDDADDDDA........',
+    '........AEDDADDDDDADDDDA........',
+    '.......AEDDDADDDDDDADDDDA.......',
+    '.......AEDDDADDDDDDADDDDA.......',
+    '......AEDDDDDADDDDDDADDDDA......',
+    '.....AEDDDADDDADDDDDDADDDDA.....',
+    '....AEDDDAA.DDADDDDDADDADDDA....',
+    '...AEDDDA...ADDADDDDADA.ADDDA...',
+    '.AEEDDDA....AEDDA..ADDA..ADDDA..',
+    'AEDDDAA.....AEDA....ADA...ADDDA.'
+];
+// Crown: 56×40, a lumpy cluster of leaves built from overlapping circles, lit from the upper left.
+const TRUNK_CROWN = (() => {
+    const CW = 56, CH = 40;
+    const blobs = [[28, 22, 15], [15, 24, 11], [41, 24, 11], [21, 13, 10], [35, 12, 10], [28, 8, 8], [9, 30, 7], [47, 30, 7], [28, 31, 9]];
+    const inside = (x, y) => blobs.find(([bx, by, r]) => (x - bx) ** 2 + (y - by) ** 2 <= r * r);
+    return Array.from({ length: CH }, (_, y) => Array.from({ length: CW }, (_, x) => {
+        const b = inside(x, y);
+        if (!b) return '.';
+        const [bx, by, r] = b;
+        const d = Math.hypot(x - bx + r * 0.35, y - by + r * 0.35) / r;      // distance from the lit spot
+        const speckle = (x * 7 + y * 13) % 11 === 0;
+        if (d < 0.55) return speckle ? 'O' : 'Q';
+        if (d < 1.05) return speckle ? 'N' : 'O';
+        return speckle ? 'O' : 'N';
+    }).join(''));
+})();
+
+// ── Vine (climbable): a 14×16 stem tile repeated down, a knot of leaves where it hangs from, a curled tip ───
+const VINE_STEM = [
+    '......N.......',
+    '......N.......',
+    '.....NN.......',
+    '..QO.N........',
+    '.QOONN........',
+    '..OON.........',
+    '.....N........',
+    '.....NN.......',
+    '......N.......',
+    '.......N......',
+    '.......NOOQ...',
+    '.......NNOOQ..',
+    '.......N.OO...',
+    '......NN......',
+    '......N.......',
+    '......N.......'
+];
+const VINE_TIP = [
+    '......N.......',
+    '......N.......',
+    '.....NN.......',
+    '....OQN.......',
+    '...OQQON......',
+    '...OQOON......',
+    '....OON.......',
+    '.....N........',
+    '......N.......',
+    '..............'
+];
+const VINE_KNOT = [
+    '.....OQQO.........',
+    '..OQQOQOOON.OQ....',
+    '.OQOONOOQOOOQQO...',
+    'NOOONNOOOONNOOON..',
+    '.NNOO.NNNOO.NNN...',
+    '......ONN.........',
+    '.......NN.........',
+    '.......N..........'
+].map(r => r.padEnd(18, '.'));
 
 // ── Campfire (checkpoint): 24×24, unlit = 1 frame, lit = 4 flame frames ──────────────────────
 // ── Hedgehog (enemy): 20×14 frames, facing right, feet on the bottom row ───────────────────────
@@ -492,6 +625,13 @@ write('cat-jump', CAT.jump, true);
 write('cat-meow', CAT.meow, true);
 write('cat-hurt', CAT.hurt, true);
 write('cat-claw', CAT.claw, true);
+write('cat-climb', CAT.climb, true);
+write('trunk-bark', [TRUNK_BARK], false);
+write('trunk-roots', [TRUNK_ROOTS], false);
+write('trunk-crown', [TRUNK_CROWN], true);
+write('vine-stem', [VINE_STEM], true);
+write('vine-tip', [VINE_TIP], true);
+write('vine-knot', [VINE_KNOT], true);
 write('feather-normal', FEATHER.normal, true);
 write('feather-silver', FEATHER.silver, true);
 write('feather-gold', FEATHER.gold, true);
