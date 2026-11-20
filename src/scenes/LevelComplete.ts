@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { GAME, HUD, LIVES, RESULTS } from '../config/constants';
+import { GAME, HUD, RESULTS } from '../config/constants';
 import { formatTime } from '../core/format';
 import { state } from '../core/state';
 import { Input } from '../systems/Input';
@@ -30,7 +30,7 @@ export class LevelComplete extends Scene
         const t = RESULTS.TEXT;
         this.lines = [
             `${t.COINS}: ${state.points}/${state.pointsTotal}`,     // feather points out of the level's total
-            `${t.LIVES}: ${state.lives}/${LIVES.MAX}`,
+            `${t.LIVES}: ${state.lives}`,
             `${t.TIME}: ${formatTime(state.timeMs)}`
         ];
 

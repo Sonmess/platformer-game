@@ -1,5 +1,6 @@
 import Phaser, { Scene } from 'phaser';
-import { ANIM, ASSETS, GAME, HUD, LEVEL, TILE, TITLE } from '../config/constants';
+import { ANIM, ASSETS, GAME, GROUND_TILES, HUD, LEVEL, TILE, TITLE } from '../config/constants';
+import { tileVariant } from '../core/tiles';
 import { Input } from '../systems/Input';
 import { music } from '../systems/Music';
 import { Parallax } from '../systems/Parallax';
@@ -13,6 +14,8 @@ export class Title extends Scene
     private controls: Input;
     private parallax: Parallax;
     private ground: Phaser.Tilemaps.TilemapLayer;
+    /** World column of the strip's first tile (the variants scroll along with the ground). */
+    private groundCol = -1;
     private prompt: Phaser.GameObjects.Text;
     private shownMs = 0;
     private starting = false;
@@ -28,6 +31,7 @@ export class Title extends Scene
     {
         this.shownMs = 0;
         this.scrollX = 0;
+        this.groundCol = -1;
         this.starting = false;
     }
 
@@ -69,6 +73,7 @@ export class Title extends Scene
         this.scrollX += TITLE.DRIFT_SPEED * delta / 1000;
         this.parallax.scrollTo(this.scrollX);
         this.ground.x = -(Math.round(this.scrollX) % TILE);
+        this.paintGround(Math.floor(Math.round(this.scrollX) / TILE));
         this.prompt.setVisible(Math.floor(this.shownMs / TITLE.PROMPT_BLINK_MS) % 2 === 0);
 
         const input = this.controls.read();
@@ -79,6 +84,17 @@ export class Title extends Scene
             camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Game'));
             camera.fadeOut(TITLE.FADE_MS);
         }
+    }
+
+    /** Tile variants for the strip starting at world column `col`, so stones and flowers move with the ground. */
+    private paintGround (col: number): void
+    {
+        if (col === this.groundCol) return;
+        this.groundCol = col;
+        const { TOP, FILL } = TITLE.GROUND_TILES;
+        this.ground.forEachTile(t => {
+            t.index = tileVariant(t.y === 0 ? TOP : FILL, col + t.x, TITLE.GROUND_ROW + t.y, GROUND_TILES.VARIANTS, GROUND_TILES.PLAIN_SHARE);
+        });
     }
 
     /** One screen (plus a tile to scroll into) of the level's ground: grass top, earth below. */

@@ -14,9 +14,14 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
   šplhanie po lianach a kmeňoch, úprava levelu
 - Úvodná obrazovka: ovládanie doplnené o pazúry a šplhanie, „čerešne“ → „pierka“
 
+## Hotové po M3
+
+- Vlastné dlaždice terénu namiesto hnedej podlahy (ADR 0009, 2026-11-20)
+
 ## M4
 
-- [ ] Viac levelov s rôznymi paletami pozadia (2026-11-05, presunuté z M3 2026-11-19)
+- [ ] Viac levelov s rôznymi paletami pozadia (2026-11-05, presunuté z M3 2026-11-19); terén môže použiť pripravené
+  štýly „kamenné murivo“ a „vrstvená skala“ z `tools/tiles.mjs` (2026-11-20)
 
 ## Neskôr
 

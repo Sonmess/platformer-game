@@ -180,6 +180,7 @@ export const CLAW = {
     COOLDOWN_MS: 400,
     POSE_MS: 160,               // how long the raised-paw frame shows
     REACH_PX: 14,               // ahead of the hitbox's front edge
+    BIG_EXTRA_REACH_PX: 10,     // a puffed-up cat (yarn ball) reaches this much further
     BEHIND_PX: 9,               // back to the hitbox centre: an enemy touching the cat counts
     HALF_HEIGHT_PX: 12          // above and below the hitbox centre
 } as const;
@@ -264,17 +265,16 @@ export const CRUMBLE = {
     SHAKE_PX: 1,
     SHAKE_STEP_MS: 50,
     FADE_IN_MS: 300,
-    TEXTURE_PREFIX: 'crumble-',
-    CRACK_COLOR: '#2e1d14',     // cracks drawn over the platform tiles, so it reads as fragile
-    CRACKS: [[4, 3], [5, 4], [5, 5], [6, 6], [11, 2], [10, 3], [10, 4], [11, 5], [12, 6], [8, 9], [7, 10], [8, 11]]
+    TEXTURE_PREFIX: 'crumble-'   // its own look (ASSETS.CRUMBLE_TILES), so it never passes for a normal platform
 } as const;
 
 // Dying is not instant: the death animation plays with the controls off and the camera still, then the cat
 // reappears at the checkpoint, invulnerable for a moment, and waits for the arrows to be let go before it moves.
-// Three lives (nine took far too long to run out). At zero the game is over and the level starts again from scratch.
+// Three lives to start (nine took far too long to run out). At zero the game is over and the level starts again from
+// scratch. Feathers earn extra lives on top (every COIN.LIFE_EVERY points), up to a cat's proverbial nine.
 export const LIVES = {
     START: 3,
-    MAX: 3
+    MAX: 9
 } as const;
 
 // Yarn ball power-up (like Mario's mushroom): the cat puffs up; a hit then only shrinks it back, with a moment of
@@ -309,6 +309,14 @@ export const CAMERA = {
     OFFSCREEN_MARGIN_PX: 32 // a snake's cycle further off screen than this is neither drawn nor heard
 } as const;
 
+// Ground tile variety: the plain centre tiles of the autotile block (top, middle, bottom row) are swapped at level start
+// for variants (stones, roots, flowers…) at fixed positions, so long runs of ground do not repeat one tile. The gids
+// must match tools/tiles.mjs (it writes them to public/assets/own/tiles/<style>.json; a unit test compares).
+export const GROUND_TILES = {
+    VARIANTS: { 38: [64, 65, 66], 45: [67, 68, 69], 52: [70, 71, 72] } as Record<number, readonly number[]>,
+    PLAIN_SHARE: 0.55           // share of tiles that stay plain
+} as const;
+
 // Tiled map names (src/levels/*.json). The spawn point marks the player's feet.
 export const LEVEL = {
     MAP_KEY: 'level1',
@@ -331,6 +339,13 @@ export const LEVEL = {
     GOAL_TYPE: 'goal'
 } as const;
 
+// Checkpoints: the campfire stands where the Tiled rectangle's bottom is, but the trigger reaches far above it (and a
+// little to the sides), so jumping over a campfire still lights it.
+export const CHECKPOINT = {
+    TRIGGER_TILES: 10,          // trigger height above the campfire's base (clamped to the level top)
+    PAD_X: 4                    // px added on each side
+} as const;
+
 export const HAZARD = {
     FALL_MARGIN: 16,            // px below the level bottom before a fall counts as death
     SPIKE_INSET_TOP: 8,         // forgiving hitbox: only the lower half of a spike tile hurts
@@ -338,11 +353,11 @@ export const HAZARD = {
 } as const;
 
 // Collectible ("coin" in code, a feather on screen). A Tiled point of type "feather"; its int property "value" is
-// 1 (blue), 5 (silver) or 10 (gold). Every LIFE_EVERY points give a life back (up to LIVES.MAX).
+// 1 (blue), 5 (silver) or 10 (gold). Every LIFE_EVERY points give an extra life (up to LIVES.MAX), also on top of the start.
 export const COIN = {
     HITBOX: 10,             // px, square, centred on the Tiled point
     VALUE_PROPERTY: 'value',
-    LIFE_EVERY: 50,         // the level holds ~61 points, so a careful run earns one life back
+    LIFE_EVERY: 50,         // the level holds 84 points, so a careful run earns one extra life
     BOB_PX: 2,              // the feather floats up and down a little (look only; the body stays put)
     BOB_MS: 900
 } as const;
@@ -453,7 +468,11 @@ export const TITLE = {
 
 // Art and fonts in public/assets (sources and licenses: public/assets/CREDITS.md).
 export const ASSETS = {
-    TILESET: { key: 'forest-tiles', url: 'assets/tall-forest/tileset.png' },
+    // Project-owned ground tiles from tools/tiles.mjs (style "grass": grass mat over dark soil); same layout as the
+    // level's tileset gids. The other styles (bricks, rock) are generated too, for later levels.
+    TILESET: { key: 'forest-tiles', url: 'assets/own/tiles/grass.png' },
+    // Crumbling platforms: a strip of three tiles (left end, middle, right end) from tools/tiles.mjs.
+    CRUMBLE_TILES: { key: 'crumble-tiles', url: 'assets/own/tiles/crumble-planks.png' },
     // Project-owned pixel art from tools/sprites.mjs (run `node tools/sprites.mjs` to regenerate the PNGs).
     CAT: {
         frameWidth: 32, frameHeight: 22,

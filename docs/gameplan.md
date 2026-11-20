@@ -212,11 +212,12 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
 | 6 | Mobil | Nie, len klávesnica v M1 | [0003](decisions/0003-rozsah-m1.md) |
 | 7 | Zvuk | Jednoduché SFX cez event bus, hudba neskôr | [0003](decisions/0003-rozsah-m1.md) |
 | 8 | Nasadenie | Lokálne demo, bez verejného nasadenia | [0003](decisions/0003-rozsah-m1.md) |
-| 9 | Asset pack | Tall Forest (tileset, parallax) + Sunny Land (bodáky; čerešne nahradili v M3 vlastné pierka), ansimuz, CC0 | [0004](decisions/0004-asset-pack.md) |
+| 9 | Asset pack | Tall Forest (parallax; tileset do 2026-11-20, potom vlastný — ADR 0009) + Sunny Land (bodáky; čerešne nahradili v M3 vlastné pierka), ansimuz, CC0 | [0004](decisions/0004-asset-pack.md) |
 | 10 | Mačka, checkpoint, cieľ | Vlastná mačka a ohnisko (`tools/sprites.mjs`), cieľ = vchod do jaskyne | [0005](decisions/0005-macka-ohnisko-jaskyna.md) |
 | 11 | Zvukové efekty | Vlastné 8-bit zvuky generované skriptom `tools/sfx.mjs` | [0006](decisions/0006-vlastne-zvuky.md) |
 | 12 | Rozsah M2 | Úvodná obrazovka, pauza, hudba, ježko a vrána vystrašení mňauknutím (bez stompu), pohyblivé a prepadávacie plošiny; ďalšie levely v M3 | [0007](decisions/0007-rozsah-m2.md) |
 | 13 | Rozsah M3 | Animácia smrti, 3 životy + klbko vlny, pierka (1/5/10 bodov), útok pazúrikmi, hadík s jedom, šplhanie po lianach a kmeňoch; ďalšie levely v M4 | [0008](decisions/0008-rozsah-m3.md) |
+| 14 | Terén | Vlastné dlaždice „tráva a tmavá hlina“ s variantmi (`tools/tiles.mjs`); murivo a skala pripravené pre ďalšie levely | [0009](decisions/0009-vlastne-dlazdice-terenu.md) |
 
 ## Mimo rozsahu M1
 

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { ANIM, PLAYER, TILE } from '../../src/config/constants';
+import { ANIM, GROUND_TILES, PLAYER, TILE } from '../../src/config/constants';
 
 const GROUND_Y = 15 * TILE - PLAYER.HEIGHT / 2;
 const OPEN_GROUND_X = 5 * TILE;
@@ -42,4 +42,17 @@ test('cat faces the way it last moved', async ({ page }) => {
     expect((await player(page)).flipX).toBe(true);
     await page.evaluate(() => window.__game!.press(['right'], 200));
     expect((await player(page)).flipX).toBe(false);
+});
+
+test('the ground mixes tile variants (stones, roots, flowers) and the cat still stands on every kind', async ({ page }) => {
+    const variants = Object.values(GROUND_TILES.VARIANTS).flat();
+    const counts = await page.evaluate(v => {
+        const scene = window.__game!.game.scene.getScene('Game') as unknown as { map: { getLayer (name: string): { data: { index: number; collides: boolean }[][] } | null } };
+        const tiles = scene.map.getLayer('ground')!.data.flat();
+        const variant = tiles.filter(t => v.includes(t.index));
+        return { variant: variant.length, solid: tiles.filter(t => t.index > 0).length, variantCollides: variant.every(t => t.collides) };
+    }, variants);
+    expect(counts.variant).toBeGreaterThan(counts.solid * 0.2);
+    expect(counts.variant).toBeLessThan(counts.solid * 0.6);
+    expect(counts.variantCollides).toBe(true);
 });

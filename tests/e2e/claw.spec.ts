@@ -132,6 +132,30 @@ test('meow first, then claw: the curled-up hedgehog runs away and the cat walks 
     expect(s.player!.x).toBeGreaterThan(x0 + TILE);
 });
 
+test('a big cat (yarn ball) claws further: a scared hedgehog out of the small cat\'s reach still runs away', async ({ page }) => {
+    const gap = CLAW_GAP + CLAW.BIG_EXTRA_REACH_PX - 2;                  // beyond the normal reach, inside the big one
+    await teleport(page, 36.5 * TILE, 11.5 * TILE);                       // the first yarn ball, on the plateau
+    await page.waitForFunction(() => window.__game!.getState().player!.big);
+    await page.evaluate(() => window.__game!.press(['right'], 30));
+    await teleport(page, (await hedgehog(page)).x - 2 * TILE);
+    await page.evaluate(() => window.__game!.press(['meow'], 50));
+    await page.waitForFunction(() => window.__game!.getState().enemies[0].scared);
+
+    await clawHedgehogFromLeft(page, gap);
+    await page.waitForFunction(() => window.__game!.getState().enemies[0].gone);
+    expect((await state(page)).claw.last!.reach).toBe(PLAYER.WIDTH / 2 + CLAW.REACH_PX + CLAW.BIG_EXTRA_REACH_PX);
+});
+
+test('the small cat does not reach as far as the big one', async ({ page }) => {
+    await page.evaluate(() => window.__game!.press(['right'], 30));
+    await teleport(page, (await hedgehog(page)).x - 2 * TILE);
+    await page.evaluate(() => window.__game!.press(['meow'], 50));
+    await page.waitForFunction(() => window.__game!.getState().enemies[0].scared);
+    await clawHedgehogFromLeft(page, CLAW_GAP + CLAW.BIG_EXTRA_REACH_PX - 2);
+    await wait(page, 100);
+    expect((await state(page)).enemies[0].gone).toBe(false);
+});
+
 test('a fled enemy stays away after the cat dies, and is back when the level restarts', async ({ page }) => {
     const i = await clawCrow(page);
     await page.waitForFunction(idx => window.__game!.getState().enemies[idx].gone, i);

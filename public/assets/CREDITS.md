@@ -27,7 +27,8 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Licencia:** CC0 (podľa OpenGameArt); text v balíku: použitie v osobných aj komerčných projektoch, úpravy
   a šírenie povolené, uvedenie autora nie je povinné. Pôvodný text: `tall-forest/LICENSE.txt`.
 - **Použité:** parallax vrstvy lesa (`back`, `far`, `middle`; `middle` aj druhýkrát ako bližšia vrstva — zrkadlená
-  a stmavená), tileset, rekvizity (mach, rastlina, kameň).
+  a stmavená). Tileset terénu bol do 2026-11-20 tiež odtiaľto; nahradili ho vlastné dlaždice (nižšie, ADR 0009) a z repa
+  bol odstránený.
 
 ### Pixelify Sans (font) — `fonts/PixelifySans.ttf`
 
@@ -44,7 +45,12 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`, `cat-hurt`, `cat-claw`, hlávka do HUD `cat-head`), **pierka** (`feather-normal`, `feather-silver`, `feather-gold`), **klbko vlny** (`yarn`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
   **ježko** (`hedgehog-walk`, `hedgehog-scared`), **vrana** (`crow-fly`, `crow-scared`) a **hadík** (`snake-slither`, `snake-warn`, `snake-spray`) nakreslené pre tento projekt
   ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
-- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, syčanie a striekanie jedu hadíka, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
+- **Dlaždice terénu** (`tiles/grass.png` v hre; `tiles/bricks.png` a `tiles/rock.png` pripravené pre ďalšie levely) —
+  kreslené procedurálne pre tento projekt skriptom `tools/tiles.mjs`; PNG generuje `node tools/tiles.mjs`. Bez cudzej
+  licencie, patrí projektu.
+- **Liany a stromy** (`trunk-bark`, `trunk-roots`, `trunk-crown`, `vine-stem`, `vine-tip`, `vine-knot`) a **šplhajúca mačka**
+  (`cat-climb`) — textový pixel art v `tools/sprites.mjs`, ako ostatné postavy.
+- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, syčanie a striekanie jedu hadíka, chytenie a šplhanie, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
   projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
 - **Hudba** (`music/forest.wav`) — pokojná 8-bitová slučka (30 s) skomponovaná pre tento projekt v
   `tools/music.mjs`; WAV generuje `node tools/music.mjs`. Bez cudzej licencie, patrí projektu.

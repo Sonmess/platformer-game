@@ -174,7 +174,12 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   particles, camera shake); tuning is `JUICE` in constants. Set a pop's start scale immediately — a tween's `from`
   applies a frame late. Particle `x`/`y` ops are ignored when `explode(n, x, y)` gets a position; spread with an
   `emitZone`. For screenshots of effects freeze with `game.loop.sleep()` (a paused scene's camera keeps following).
-- Level `src/levels/level1.json` uses the Tall Forest tileset (autotiled 3×3 block); it opens in Tiled because the
+- Ground tiles are project-owned too (ADR 0009): `node tools/tiles.mjs` draws three styles (grass = in use, bricks, rock)
+  into `public/assets/own/tiles/`, keeping the Tall Forest gid layout plus variant rows; `Game` (and the Title strip)
+  swap plain centre tiles for variants by position (`tileVariant()` in `src/core/tiles.ts`, `GROUND_TILES` in constants;
+  a unit test checks the gids against the generator's JSON). Swap `tile.index` after the collision setup: the tile keeps
+  its collision flags.
+- Level `src/levels/level1.json` uses that tileset (autotiled 3×3 block); it opens in Tiled because the
   tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),
   136–157 moving platforms over a wide pit up to a cliff, 157–190 a crumbling bridge under a crow, 190–229 the

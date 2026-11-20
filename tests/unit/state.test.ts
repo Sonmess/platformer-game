@@ -36,10 +36,10 @@ describe('lives', () => {
         expect(state.loseLife()).toBe(0);                  // never below zero
     });
 
-    it('a life can be gained back, but not above the maximum', () => {
+    it('lives can be gained above the start, but not above the maximum', () => {
         state.reset();
-        state.loseLife();
-        expect(state.gainLife()).toBe(true);
+        expect(LIVES.MAX).toBeGreaterThan(LIVES.START);
+        for (let n = LIVES.START; n < LIVES.MAX; n++) expect(state.gainLife()).toBe(true);
         expect(state.lives).toBe(LIVES.MAX);
         expect(state.gainLife()).toBe(false);
         expect(state.lives).toBe(LIVES.MAX);
@@ -55,12 +55,17 @@ describe('feathers and points', () => {
         expect(state).toMatchObject({ coins: 3, coinsTotal: 3, points: 16, pointsTotal: 16 });
     });
 
-    it('every LIFE_EVERY points give back a missing life, never above the maximum', () => {
+    it('every LIFE_EVERY points give a life, also above the start, never above the maximum', () => {
         state.reset();
         state.loseLife();
         for (let p = 0; p < COIN.LIFE_EVERY - 10; p += 10) expect(state.collect(10)).toBe(false);
-        expect(state.collect(10)).toBe(true);               // crossed the threshold
-        expect(state.lives).toBe(LIVES.MAX);
+        expect(state.collect(10)).toBe(true);               // crossed the threshold: the lost life is back
+        expect(state.lives).toBe(LIVES.START);
+        for (let p = 0; p < COIN.LIFE_EVERY - 10; p += 10) state.collect(10);
+        expect(state.collect(10)).toBe(true);               // and one on top of the start
+        expect(state.lives).toBe(LIVES.START + 1);
+
+        state.lives = LIVES.MAX;
         for (let p = 0; p < COIN.LIFE_EVERY; p += 10) expect(state.collect(10)).toBe(false);   // full: nothing
         expect(state.lives).toBe(LIVES.MAX);
     });

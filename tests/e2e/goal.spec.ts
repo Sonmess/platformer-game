@@ -65,7 +65,7 @@ test('reaching the goal shows the results with coins, deaths and time', async ({
     const s = await state(page);
     expect(s.hud).toBeNull();                               // HUD is stopped with the level
     expect(s.results![0]).toBe(`${RESULTS.TEXT.COINS}: 1/${s.pointsTotal}`);     // a blue feather: 1 point
-    expect(s.results![1]).toBe(`${RESULTS.TEXT.LIVES}: ${LIVES.START - 1}/${LIVES.MAX}`);   // one life lost
+    expect(s.results![1]).toBe(`${RESULTS.TEXT.LIVES}: ${LIVES.START - 1}`);   // one life lost
     expect(s.results![2]).toMatch(new RegExp(`^${RESULTS.TEXT.TIME}: \\d+:\\d\\d\\.\\d$`));
     expect(s.timeMs).toBeGreaterThan(0);
 });

@@ -4,7 +4,7 @@ import { pingPong } from '../core/path';
 
 /**
  * Bakes one texture per platform width (2..MAX_TILES tiles) under `prefix + n` from the level tileset: left end,
- * middle tiles, right end. `decorate` may draw over each tile (crumbling platforms add cracks).
+ * middle tiles, right end. `decorate` may draw over each tile.
  */
 export function bakePlatformTextures (
     textures: Phaser.Textures.TextureManager,

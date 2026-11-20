@@ -1,9 +1,10 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, COIN, DEATH, HAZARD, LEVEL, PLATFORM, PLAYER, TILE, TITLE } from '../config/constants';
+import { ASSETS, COIN, DEATH, GROUND_TILES, HAZARD, LEVEL, PLATFORM, PLAYER, TILE, TITLE } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { clawHits, clawOutcome, type ClawSwipe } from '../core/claw';
 import { inMeowRange, type MeowWave } from '../core/meow';
 import { state } from '../core/state';
+import { tileVariant } from '../core/tiles';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Climbable } from '../entities/Climbable';
 import { Coin } from '../entities/Coin';
@@ -62,6 +63,8 @@ export class Game extends Scene
         this.map.createLayer(LEVEL.DECOR_LAYER, tileset);
         const ground = this.map.createLayer(LEVEL.GROUND_LAYER, tileset) as Phaser.Tilemaps.TilemapLayer;
         ground.setCollisionByProperty({ collides: true });
+        // Variety: swap plain tiles for their variants (after the collision setup; a tile keeps its collision flags).
+        ground.forEachTile(t => { t.index = tileVariant(t.index, t.x, t.y, GROUND_TILES.VARIANTS, GROUND_TILES.PLAIN_SHARE); });
 
         const { widthInPixels: w, heightInPixels: h } = this.map;
         this.physics.world.setBounds(0, 0, w, h);

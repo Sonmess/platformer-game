@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
-import { ANIM, ASSETS } from '../config/constants';
+import { ANIM, ASSETS, CHECKPOINT, TILE } from '../config/constants';
 
-/** Trigger zone from a Tiled rectangle with a campfire at its centre; it burns while it is the current checkpoint. */
+/**
+ * A campfire at the bottom centre of a Tiled rectangle; it burns while it is the current checkpoint. The trigger zone is
+ * the rectangle widened a little and stretched up (CHECKPOINT), so a jump over the fire still counts.
+ */
 export class Checkpoint extends Phaser.GameObjects.Zone
 {
     declare body: Phaser.Physics.Arcade.StaticBody;
@@ -12,7 +15,9 @@ export class Checkpoint extends Phaser.GameObjects.Zone
 
     constructor (scene: Phaser.Scene, x: number, y: number, w: number, h: number)
     {
-        super(scene, x, y, w, h);
+        const bottom = y + h;
+        const top = Math.max(0, bottom - CHECKPOINT.TRIGGER_TILES * TILE);
+        super(scene, x - CHECKPOINT.PAD_X, top, w + 2 * CHECKPOINT.PAD_X, bottom - top);
         this.setOrigin(0);
         scene.add.existing(this);
         scene.physics.add.existing(this, true);

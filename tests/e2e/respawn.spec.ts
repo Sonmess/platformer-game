@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { TILE } from '../../src/config/constants';
+import { PLAYER, TILE } from '../../src/config/constants';
 
 // Landmarks in src/levels/level1.json (tile coordinates).
 const SPAWN = { x: 3.5 * TILE, y: 15 * TILE };          // feet
@@ -75,4 +75,15 @@ test('reaching a checkpoint lights its campfire and puts out the previous one', 
     await game(page).teleport(73 * TILE + TILE / 2, 13 * TILE);           // second checkpoint
     await page.waitForFunction(() => window.__game!.getState().campfiresLit[1]);
     expect((await state(page)).campfiresLit).toEqual(only(1));
+});
+
+test('jumping high over a campfire still reaches the checkpoint', async ({ page }) => {
+    const cpX = CHECKPOINT_1.col * TILE + TILE / 2;
+    // The cat starts mid-air three tiles above the campfire's base and leaves the column again at once.
+    await game(page).teleport(cpX, CHECKPOINT_1.feetY - 3 * TILE);
+    await game(page).wait(32);
+    await game(page).teleport(cpX - 4 * TILE, CHECKPOINT_1.feetY - PLAYER.HEIGHT / 2);
+    const s = await state(page);
+    expect(s.checkpoint.x).toBe(cpX);
+    expect(s.campfiresLit[0]).toBe(true);
 });

@@ -1,16 +1,25 @@
 import Phaser from 'phaser';
-import { CRUMBLE, DEPTH, PLATFORM, TILE } from '../config/constants';
+import { ASSETS, CRUMBLE, DEPTH, PLATFORM, TILE } from '../config/constants';
 import { Crumble, type CrumblePhase } from '../core/crumble';
 import { EV, events } from '../core/events';
-import { bakePlatformTextures } from './MovingPlatform';
 
-/** The platform tiles with dark cracks over each tile, so a crumbling platform reads as fragile. */
+/**
+ * One texture per width (2..MAX_TILES tiles) from the crumbling-platform strip (left end, middle, right end): a look of
+ * its own, so a platform that gives way never passes for a solid one.
+ */
 export function bakeCrumbleTextures (textures: Phaser.Textures.TextureManager): void
 {
-    bakePlatformTextures(textures, CRUMBLE.TEXTURE_PREFIX, (ctx, tileX) => {
-        ctx.fillStyle = CRUMBLE.CRACK_COLOR;
-        for (const [x, y] of CRUMBLE.CRACKS) ctx.fillRect(tileX + x, y, 1, 1);
-    });
+    const src = textures.get(ASSETS.CRUMBLE_TILES.key).getSourceImage() as HTMLImageElement;
+    for (let n = 2; n <= PLATFORM.MAX_TILES; n++) {
+        const key = CRUMBLE.TEXTURE_PREFIX + n;
+        if (textures.exists(key)) continue;
+        const canvas = textures.createCanvas(key, n * TILE, TILE)!;
+        for (let i = 0; i < n; i++) {
+            const piece = i === 0 ? 0 : i === n - 1 ? 2 : 1;
+            canvas.context.drawImage(src, piece * TILE, 0, TILE, TILE, i * TILE, 0, TILE, TILE);
+        }
+        canvas.refresh();
+    }
 }
 
 /**

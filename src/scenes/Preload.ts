@@ -18,6 +18,7 @@ export class Preload extends Scene
         const { CAT, CAMPFIRE } = ASSETS;
         this.load.tilemapTiledJSON(LEVEL.MAP_KEY, level1);
         this.load.image(ASSETS.TILESET.key, ASSETS.TILESET.url);
+        this.load.image(ASSETS.CRUMBLE_TILES.key, ASSETS.CRUMBLE_TILES.url);
 
         const cat = { frameWidth: CAT.frameWidth, frameHeight: CAT.frameHeight };
         this.load.spritesheet(CAT.idle.key, CAT.idle.url, cat);

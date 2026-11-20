@@ -4,7 +4,7 @@ import { Input } from '../systems/Input';
 import { music } from '../systems/Music';
 
 /**
- * The last life is gone: confirm (Enter/R) starts the level from scratch with nine lives, back (Esc) goes to the
+ * The last life is gone: confirm (Enter/R) starts the level from scratch with LIVES.START lives, back (Esc) goes to the
  * title. A short delay first, so a key mashed during the death animation does not skip the screen.
  */
 export class GameOver extends Scene

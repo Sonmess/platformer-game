@@ -73,6 +73,20 @@ test(`every ${COIN.LIFE_EVERY} points give a lost life back`, async ({ page }) =
     expect(s.sfx).toContain(AUDIO.SFX.LIFE.key);
 });
 
+test(`with all lives left, ${COIN.LIFE_EVERY} points give an extra life (a fourth cat head)`, async ({ page }) => {
+    const best = [...FEATHERS].sort((a, b) => b.value - a.value);
+    for (const f of best) {
+        if ((await state(page)).points >= COIN.LIFE_EVERY) break;
+        await collectAt(page, f);
+    }
+    await page.evaluate(() => window.__game!.wait(100));
+    const s = await state(page);
+    expect(s.deaths).toBe(0);
+    expect(s.lives).toBe(LIVES.START + 1);
+    expect(s.hud!.livesShown).toBe(LIVES.START + 1);
+    expect(s.sfx).toContain(AUDIO.SFX.LIFE.key);
+});
+
 test('collected feathers stay collected after a death', async ({ page }) => {
     await collectAt(page, PLATEAU_FEATHER);
     await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [FIRST_PIT_COL * TILE, 12 * TILE]);

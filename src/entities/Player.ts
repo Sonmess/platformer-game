@@ -316,13 +316,13 @@ export class Player extends Phaser.GameObjects.Rectangle
         };
     }
 
-    /** What the claw reaches: from the hitbox centre to a little past its front edge. */
+    /** What the claw reaches: from the hitbox centre to a little past its front edge (further for a big cat). */
     private clawSwipe (): ClawSwipe
     {
         const c = this.body.center;
         return {
             x: c.x, y: c.y, dir: this.facing,
-            reach: this.body.halfWidth + CLAW.REACH_PX,
+            reach: this.body.halfWidth + CLAW.REACH_PX + (this.big ? CLAW.BIG_EXTRA_REACH_PX : 0),
             behind: CLAW.BEHIND_PX,
             halfHeight: CLAW.HALF_HEIGHT_PX
         };

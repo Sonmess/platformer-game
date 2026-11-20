@@ -31,8 +31,8 @@ export const state = {
     },
 
     /**
-     * A feather picked up: counts it and adds its points. Every `COIN.LIFE_EVERY` points give a life back
-     * (only if one is missing). Returns whether a life was given.
+     * A feather picked up: counts it and adds its points. Every `COIN.LIFE_EVERY` points give an extra life
+     * (up to `LIVES.MAX`, above the start too). Returns whether a life was given.
      */
     collect (value: number): boolean
     {
