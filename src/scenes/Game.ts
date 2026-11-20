@@ -1,11 +1,12 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, COIN, DEATH, GROUND_TILES, HAZARD, LEVEL, LEVELS, PLATFORM, PLAYER, PROGRESS, STALACTITE, TILE, TITLE, levelDef, levelNumber, type LevelDef } from '../config/constants';
+import { ASSETS, COIN, DEATH, GROUND_TILES, HAZARD, LEVEL, LEVELS, PLATFORM, PLAYER, PROGRESS, SECRET, STALACTITE, TILE, TITLE, levelDef, levelNumber, type LevelDef } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { clawHits, clawOutcome, type ClawSwipe } from '../core/claw';
 import { inMeowRange, type MeowWave } from '../core/meow';
 import { state, type LevelEntry } from '../core/state';
-import { browserStore, unlockLevel } from '../core/progress';
+import { browserStore, loadFound, saveFound, unlockLevel } from '../core/progress';
 import { tileVariant } from '../core/tiles';
+import { CaveExit } from '../entities/CaveExit';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Climbable } from '../entities/Climbable';
 import { Coin } from '../entities/Coin';
@@ -16,6 +17,8 @@ import { Goal } from '../entities/Goal';
 import { Hedgehog } from '../entities/Hedgehog';
 import { Snake } from '../entities/Snake';
 import { Stalactite } from '../entities/Stalactite';
+import { Secret } from '../entities/Secret';
+import { Treasure } from '../entities/Treasure';
 import { Yarn } from '../entities/Yarn';
 import { MovingPlatform, bakePlatformTextures, platformTexturePrefix } from '../entities/MovingPlatform';
 import { Player } from '../entities/Player';
@@ -40,6 +43,10 @@ export class Game extends Scene
     crumbles: CrumblePlatform[] = [];
     climbables: Climbable[] = [];
     stalactites: Stalactite[] = [];
+    secrets: Secret[] = [];
+    treasures: Phaser.Physics.Arcade.StaticGroup;
+    /** The level's way out drawn around the goal, if it has one (the cave). */
+    exit: CaveExit | null = null;
     coins: Phaser.Physics.Arcade.StaticGroup;
     yarns: Phaser.Physics.Arcade.StaticGroup;
     /** The level being played (1-based) and its definition. */
@@ -88,7 +95,8 @@ export class Game extends Scene
         const coinObjects = this.objectsOfType(LEVEL.COIN_TYPE);
         const valueOf = (o: Phaser.Types.Tilemaps.TiledObject) =>
             (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === COIN.VALUE_PROPERTY)?.value ?? 1;
-        state.reset(this.level, { x: spawn.x!, y: spawn.y! }, coinObjects.length, coinObjects.reduce((sum, o) => sum + valueOf(o), 0));
+        const treasureObjects = this.objectsOfType(LEVEL.TREASURE_TYPE);
+        state.reset(this.level, { x: spawn.x!, y: spawn.y! }, coinObjects.length, coinObjects.reduce((sum, o) => sum + valueOf(o), 0), treasureObjects.length);
 
         // Vines and trunks first: they are drawn behind everything that moves.
         const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
@@ -115,6 +123,17 @@ export class Game extends Scene
         this.physics.add.overlap(this.player, this.createGoals(), () => this.completeLevel());
         this.yarns = this.physics.add.staticGroup(this.objectsOfType(LEVEL.YARN_TYPE).map(o => new Yarn(this, o.x!, o.y!)));
         this.physics.add.overlap(this.player, this.yarns, (_p, y) => this.collectYarn(y as Yarn));
+
+        // Secret rooms: fake rock (no collision) that only a small cat squeezes into; golden fish inside.
+        this.secrets = this.objectsOfType(LEVEL.SECRET_TYPE).map(o => new Secret(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! }, ground,
+            (o.properties as { name: string; value: string }[] | undefined)?.find(p => p.name === SECRET.ENTRANCE_PROPERTY)?.value === 'left' ? 'left' : 'right'));
+        this.physics.add.collider(this.player, this.secrets.map(s => s.barrier), undefined, () => this.player.big);
+        const found = loadFound(browserStore(), PROGRESS.TREASURES_KEY);
+        this.treasures = this.physics.add.staticGroup(treasureObjects.map((o, i) => {
+            const id = `${def.map}:${i}`;
+            return new Treasure(this, o.x!, o.y!, id, found.includes(id));
+        }));
+        this.physics.add.overlap(this.player, this.treasures, (_p, t) => this.collectTreasure(t as Treasure));
 
         // Stalactites fall to the first solid tile below them (or out of the level over a pit).
         this.stalactites = this.objectsOfType(LEVEL.STALACTITE_TYPE).map(o => new Stalactite(this, o.x!, o.y!, this.fallDistance(ground, o.x!, o.y! + STALACTITE.SPRITE_HEIGHT)));
@@ -177,6 +196,7 @@ export class Game extends Scene
         for (const crumble of this.crumbles) crumble.update(delta);
         const playerBounds = this.player.getBounds();
         for (const s of this.stalactites) s.update(delta, playerBounds);
+        for (const s of this.secrets) s.update(delta, playerBounds);
         if (this.stalactites.some(s => s.hurts(playerBounds))) this.killPlayer('stalactite');
         for (const enemy of this.enemies) enemy.update(delta, playerBounds);
         if (this.enemies.some(e => e.poisons(playerBounds))) this.killPlayer('poison');
@@ -232,7 +252,10 @@ export class Game extends Scene
 
     private createGoals (): Goal[]
     {
-        return this.objectsOfType(LEVEL.GOAL_TYPE).map(o => new Goal(this, o.x!, o.y!, o.width!, o.height!));
+        const goals = this.objectsOfType(LEVEL.GOAL_TYPE);
+        const last = goals[goals.length - 1];
+        this.exit = this.def.exit && last ? new CaveExit(this, this.def.exit.key, last.x! + last.width!, last.y! + last.height!) : null;
+        return goals.map(o => new Goal(this, o.x!, o.y!, o.width!, o.height!));
     }
 
     /** No lives left: after the death animation, the "game over" screen instead of a respawn. */
@@ -264,6 +287,17 @@ export class Game extends Scene
             events.emit(EV.LIFE_GAIN, { x: this.player.x, y: this.player.y });
             events.emit(EV.LIVES_CHANGE, { lives: state.lives });
         }
+    }
+
+    /** A golden fish: counted for this level and remembered in the browser for good. */
+    private collectTreasure (treasure: Treasure): void
+    {
+        if (this.player.dying) return;
+        const { x, y, id, foundBefore } = treasure;
+        this.treasures.remove(treasure, true, true);
+        state.treasures++;
+        saveFound(browserStore(), PROGRESS.TREASURES_KEY, id);
+        events.emit(EV.TREASURE_COLLECT, { x, y, id, firstTime: !foundBefore });
     }
 
     /** A yarn ball: the cat puffs up (already big: the ball is still taken). */

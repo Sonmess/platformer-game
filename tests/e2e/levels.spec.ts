@@ -43,7 +43,7 @@ test('restarting level 2 from its results 10× yields an identical initial state
     await playing(page);
     await page.evaluate(() => window.__game!.wait(300));
     const first = await snapshot();
-    const S0 = L.STALACTITES[0], yarn = { x: 8.5 * TILE, y: 14.5 * TILE }, feather = L.FEATHERS[0];
+    const S0 = L.STALACTITES[0], yarn = { x: 145.5 * TILE, y: 14.5 * TILE }, feather = L.FEATHERS[0];
     for (let i = 0; i < 10; i++) {
         // Dirty the run: stand under the first stalactite until it hits, take the yarn ball and a feather, then finish.
         await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [S0.x, 15 * TILE - PLAYER.HEIGHT / 2]);
@@ -168,4 +168,27 @@ test('the cave has its own background: its layers scroll at their own speeds and
         return g.cameras.main.backgroundColor.rgba;
     });
     expect(sky).toBe('rgba(13,11,20,1)');                                     // CAVE_PARALLAX.SKY_COLOR #0d0b14
+});
+
+test('the cave ends in a moonlit arch: running into its light finishes the level; the forest has no such exit', async ({ page }) => {
+    const L = landmarks(2);
+    await page.goto('/?play=2');
+    await playing(page);
+    let s = await state(page);
+    expect(s.exit).not.toBeNull();
+    expect(s.exit!.right).toBe(L.LEVEL.width);                                // at the level's right edge
+    expect(s.exit!.bottom).toBe(15 * TILE);                                   // standing on the floor
+    expect(L.GOAL.x).toBeGreaterThan(s.exit!.right - 48);                    // the goal is inside the opening
+
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [193 * TILE, 15 * TILE - PLAYER.HEIGHT / 2]);
+    await page.evaluate(() => window.__game!.wait(1500));
+    expect((await state(page)).exit!.fireflies).toBeGreaterThan(0);          // fireflies drift in the light
+    await page.evaluate(() => window.__game!.hold(['right']));
+    await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
+    await page.evaluate(() => window.__game!.release(['right']));
+
+    await page.goto('/?play');
+    await playing(page);
+    s = await state(page);
+    expect(s.exit).toBeNull();
 });

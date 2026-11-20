@@ -19,6 +19,9 @@ export const state = {
     /** Points from feathers (1 / 5 / 10 each) in this level, and the level's total. */
     points: 0,
     pointsTotal: 0,
+    /** Treasures (golden fish) found in this level, and how many it hides. */
+    treasures: 0,
+    treasuresTotal: 0,
     /** Points of the levels finished earlier in this run. */
     runPoints: 0,
     deaths: 0,
@@ -61,9 +64,11 @@ export const state = {
     },
 
     /** A level starts: clears everything of the level (not the lives or the run points) and remembers the start. */
-    reset (level = 1, spawn = { x: 0, y: 0 }, coinsTotal = 0, pointsTotal = 0): void
+    reset (level = 1, spawn = { x: 0, y: 0 }, coinsTotal = 0, pointsTotal = 0, treasuresTotal = 0): void
     {
         this.level = level;
+        this.treasures = 0;
+        this.treasuresTotal = treasuresTotal;
         this.coins = 0;
         this.coinsTotal = coinsTotal;
         this.points = 0;

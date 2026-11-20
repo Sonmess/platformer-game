@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { levelDef } from './config/constants';
+import { PROGRESS, levelDef } from './config/constants';
+import { browserStore, loadFound } from './core/progress';
 import { state } from './core/state';
 import type { Game } from './scenes/Game';
 import type { Hud } from './scenes/Hud';
@@ -74,6 +75,12 @@ export interface GameState {
     climb: { grabs: number; steps: number; lastLetGo: string | null };
     /** Stalactites in level order: where it hangs (top centre), phase (hanging/shaking/falling/shattered), how far it fell. */
     stalactites: { x: number; y: number; phase: string; dropPx: number; visible: boolean }[];
+    /** Golden fish: found in this level / hidden in it, and the ids ever found (saved in the browser). */
+    treasures: { found: number; total: number; saved: string[]; left: number };
+    /** Secret rooms in level order: is the cat inside, and the fake rock's alpha (1 = looks solid). */
+    secrets: { inside: boolean; alpha: number; dust: number }[];
+    /** The level's way out around the goal (the cave): the image's bounds and live fireflies; null when there is none. */
+    exit: { left: number; right: number; top: number; bottom: number; fireflies: number } | null;
     /** Per checkpoint (level order): is its campfire burning? */
     campfiresLit: boolean[];
     timeMs: number;
@@ -195,6 +202,9 @@ export function installTestApi (game: Phaser.Game): void
                 climbables: g?.climbables.map(c => ({ kind: c.kind, x: c.x, y: c.y, width: c.width, height: c.height })) ?? [],
                 climb: { ...climbLog },
                 stalactites: g?.stalactites.map(s => ({ x: s.x, y: s.y, phase: s.phase, dropPx: s.dropPx, visible: s.image.visible })) ?? [],
+                treasures: { found: state.treasures, total: state.treasuresTotal, saved: loadFound(browserStore(), PROGRESS.TREASURES_KEY), left: g?.treasures.countActive() ?? 0 },
+                secrets: g?.secrets.map(s => ({ inside: s.inside, alpha: s.alpha, dust: s.dust.getAliveParticleCount() })) ?? [],
+                exit: g?.exit ? (() => { const b = g.exit.image.getBounds(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom, fireflies: g.exit.fireflies.getAliveParticleCount() }; })() : null,
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
                 parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],

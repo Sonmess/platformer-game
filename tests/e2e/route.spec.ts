@@ -18,7 +18,7 @@ declare global {
     interface Window {
         __bot: {
             until (pred: string, timeoutMs?: number): Promise<void>;
-            runRight (toX: number, opts?: { jumps?: number[]; jumpMs?: number; meow?: boolean; timeoutMs?: number }): Promise<void>;
+            runRight (toX: number, opts?: { jumps?: number[]; jumpMs?: number; meow?: boolean; careful?: boolean; timeoutMs?: number }): Promise<void>;
             jumpRight (releaseAtX: number, jumpMs?: number): Promise<void>;
             clawSnake (index: number): Promise<void>;
         };
@@ -39,7 +39,7 @@ function installBot ()
                 await g().wait(16);
             }
         },
-        async runRight (toX, { jumps = [], jumpMs = 250, meow = false, timeoutMs = 20000 } = {})
+        async runRight (toX, { jumps = [], jumpMs = 250, meow = false, careful = false, timeoutMs = 20000 } = {})
         {
             const start = g().getState().deaths;
             const pending = [...jumps].sort((a, b) => a - b);
@@ -54,8 +54,25 @@ function installBot ()
                         pending.shift();
                         g().press(['jump'], jumpMs);
                     }
-                    const threat = s.enemies.some(e => e.harmful && e.x - s.player!.x > -8 && e.x - s.player!.x < 3.5 * 16 && Math.abs(e.y - s.player!.y) < 24);
+                    const ahead = (e: { x: number; y: number }, from: number, to: number) =>
+                        e.x - s.player!.x > from && e.x - s.player!.x < to && Math.abs(e.y - s.player!.y) < 24;
+                    const threat = s.enemies.some(e => e.harmful && ahead(e, -8, 3.5 * 16));
                     if (meow && threat && s.meow.cooldownMs === 0) g().press(['meow'], 50);
+                    if (careful) {
+                        // Like a careful player with several enemies in a row: claw away the scared ones in reach, and when an
+                        // unscared one is close while the meow is still recharging, back off until it is ready again.
+                        if (s.claw.cooldownMs === 0 && s.enemies.some(e => !e.gone && e.scared && ahead(e, -8, 28))) g().press(['claw'], 50);
+                        if (s.meow.cooldownMs > 0 && s.enemies.some(e => e.harmful && ahead(e, -8, 2.5 * 16))) {
+                            g().release(['right']);
+                            g().hold(['left']);
+                            while (g().getState().meow.cooldownMs > 0) {
+                                if (died(start)) throw new Error(`bot: died waiting near x=${Math.round(g().getState().player!.x / 16)} tiles`);
+                                await g().wait(16);
+                            }
+                            g().release(['left']);
+                            g().hold(['right']);
+                        }
+                    }
                     await g().wait(16);
                 }
             } finally {
@@ -272,17 +289,9 @@ test.describe('level 2 (the cave)', () => {
         await page.waitForFunction(() => window.__game?.getState().player?.onGround === true && window.__game.getState().levelNumber === 2);
     });
 
-    test('entrance: the yarn ball, past the first stalactite to the first campfire', async ({ page }) => {
-        await runRight(page, at(29));
-        const s = await state(page);
-        expect(s.deaths).toBe(0);
-        expect(s.player!.big).toBe(true);                                     // took the yarn ball on the way
-        expect(s.checkpoint.x).toBe(at(28));
-    });
-
-    test('hedgehog and stalactites: meow past the hedgehog, run under the stalactites, over the pit', async ({ page }) => {
-        await startAt(page, 28, 15);
+    test('entrance to the first campfire: under the first stalactite, past the hedgehog and the stalactite pair, over the pit', async ({ page }) => {
         await runRight(page, at(62), { meow: true, jumps: [51 * TILE], jumpMs: 400 });
+        expect((await state(page)).player!.big).toBe(false);                     // no yarn ball in this stretch any more
         const s = await state(page);
         expect(s.deaths).toBe(0);
         expect(s.checkpoint.x).toBe(at(61));
@@ -322,6 +331,12 @@ test.describe('level 2 (the cave)', () => {
         await runRight(page, at(121));                                           // over the cliff top, down again
         expect((await state(page)).points).toBeGreaterThanOrEqual(before + 10);
         await until(page, 's.player.onGround');
+        // The secret room: back left through the crack in the cliff for the golden fish, and out again.
+        await hold(page, ['left']);
+        await until(page, 's.treasures.found === 1');
+        await release(page, ['left']);
+        await runRight(page, at(121));
+        await until(page, 's.player.onGround');
 
         // The second root ends too high to reach from the floor: up jumps and catches it.
         await hold(page, ['right', 'up']);
@@ -349,9 +364,9 @@ test.describe('level 2 (the cave)', () => {
         expect(s.checkpoint.x).toBe(at(171));
     });
 
-    test('the exit: meow past the hedgehog, over the crumbles, out of the cave', async ({ page }) => {
+    test('the exit: past the two hedgehogs (meow, claw, wait for the meow), over the crumbles, out of the cave', async ({ page }) => {
         await startAt(page, 171, 15);
-        await runRight(page, 182.5 * TILE, { meow: true });
+        await runRight(page, 182.5 * TILE, { meow: true, careful: true });      // two hedgehogs side by side
         await jumpRight(page, 185 * TILE, 300);                                  // onto the first crumble
         await jumpRight(page, 189 * TILE, 250);                                  // the second
         await page.evaluate(() => window.__game!.hold(['right']));

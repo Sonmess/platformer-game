@@ -50,7 +50,11 @@ const PALETTE = {
     Q: '#5f9e3c',   //   light leaves
     R: '#b3aec8',   // stalactite: lit side
     T: '#7e7996',   //   stone
-    U: '#57536b'    //   shade
+    U: '#57536b',   //   shade
+    V: '#ffcf3a',   // golden fish: gold
+    W: '#fff3a6',   //   shine
+    X: '#c98a12',   //   shade, fins
+    Z: '#120f18'    // crack in the rock (secret room hint)
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -332,6 +336,42 @@ const STALACTITE = [Array.from({ length: 26 }, (_, y) => {
         return (x + y) % 7 === 0 ? 'U' : 'T';                      // a few streaks of shade
     }).join('');
 })];
+
+// ── Golden fish (treasure): 16×12, facing left, a fanned tail on the right; frame 2 = a glint along its back ──────
+const FISH = [
+    '................',
+    '.....XXXX.......',
+    '...XVVVVVX....XX',
+    '..XVWWVVVVX..XVX',
+    '.XVWKVVVVVVXXVVX',
+    'XVVVVVVXVVVVVVX.',
+    'XVVVVVVVXVVVVVX.',
+    '.XVVVVVXVVVVXXVX',
+    '..XVVVVVVVVX..XVX',
+    '...XXVVVVXX....XX',
+    '.....XXXX.......',
+    '................'
+].map(r => r.padEnd(16, '.').slice(0, 16));
+const FISH_GLINT = FISH.map((r, y) => y === 2 ? r.slice(0, 5) + 'WW' + r.slice(7) : y === 3 ? r.slice(0, 7) + 'W' + r.slice(8) : r);
+
+// ── A crack in the cave rock (16×40, two and a half tiles tall), the only hint of a secret room behind a wall that is not really
+// there: a dark zigzag split that widens towards the floor, lit along its left lip, branching, with rubble at its foot. ──
+const CRACK = [(() => {
+    const g = Array.from({ length: 40 }, () => Array(16).fill('.'));
+    const put = (x, y, c) => { if (x >= 0 && x < 16 && y >= 0 && y < 40) g[y][x] = c; };
+    for (let y = 1; y < 37; y++) {
+        const main = 7 + Math.round(Math.sin(y / 3.4) * 2.2);
+        const width = y < 6 ? 1 : y < 16 ? 2 : y < 27 ? 3 : 4;               // wider towards the floor
+        for (let k = 0; k < width; k++) put(main + k, y, 'Z');
+        put(main - 1, y, 'R');                                              // the lit lip on the left
+        if (width > 1) put(main + width, y, 'U');                           // the shaded lip on the right
+    }
+    for (const [x0, y0, dir, len] of [[7, 5, -1, 4], [9, 12, 1, 5], [6, 19, -1, 5], [10, 25, 1, 4], [6, 30, -1, 4]]) {
+        for (let i = 1; i <= len; i++) put(x0 + dir * (i + 1), y0 + i, 'Z');  // branches
+    }
+    for (const [x, y, c] of [[2, 38, 'T'], [3, 38, 'U'], [3, 37, 'T'], [12, 38, 'T'], [13, 38, 'U'], [13, 37, 'R'], [7, 39, 'U'], [8, 39, 'T'], [10, 39, 'U']]) put(x, y, c);
+    return g.map(r => r.join(''));
+})()];
 
 // ── Campfire (checkpoint): 24×24, unlit = 1 frame, lit = 4 flame frames ──────────────────────
 // ── Hedgehog (enemy): 20×14 frames, facing right, feet on the bottom row ───────────────────────
@@ -648,6 +688,8 @@ write('vine-stem', [VINE_STEM], true);
 write('vine-tip', [VINE_TIP], true);
 write('vine-knot', [VINE_KNOT], true);
 write('stalactite', STALACTITE, true);
+write('golden-fish', [FISH, FISH_GLINT], true);
+write('secret-crack', CRACK, false);
 write('feather-normal', FEATHER.normal, true);
 write('feather-silver', FEATHER.silver, true);
 write('feather-gold', FEATHER.gold, true);

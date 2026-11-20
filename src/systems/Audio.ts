@@ -45,6 +45,8 @@ export class SoundEffects
             [EV.SNAKE_SPRAY, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.SPRAY, p)],
             [EV.STALACTITE_SHAKE, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.RUMBLE, p)],
             [EV.STALACTITE_SHATTER, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.SHATTER, p)],
+            [EV.SECRET_REVEAL, () => this.play(AUDIO.SFX.SECRET)],
+            [EV.TREASURE_COLLECT, () => this.play(AUDIO.SFX.TREASURE)],
             [EV.CRUMBLE_SHAKE, () => this.play(AUDIO.SFX.CRACK)],
             [EV.CRUMBLE_FALL, () => this.play(AUDIO.SFX.CRUMBLE)]
         ];

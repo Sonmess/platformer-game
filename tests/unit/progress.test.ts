@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadUnlocked, stepLevel, unlockLevel, type KeyValueStore } from '../../src/core/progress';
+import { loadFound, loadUnlocked, saveFound, stepLevel, unlockLevel, type KeyValueStore } from '../../src/core/progress';
 
 const KEY = 'k';
 const memory = (init: Record<string, string> = {}): KeyValueStore & { data: Record<string, string> } => {
@@ -46,5 +46,21 @@ describe('saved progress', () => {
         expect(stepLevel(1, 1, 2)).toBe(2);
         expect(stepLevel(2, 1, 2)).toBe(2);
         expect(stepLevel(1, 1, 1)).toBe(1);                      // nothing unlocked yet
+    });
+});
+
+describe('found treasures', () => {
+    it('remembers each treasure once and reads a garbled or blocked store as none', () => {
+        const store = memory();
+        expect(loadFound(store, 't')).toEqual([]);
+        expect(saveFound(store, 't', 'level2:0')).toEqual(['level2:0']);
+        expect(saveFound(store, 't', 'level2:0')).toEqual(['level2:0']);       // once
+        expect(saveFound(store, 't', 'level3:0')).toEqual(['level2:0', 'level3:0']);
+        expect(loadFound(memory({ t: 'not json' }), 't')).toEqual([]);
+        expect(loadFound(memory({ t: '{"a":1}' }), 't')).toEqual([]);
+        expect(loadFound(memory({ t: '["x", 3, null]' }), 't')).toEqual(['x']);
+        expect(loadFound(broken, 't')).toEqual([]);
+        expect(saveFound(broken, 't', 'x')).toEqual(['x']);                    // not stored, no error
+        expect(saveFound(null, 't', 'x')).toEqual(['x']);
     });
 });

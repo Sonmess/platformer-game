@@ -52,6 +52,31 @@ export function unlockLevel (store: KeyValueStore | null, key: string, level: nu
     return next;
 }
 
+/** Ids of the treasures found in any earlier run (a garbled or blocked store reads as none). */
+export function loadFound (store: KeyValueStore | null, key: string): string[]
+{
+    try {
+        const list = JSON.parse(store?.getItem(key) ?? '[]');
+        return Array.isArray(list) ? list.filter((id): id is string => typeof id === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+/** Remembers a found treasure (once). Returns the ids found so far; a store that cannot be written changes nothing. */
+export function saveFound (store: KeyValueStore | null, key: string, id: string): string[]
+{
+    const found = loadFound(store, key);
+    if (found.includes(id)) return found;
+    found.push(id);
+    try {
+        store?.setItem(key, JSON.stringify(found));
+    } catch {
+        // Full or blocked storage: not remembered this time.
+    }
+    return found;
+}
+
 /** The level chosen after stepping `dir` (-1 / +1) from `selected`, staying within 1..unlocked. */
 export const stepLevel = (selected: number, dir: number, unlocked: number): number =>
     Math.min(Math.max(selected + dir, 1), unlocked);

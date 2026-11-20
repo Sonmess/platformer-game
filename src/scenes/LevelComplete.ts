@@ -42,6 +42,7 @@ export class LevelComplete extends Scene
         const t = RESULTS.TEXT;
         this.lines = [
             `${t.COINS}: ${state.points}/${state.pointsTotal}`,     // feather points out of the level's total
+            ...(state.treasuresTotal > 0 ? [`${t.TREASURE}: ${state.treasures}/${state.treasuresTotal}`] : []),
             `${t.TOTAL}: ${state.totalPoints}`,                     // the whole run so far
             `${t.LIVES}: ${state.lives}`,
             `${t.TIME}: ${formatTime(state.timeMs)}`

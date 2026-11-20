@@ -42,6 +42,7 @@ export class Effects
     /** Stone bits: pebbles trickling from a shaking stalactite, pieces where one shatters. */
     private readonly stoneBits: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly pebbleTimers: Phaser.Time.TimerEvent[] = [];
+    private readonly treasureSparks: Phaser.GameObjects.Particles.ParticleEmitter;
     private readonly handlers: [string, (...args: never[]) => void][];
     // The cat sprite's tweens, kept apart so a jump's squash never cuts the respawn blink short.
     private popTween?: Phaser.Tweens.Tween;
@@ -100,12 +101,14 @@ export class Effects
         }).setDepth(DEPTH.EFFECTS);
         this.climbBits = { trunk: bits(JUICE.CLIMB.TINT.trunk), vine: bits(JUICE.CLIMB.TINT.vine) };
         this.stoneBits = bits(JUICE.STALACTITE.TINT);
+        this.treasureSparks = sparks(JUICE.TREASURE.tint);
 
         this.handlers = [
             [EV.PLAYER_JUMP, this.onJump],
             [EV.PLAYER_GRAB, this.onGrab],
             [EV.PLAYER_CLIMB_STEP, this.onClimbStep],
             [EV.STALACTITE_SHAKE, this.onStalactiteShake],
+            [EV.TREASURE_COLLECT, ({ x, y }: { x: number; y: number }) => this.treasureSparks.explode(JUICE.TREASURE.sparks, x, y)],
             [EV.STALACTITE_SHATTER, this.onStalactiteShatter],
             [EV.PLAYER_RESPAWN, this.stopPebbles],
             [EV.PLAYER_LAND, this.onLand],
@@ -133,7 +136,7 @@ export class Effects
     /** Live particles across all emitters; exposed to the test API. */
     get particles (): number
     {
-        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff, this.poisonDrops, ...Object.values(this.climbBits), this.stoneBits]
+        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff, this.poisonDrops, ...Object.values(this.climbBits), this.stoneBits, this.treasureSparks]
             .reduce((n, e) => n + e.getAliveParticleCount(), 0);
     }
 

@@ -36,6 +36,9 @@ export function landmarks (n = 1)
         /** Climbable tree trunks (bottom edge on the ground) and hanging vines, each in level order. */
         TRUNKS: ofType('trunk').map(box),
         VINES: ofType('vine').map(box),
+        /** Secret rooms (fake rock) and the treasures (golden fish), in level order. */
+        SECRETS: ofType('secret').map(box),
+        TREASURES: ofType('treasure').map(o => ({ x: o.x, y: o.y })),
         /** Stalactites: where each hangs (top centre). */
         STALACTITES: ofType('stalactite').map(o => ({ x: o.x, y: o.y })),
         /** Index of the i-th snake in getState().enemies (hedgehogs, then crows, then snakes). */

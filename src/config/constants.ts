@@ -47,6 +47,7 @@ export const PHYSICS = derivePhysics(PLAYER_FEEL, TILE);
 /** Draw order; higher is in front. */
 export const DEPTH = {
     PARALLAX: -100,         // background layers stack upwards from here, behind the tilemap (0)
+    TREASURE: -1,           // behind the tilemap: hidden by the fake rock of a secret room until it turns see-through
     CLIMBABLES: 2,          // vines and tree trunks, above the tilemap (roots over the ground), behind platforms
     PLATFORMS: 5,           // moving platforms, above the tilemap
     PLAYER: 10,
@@ -81,7 +82,9 @@ export const AUDIO = {
         GRAB: { key: 'sfx-grab', url: 'assets/own/sfx/grab.wav', volume: 0.4, detune: 80 },
         CLIMB: { key: 'sfx-climb', url: 'assets/own/sfx/climb.wav', volume: 0.25, detune: 150 },
         RUMBLE: { key: 'sfx-rumble', url: 'assets/own/sfx/rumble.wav', volume: 0.45, detune: 80 },
-        SHATTER: { key: 'sfx-shatter', url: 'assets/own/sfx/shatter.wav', volume: 0.45, detune: 100 }
+        SHATTER: { key: 'sfx-shatter', url: 'assets/own/sfx/shatter.wav', volume: 0.45, detune: 100 },
+        SECRET: { key: 'sfx-secret', url: 'assets/own/sfx/secret.wav', volume: 0.45, detune: 0 },
+        TREASURE: { key: 'sfx-treasure', url: 'assets/own/sfx/treasure.wav', volume: 0.5, detune: 0 }
     },
     // Background loops from tools/music.mjs, one per level (LevelDef.music); one instance each for the whole game.
     MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 } as MusicTrack,
@@ -145,6 +148,8 @@ export const JUICE = {
     // Climbing: bits of bark or leaves fly off where the paws grab, a few fall with every climbing step.
     CLIMB: { GRAB_BITS: 6, STEP_BITS: 2, TINT: { trunk: [0x7a5538, 0x553829, 0x33211a], vine: [0x5f9e3c, 0x33703a, 0x1d4630] },
         SPEED: { min: 15, max: 45 }, LIFESPAN: { min: 300, max: 500 }, GRAVITY_Y: 160 },
+    // The golden fish: a burst of gold sparkles.
+    TREASURE: { sparks: 24, tint: [0xffffff, 0xfff3a6, 0xffcf3a, 0xc98a12] },
     // Stalactites: pebbles trickle down while one shakes; it bursts into pieces where it lands.
     STALACTITE: { PEBBLES: 2, PEBBLE_EVERY_MS: 90, BITS: 16, TINT: [0xb3aec8, 0x7e7996, 0x57536b], SHAKE_MS: 90, SHAKE_INTENSITY: 0.003 },
     RESPAWN: { fromScale: 0.5, ms: 220, blinkMs: 90, blinkAlpha: 0.35 }     // blinks while invulnerable
@@ -375,7 +380,9 @@ export const LEVEL = {
     YARN_TYPE: 'yarn',              // point = a yarn ball power-up
     VINE_TYPE: 'vine',              // rectangle = the climbable vine (drawn centred, hanging from its top)
     TRUNK_TYPE: 'trunk',
-    STALACTITE_TYPE: 'stalactite',  // point = where it hangs (top centre), falls straight down            // rectangle = the climbable trunk, bottom edge on the ground; a crown on top
+    STALACTITE_TYPE: 'stalactite',
+    SECRET_TYPE: 'secret',          // rectangle = rock that is not really there (a secret room behind a wall)
+    TREASURE_TYPE: 'treasure',      // point = a golden fish  // point = where it hangs (top centre), falls straight down            // rectangle = the climbable trunk, bottom edge on the ground; a crown on top
     GOAL_TYPE: 'goal'
 } as const;
 
@@ -393,6 +400,8 @@ export interface LevelDef
     parallax: readonly ParallaxLayerDef[];
     skyColor: string;
     music: MusicTrack;
+    /** Art drawn around the goal (its bottom-right corner on the goal's), e.g. the cave's moonlit way out. */
+    exit?: { key: string; url: string };
 }
 
 export const LEVELS: readonly LevelDef[] = [
@@ -413,7 +422,8 @@ export const LEVELS: readonly LevelDef[] = [
         crumble: { key: 'crumble-strip-cave', url: 'assets/own/tiles/crumble-cave.png' },
         parallax: CAVE_PARALLAX.LAYERS,
         skyColor: CAVE_PARALLAX.SKY_COLOR,
-        music: AUDIO.CAVE_MUSIC
+        music: AUDIO.CAVE_MUSIC,
+        exit: { key: 'exit-arch', url: 'assets/own/exit/exit-arch.png' }
     }
 ];
 
@@ -421,6 +431,17 @@ export const LEVELS: readonly LevelDef[] = [
 export const levelNumber = (n: number): number => Math.min(Math.max(Math.round(n) || 1, 1), LEVELS.length);
 /** The definition of level `n` (1-based, clamped). */
 export const levelDef = (n: number): LevelDef => LEVELS[levelNumber(n) - 1];
+
+// The cave's way out (src/entities/CaveExit.ts, art from tools/exit.mjs): fireflies drift in the moonlight in front of
+// the opening. AREA is measured from the exit's bottom-right corner (px to the left / up).
+export const EXIT = {
+    FIREFLY_EVERY_MS: 420,
+    LIFESPAN: { min: 2200, max: 3400 },
+    SPEED_X: { min: -8, max: 6 },
+    SPEED_Y: { min: -10, max: 3 },
+    TINT: [0xf4ff9c, 0xd8ff6a, 0xfff6c0],
+    AREA: { LEFT: 92, RIGHT: 30, TOP: 80, BOTTOM: 6 }
+} as const;
 
 // Checkpoints: the campfire stands where the Tiled rectangle's bottom is, but the trigger reaches far above it (and a
 // little to the sides), so jumping over a campfire still lights it.
@@ -490,6 +511,7 @@ export const RESULTS = {
         FINAL_TITLE: 'Hra dokončená!',     // after the last level
         COINS: 'Pierka',
         TOTAL: 'Spolu',                    // feather points of the whole run
+        TREASURE: 'Poklad',                // only in levels that hide one
         DEATHS: 'Smrti',
         LIVES: 'Životy',
         TIME: 'Čas',
@@ -563,7 +585,31 @@ export const TITLE = {
 
 // Saved progress (src/core/progress.ts): the highest unlocked level, in the browser's localStorage.
 export const PROGRESS = {
-    STORAGE_KEY: 'lost-cat:unlocked-level'
+    STORAGE_KEY: 'lost-cat:unlocked-level',
+    TREASURES_KEY: 'lost-cat:treasures'        // ids of the treasures (golden fish) ever found: "<map>:<n>"
+} as const;
+
+// Secret rooms (src/entities/Secret.ts): a Tiled rectangle of type "secret" marks rock that is not really there. Its
+// tiles look like the wall around them but have no collision; when the cat is inside, they turn see-through. The
+// entrance (string property "entrance": left/right, the rectangle's side) has a thin crack as the only hint, and only a
+// small cat squeezes through it (a big one bumps into it).
+export const SECRET = {
+    REVEAL_ALPHA: 0.22,         // the fake rock while the cat is inside
+    FADE_PER_S: 4,              // alpha change per second (in and out)
+    ENTRANCE_PROPERTY: 'entrance',
+    // A second hint: now and then a little dust drifts out of the crack, as if a draught came from behind the wall.
+    DUST: { EVERY_MS: 700, COUNT: 3, SPEED_OUT: { min: 6, max: 20 }, SPEED_Y: { min: -8, max: 2 }, LIFESPAN: { min: 1000, max: 1700 },
+        TINT: [0xb3aec8, 0x8c88a3, 0x6a6680], CRACK_HEIGHT: 40 }
+} as const;
+
+// Treasures (src/entities/Treasure.ts, Tiled point "treasure"): one golden fish per level, hidden in a secret room. No
+// effect on play; the results show "Poklad n/total" and the browser remembers it. One found earlier glows fainter.
+export const TREASURE = {
+    HITBOX: 12,
+    BOB_PX: 2,
+    BOB_MS: 800,
+    FOUND_BEFORE_ALPHA: 0.55,
+    FRAME_RATE: 2
 } as const;
 
 // Art and fonts in public/assets (sources and licenses: public/assets/CREDITS.md).
@@ -583,6 +629,8 @@ export const ASSETS = {
     },
     YARN: { key: 'yarn', url: 'assets/own/yarn.png' },
     STALACTITE: { key: 'stalactite', url: 'assets/own/stalactite.png' },
+    GOLDEN_FISH: { key: 'golden-fish', url: 'assets/own/golden-fish.png', frameWidth: 16, frameHeight: 12, frames: 2 },
+    SECRET_CRACK: { key: 'secret-crack', url: 'assets/own/secret-crack.png' },        // 16×40, two and a half tiles tall
     CAMPFIRE: {
         frameWidth: 24, frameHeight: 24,
         unlit: { key: 'campfire-unlit', url: 'assets/own/campfire-unlit.png' },
@@ -631,6 +679,7 @@ export const ANIM = {
     CAT_CLAW: 'cat-claw',
     CAT_CLIMB: 'cat-climb',
     CAT_CLING: 'cat-cling',
+    GOLDEN_FISH: 'golden-fish-glint',
     HEDGEHOG_WALK: 'hedgehog-walk',
     CROW_FLY: 'crow-fly',
     SNAKE_SLITHER: 'snake-slither',

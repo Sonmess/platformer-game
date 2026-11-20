@@ -283,8 +283,8 @@ screenshot a tvoj playtest; každá novinka prináša vlastnú grafiku, zvuky a 
   (korene z otvorov v strope), pohyblivé a prepadávacie plošiny nad priepasťami, 5–6 checkpointov, pierka
   (~80–90 bodov, aby jedno prejdenie dalo život navyše), klbká.
   Test: `route.spec` prejde level 2 po úsekoch (aj so stalaktitmi). Férovosť a obtiažnosť: overené playtestom.
-  Stav: 200 stĺpcov, 5 checkpointov (28, 61, 98, 133, 171), 37 pierok za 83 bodov, 8 stalaktitov, 2 ježkovia,
-  2 hadíci, 2 klbká. Úseky: vstup (klbko, prvý stalaktit nad rovinou) → ježko, dvojica stalaktitov, jama so stalaktitom
+  Stav: 200 stĺpcov, 4 checkpointy (61, 98, 133, 171; prvý v stĺpci 28 a prvé klbko odstránené po playteste — level
+  bol príliš ľahký), 37 pierok za 83 bodov, 8 stalaktitov, 3 ježkovia, 2 hadíci, 1 klbko. Úseky: vstup (prvý stalaktit nad rovinou) → ježko, dvojica stalaktitov, jama so stalaktitom
   nad dopadom → priepasť (pohyblivá plošina 2 dlaždice nad okrajom, dve vápencové plošiny, rímsa, hadík) → korene
   (útes len cez koreň, zlaté pierko pod nízkym stropom, koreň nad 6 dlaždíc širokou jamou) → hadík, jama a nízka
   chodba so 4 stalaktitmi → ježko, vápencové plošiny nad poslednou jamou, východ. `route.spec` hrá všetkých 6 úsekov
@@ -298,7 +298,44 @@ screenshot a tvoj playtest; každá novinka prináša vlastnú grafiku, zvuky a 
   Stav: unit testy (88) a všetky e2e testy (157) prechádzajú, build je v poriadku. FPS test beží v oboch leveloch
   (> 55 FPS, so zapojenou nabíjačkou). Reštart 10× v jaskyni teraz špiní aj stav z M4 (spadnutý stalaktit a smrť pod ním,
   klbko, pierko) a porovnáva stalaktity, nepriateľov, body, klbká, HUD a hudbu. README, backlog a CLAUDE.md
-  aktualizované. Čaká: playtest celej hry od úvodnej obrazovky cez oba levely po záverečnú obrazovku.
+  aktualizované. Playtest (2026-11-20): hra funguje, pred uzavretím M4 ešte doladenie jaskyne (fáza E); krok 9 sa
+  zopakuje po nej.
+
+### Fáza E — doladenie jaskyne (po playteste 2026-11-20)
+
+Každý bod je samostatný krok s vlastným testom, screenshotom a playtestom.
+
+- [x] **10. Východ z jaskyne** — na konci levelu 2 otvor v skale s mesačným svetlom, ktorý ukazuje von do lesa za
+  súmraku (nadväzuje na ďalší level). Najprv 3 návrhy, vyberieš jeden.
+  Test: východ je na mieste cieľa, vbehnutie doň dokončí level. Vzhľad: overené playtestom.
+  Stav: vybraný návrh 1 „oblúk do súmraku“ (`tools/exit.mjs`, 96×208): koncová stena jaskyne s oblúkovým otvorom,
+  von vidno oblohu za súmraku, kosáčik mesiaca, hviezdy a siluety ihličnanov; šikmý pás mesačného svetla na zemi
+  a živé svetlušky pred otvorom (`CaveExit`, `EXIT` v constants). Cieľ sa posunul do otvoru (stĺpce 198–199).
+  `LevelDef.exit` — aj ďalšie levely môžu mať vlastný výhľad pri cieli. Vzhľad: čaká na playtest.
+- [x] **11. Tajná miestnosť so zlatou rybičkou** — za falošnou stenou (vyzerá ako skala, dá sa ňou prejsť; keď mačka
+  vojde, stena sa spriehľadní). Malá prasklina ako nápoveda: prejde ňou len malá mačka (s klbkom nie). Vo vnútri
+  **zlatá rybička** — poklad bez vplyvu na hru, jeden na level; výsledky ukážu „Poklad 1/1“ a hra si nájdené poklady
+  pamätá. (Neskôr sa dajú vymeniť u obchodníka za kozmetiku — backlog.)
+  Test: veľká mačka neprejde, malá áno; stena sa spriehľadní; rybička sa zoberie, ukáže vo výsledkoch a ostane
+  zapamätaná po obnovení stránky.
+  Stav: miestnosť je vnútri útesu (stĺpce 113–118, riadky 12–14), vchod sprava od zeme za útesom, s tenkou prasklinou.
+  Prasklina je výrazná (16×40 px, tmavá kľukatá trhlina s osvetleným okrajom a kamienkami, zväčšená po playteste; z praskliny občas vyletí obláčik prachu, akoby z nej ťahal prievan). Tiled obdĺžnik `secret` (vlastnosť `entrance`) = falošná skala: dlaždice bez kolízie, vnútri sa spriehľadnia na 22 %,
+  pri vchode zóna, ktorá zastaví len veľkú mačku. Zlatá rybička (Tiled bod `treasure`, vlastný sprite s lesknutím)
+  je za skalou, zvonku ju nevidno. Zvuky: tajomný tón pri objavení, fanfárka pri rybičke; zlaté iskry. Výsledky:
+  „Poklad n/1“ (len v leveloch s pokladom); nájdené poklady si hra pamätá (`lost-cat:treasures`), už nájdená rybička
+  je slabšia, ale dá sa zobrať znova. Robot v `route.spec` si ju cestou berie. Logika uloženia v `src/core/progress.ts`
+  (unit testy), scenáre v `tests/e2e/secret.spec.ts`. Pocit a nápadnosť praskliny: čaká na playtest.
+- [x] **12. Dvaja ježkovia pred východom** — k poslednému ježkovi (stĺpce 175–181) druhý, aby ich bolo treba prekonať
+  spolu. Test: `route.spec` prejde úsek. Obtiažnosť: overené playtestom.
+  Stav: dve hliadky vedľa seba — stĺpce 174–177 a 179–183. Jedno mňauknutie zvyčajne vystraší len prvého, takže treba
+  mňauknúť, prvého odohnať pazúrikmi a pri druhom počkať, kým sa mňaukanie dobije (alebo ho vystrašiť naraz, keď sú
+  blízko seba). Robot v `route.spec` má na to „opatrný“ režim (`careful`): pazúrikmi odoženie vystrašeného, pred
+  nevystrašeným ustúpi, kým nie je mňaukanie pripravené. Obtiažnosť: čaká na playtest.
+- [x] **13. Víťazná melódia ako mňaukanie** — tie isté tóny ako znelka po dokončení levelu, ale znejú ako mňaukanie
+  (každý tón s „mňau“ ohybom). Kvalita: overené playtestom.
+  Stav: `goal.wav` (`tools/sfx.mjs`, funkcia `meowNote`): tie isté tóny C–E–G a držané vysoké C nad akordom, každý
+  tón zaspievaný ako mňaukanie — výška sa zospodu vyšvihne nad tón („mňň-“), potom si sadne na tón s vibratom („-au“),
+  o oktávu nižšie zdvojené trojuholníkom; tri rýchle „mňau“ a dlhé „mňaaau“ (1,2 s). Kvalita: čaká na playtest.
 
 ### Predvolené rozhodnutia M4 (zmeníme, ak pri playteste nebudú sedieť)
 

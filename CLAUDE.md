@@ -58,7 +58,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `tests/e2e/landmarks.ts`, which reads `level1.json`, so specs follow the level when it changes; the arrays are
   in level order, as in `getState()`. `route.spec.ts` plays the whole level section by section (checkpoint to
   checkpoint) with a small in-page bot (`hold()`/`release()` from the test API; `clawSnake()` waits for a calm and
-  claws): each section must be passable without dying. Jump points near hazards need margin: frames jitter by a few px. When
+  claws; `runRight(..., { careful: true })` claws scared enemies in reach and backs off from an unscared one while the meow
+  recharges): each section must be passable without dying. Jump points near hazards need margin: frames jitter by a few px. When
   editing the level, keep the cat's test spots clear of patrols and spikes, and keep every section passable.
 - The game boots into the `Title` scene; level specs open `/?play` (dev-only, handled in `Preload`) to start
   straight in `Game` (level 1; `/?play=2` = level 2). Only `boot.spec.ts` and `title.spec.ts` open `/`.
@@ -147,6 +148,12 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   No physics body: `Game` finds the fall distance (first colliding tile below, or out of the level over a pit), calls
   `update()` every frame and kills the cat (`'stalactite'`) when `hurts()`; respawn resets them. Events
   `stalactite:shake|fall|shatter`; Audio/Effects only near the camera. Tuning: `STALACTITE`, `JUICE.STALACTITE`.
+- Secret rooms (`src/entities/Secret.ts`, Tiled rectangle `secret` + string property `entrance` left/right): the ground
+  tiles inside keep their look but lose collision (`tile.setCollision(false…, true)`), fade to `SECRET.REVEAL_ALPHA`
+  while the cat is really inside (not just touching), and a zone at the entrance collides only while the cat is big.
+  Treasures (`src/entities/Treasure.ts`, Tiled point `treasure`, a golden fish) sit at `DEPTH.TREASURE` (behind the
+  tilemap, so the fake rock hides them); `state.treasures`/`treasuresTotal` per level, ids `<map>:<n>` saved with
+  `saveFound()` under `PROGRESS.TREASURES_KEY`. Events `secret:reveal`, `treasure:collect`; test API `treasures`, `secrets`.
 - Crumbling platforms (`src/entities/CrumblePlatform.ts`, Tiled type `crumble`, width = tiles): the phases live in
   `Crumble` (`src/core/crumble.ts`, pure: solid → shaking → falling → gone → solid). The body never moves; only
   the image shakes, falls and fades, and the collider's process callback skips it once it is not `solid`. Standing
@@ -204,11 +211,13 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   swap plain centre tiles for variants by position (`tileVariant()` in `src/core/tiles.ts`, `GROUND_TILES` in constants;
   a unit test checks the gids against the generator's JSON). Swap `tile.index` after the collision setup: the tile keeps
   its collision flags.
-- Level 2 `src/levels/level2.json` "Jaskyňa" (ADR 0010): 200 cols, `cave` tile style; 0–29 entrance (yarn, first
-  stalactite), 30–61 hedgehog + stalactites + pit 52–55, 62–99 chasm 66–84 (platform row 13, limestone crumbles,
-  ledge 85–88, snake 92–95), 100–134 roots (cliff 107–118 only via the root at col 105, root over pit 123–128),
-  135–171 snake, pit 148–151, stalactite corridor 156–168, 172–199 hedgehog, crumbles over pit 184–191, exit at 196.
-  Checkpoints at 28, 61, 98, 133, 171. `route.spec.ts` has a "level 2" describe playing all six sections. In cave maps, floors use the block's top + middle rows and ceilings/overhangs the middle + bottom rows:
+- Level 2 `src/levels/level2.json` "Jaskyňa" (ADR 0010): 200 cols, `cave` tile style; 0–29 entrance (first stalactite), 30–61 hedgehog + stalactites + pit 52–55, 62–99 chasm 66–84 (platform row 13, limestone crumbles,
+  ledge 85–88, snake 92–95), 100–134 roots (cliff 107–118 only via the root at col 105, a secret room inside it at cols 113–118 rows 12–14 entered
+  from the floor on its right, root over pit 123–128),
+  135–171 snake, pit 148–151, stalactite corridor 156–168, 172–199 two hedgehogs side by side (174–177, 179–183), crumbles over pit 184–191, goal at 198–199
+  inside the moonlit arch (`LevelDef.exit` → `src/entities/CaveExit.ts`: art from `tools/exit.mjs` + firefly particles,
+  anchored at the goal's bottom-right; test API `exit`).
+  Checkpoints at 61, 98, 133, 171 (none in the entrance; the only yarn ball is at col 145). `route.spec.ts` has a "level 2" describe playing the level checkpoint to checkpoint (five tests). In cave maps, floors use the block's top + middle rows and ceilings/overhangs the middle + bottom rows:
   the bottom row hangs stalactites (transparent below), so never put it at the bottom of a floor.
 - Level `src/levels/level1.json` uses that tileset (autotiled 3×3 block); it opens in Tiled because the
   tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).

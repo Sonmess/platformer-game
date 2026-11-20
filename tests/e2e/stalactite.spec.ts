@@ -3,7 +3,7 @@ import { AUDIO, PLAYER, STALACTITE, TILE } from '../../src/config/constants';
 import { landmarks } from './landmarks';
 
 // Falling stalactites (M4 step 7), in level 2 (the cave): the first one hangs over flat floor (row 15) a few tiles
-// after the spawn (and its yarn ball), nothing else within 10 tiles of it.
+// after the spawn, nothing else within 10 tiles of it.
 const { STALACTITES } = landmarks(2);
 const S0 = STALACTITES[0];
 const GROUND_Y = 15 * TILE - PLAYER.HEIGHT / 2;

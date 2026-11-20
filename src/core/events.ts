@@ -28,6 +28,8 @@ export const EV = {
     STALACTITE_SHAKE: 'stalactite:shake',   // { x, y } (top centre; the warning before it falls)
     STALACTITE_FALL: 'stalactite:fall',     // { x, y }
     STALACTITE_SHATTER: 'stalactite:shatter', // { x, y } (where it landed: its tip on the floor)
+    SECRET_REVEAL: 'secret:reveal',     // { x, y } (the cat stepped into a secret room for the first time this life of the level)
+    TREASURE_COLLECT: 'treasure:collect', // { x, y, id, firstTime } (a golden fish; firstTime = never found before)
     CRUMBLE_SHAKE: 'crumble:shake',     // { x, y, width } (top-left corner)
     CRUMBLE_FALL: 'crumble:fall'        // { x, y, width }
 } as const;

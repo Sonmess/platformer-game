@@ -9,6 +9,22 @@ import { note, render, wav } from './synth.mjs';
 const C5 = 523.25, E5 = 659.25, G5 = 783.99, B5 = 987.77, C6 = 1046.5, E6 = 1318.5, G6 = 1568;
 const E4 = 329.63, F4 = 349.23, A4 = 440;
 
+/**
+ * A note sung like the cat's meow (see `meow`): the pitch scoops up from below into a little peak ("mň-"), then settles
+ * down onto the note ("-au") with a wobble, doubled an octave lower by a triangle for body. `long` = a held "mňaaau".
+ */
+function meowNote (f, at, dur, vol, long = false)
+{
+    const rise = Math.min(0.08, dur * 0.35);
+    const wobble = long ? [6, 0.02] : [9, 0.015];
+    return [
+        note({ from: f * 0.82, to: f * 1.07, at, dur: rise, vol, duty: 0.35, attack: 0.015, decay: 0, vibrato: [9, 0.01] }),
+        note({ from: f * 1.07, to: f * 0.97, at: at + rise, dur: dur - rise, vol, duty: 0.35, decay: long ? 1.2 : 0.9, vibrato: wobble }),
+        note({ wave: 'triangle', from: f * 0.41, to: f * 0.535, at, dur: rise, vol: vol * 0.8, attack: 0.015, decay: 0 }),
+        note({ wave: 'triangle', from: f * 0.535, to: f * 0.485, at: at + rise, dur: dur - rise, vol: vol * 0.8, decay: long ? 1.2 : 0.9 })
+    ];
+}
+
 const SFX = {
     // Quick upward chirp.
     jump: [note({ from: 260, to: 620, dur: 0.14, vol: 0.32, duty: 0.25, decay: 1.5 })],
@@ -87,6 +103,16 @@ const SFX = {
         note({ wave: 'triangle', from: 160, to: 70, dur: 0.18, vol: 0.4, decay: 1.5 }),
         ...[0, 1, 2].map(i => note({ wave: 'noise', from: 9000 - i * 1200, to: 6000, at: 0.08 + i * 0.06, dur: 0.03, vol: 0.18 - i * 0.04, decay: 3 }))
     ],
+    // A secret found: the hidden wall turns see-through — a soft, mysterious rising run on a triangle.
+    secret: [
+        ...[C5, E5 * 1.06, G5, B5].map((f, i) => note({ wave: 'triangle', from: f, at: i * 0.09, dur: 0.22, vol: 0.4, decay: 1.2, vibrato: [6, 0.01] }))
+    ],
+    // The golden fish: a bright, sparkling little fanfare.
+    treasure: [
+        ...[E5, G5, C6, E6, G6].map((f, i) => note({ from: f, at: i * 0.07, dur: 0.12, vol: 0.2, duty: 0.25, decay: 0.6 })),
+        note({ wave: 'triangle', from: C6, at: 0.35, dur: 0.5, vol: 0.35, decay: 1.3, vibrato: [7, 0.01] }),
+        note({ wave: 'noise', from: 9000, to: 7000, at: 0.35, dur: 0.3, vol: 0.06, decay: 2 })
+    ],
     // A crumbling platform starts to give: two dry cracks.
     crack: [
         note({ wave: 'noise', from: 6000, to: 3000, dur: 0.04, vol: 0.4, decay: 3 }),
@@ -121,12 +147,13 @@ const SFX = {
         note({ wave: 'triangle', from: E4 / 2, to: E4 / 2 * 0.97, at: 0.88, dur: 0.9, vol: 0.4, decay: 1.4, vibrato: [5, 0.01] }),
         note({ from: E4, at: 0.88, dur: 0.9, vol: 0.14, duty: 0.25, decay: 1.4, vibrato: [5, 0.01] })
     ],
-    // Short fanfare: arpeggio, then a held chord.
+    // The level is done: the same little fanfare as before (C–E–G, then a held high C over a chord), but every note is
+    // sung as a happy meow — three quick "mňau"s up the arpeggio and a long, wobbly "mňaaau" on top.
     goal: [
-        ...[C5, E5, G5].map((f, i) => note({ from: f, at: i * 0.1, dur: 0.12, vol: 0.22, duty: 0.25 })),
-        note({ from: C6, at: 0.3, dur: 0.7, vol: 0.22, duty: 0.25, decay: 1.3, vibrato: [6, 0.008] }),
-        note({ wave: 'triangle', from: E6 / 2, at: 0.3, dur: 0.7, vol: 0.35, decay: 1.3 }),
-        note({ wave: 'triangle', from: G6 / 4, at: 0.3, dur: 0.7, vol: 0.35, decay: 1.3 })
+        ...[C5, E5, G5].flatMap((f, i) => meowNote(f, i * 0.15, 0.16, 0.24)),
+        ...meowNote(C6, 0.45, 0.75, 0.24, true),
+        note({ wave: 'triangle', from: E6 / 2, at: 0.5, dur: 0.7, vol: 0.3, attack: 0.05, decay: 1.3 }),
+        note({ wave: 'triangle', from: G6 / 4, at: 0.5, dur: 0.7, vol: 0.3, attack: 0.05, decay: 1.3 })
     ]
 };
 
