@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
-**Status:** Milestones 1 (2026-11-05), 2 (2026-11-19, ADR 0007) and 3 (2026-11-19, game
-improvements, ADR 0008) complete and playtested. Milestone 4 (level 2 "Jaskyňa", ADR 0010) is approved and in progress. Checklists in
+**Status:** Milestones 1 (2026-11-05), 2 (2026-11-19, ADR 0007), 3 (2026-11-19, game improvements,
+ADR 0008) and 4 (2026-11-20, level 2 "Jaskyňa", ADR 0010) complete and playtested. Milestone 5 (level 3 "Les za súmraku", ADR 0011) is approved, not started. Checklists in
 `docs/gameplan.md`.
 
 ## Stack
@@ -199,7 +199,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   Chromium keeps the AudioContext locked, so e2e tests assert the `sfx` log and `music` state in `getState()`,
   not audio output.
 - Parallax (`src/systems/Parallax.ts`): each level's layers come from its `LevelDef` (`PARALLAX` = the forest,
-  `CAVE_PARALLAX` = the cave, drawn by `node tools/parallax.mjs`: 272 px tall, seamless sideways); Preload bakes each
+  `CAVE_PARALLAX` = the cave, drawn by `node tools/parallax.mjs`: 272 px tall, seamless sideways; `DUSK_PARALLAX` = the
+  dusk forest: the own `dusk-sky` layer plus the forest layers re-used with a `tint`, sharing their texture keys); Preload bakes each
   into its own texture (`gap` spacing, `flip`), and TileSprite offsets update on the camera's `FOLLOW_UPDATE` so they
   never lag the world.
 - Juice (`src/systems/Effects.ts`) only subscribes to gameplay events and touches visuals (cat sprite scale,
@@ -219,6 +220,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   anchored at the goal's bottom-right; test API `exit`).
   Checkpoints at 61, 98, 133, 171 (none in the entrance; the only yarn ball is at col 145). `route.spec.ts` has a "level 2" describe playing the level checkpoint to checkpoint (five tests). In cave maps, floors use the block's top + middle rows and ceilings/overhangs the middle + bottom rows:
   the bottom row hangs stalactites (transparent below), so never put it at the bottom of a floor.
+- Level 3 `src/levels/level3.json` "Les za súmraku" (ADR 0011) is a greybox (60 cols, pit 52–55 like level 2's first pit)
+  until M5 step 5.
 - Level `src/levels/level1.json` uses that tileset (autotiled 3×3 block); it opens in Tiled because the
   tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),

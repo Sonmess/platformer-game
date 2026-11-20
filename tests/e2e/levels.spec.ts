@@ -192,3 +192,21 @@ test('the cave ends in a moonlit arch: running into its light finishes the level
     s = await state(page);
     expect(s.exit).toBeNull();
 });
+
+test('the dusk forest has its own sky and tinted forest layers, none of the lime back layer', async ({ page }) => {
+    const dusk = LEVELS[2];
+    await page.goto('/?play=3');
+    await playing(page);
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [44 * TILE, 15 * TILE - PLAYER.HEIGHT / 2]);
+    await page.evaluate(() => window.__game!.wait(1500));
+    const s = await state(page);
+    expect(s.parallax.map(l => l.key)).toEqual(dusk.parallax.map(l => l.key));
+    expect(s.parallax.map(l => l.key)).not.toContain('bg-back');               // the lime daytime sky is gone
+    for (const layer of s.parallax) expect(Math.abs(layer.offsetX - s.camera!.scrollX * layer.factor)).toBeLessThanOrEqual(1);
+    const look = await page.evaluate(() => {
+        const g = window.__game!.game.scene.getScene('Game') as unknown as { cameras: { main: { backgroundColor: { rgba: string } } }; parallax: { layers: { sprite: { tintTopLeft: number } }[] } };
+        return { sky: g.cameras.main.backgroundColor.rgba, tints: g.parallax.layers.map(l => l.sprite.tintTopLeft) };
+    });
+    expect(look.sky).toBe('rgba(20,20,51,1)');                                     // DUSK_PARALLAX.SKY_COLOR #141433
+    expect(look.tints.slice(1)).toEqual(dusk.parallax.slice(1).map(l => l.tint));  // the forest layers are tinted
+});

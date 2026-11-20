@@ -26,16 +26,22 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 
 - Level 2 „Jaskyňa“ s vlastným terénom, pozadím a hudbou, padajúce stalaktity, levely ako dáta, lineárny postup
   s uloženým odomknutím a výberom levelu (ADR 0010, 2026-11-20)
+- Doladenie jaskyne: východ s mesačným svetlom, tajná miestnosť so zlatou rybičkou, dvaja ježkovia pred východom,
+  víťazná znelka ako mňaukanie; prvý checkpoint a prvé klbko odstránené (2026-11-20)
 - [ ] Korene v jaskyni s vlastným vzhľadom (zatiaľ vyzerajú ako zelené liany) (2026-11-20)
-- [ ] Východ z jaskyne so svetlom (zatiaľ len zóna cieľa) (2026-11-20)
 - [ ] Úvodná obrazovka: riadok „cieľ“ spomína len jaskyňu na konci lesa (2026-11-20)
 
-## Ďalší míľnik (M5)
+## Naplánované v M5 (pozri `docs/gameplan.md`)
 
-- [ ] Level 3: výstup z jaskyne do lesa za súmraku — les na pozadí prefarbený (súmrak), iná farba oblohy (2026-11-20)
+- Level 3 „Les za súmraku“: prefarbený les s vlastnou oblohou (mesiac, hviezdy), tmavší terén, večerná hudba, netopier,
+  zlatá rybička v tajnej miestnosti (ADR 0011, 2026-11-20)
+
+## Ďalšie míľniky
+
 - [ ] Ďalšie levely; terén môže použiť pripravené štýly „kamenné murivo“ a „vrstvená skala“ z `tools/tiles.mjs`
   a prepadávacie plošiny „popraskaná tráva“ / „červenkastá skala“ (2026-11-05, upravené 2026-11-20)
-- [ ] Lietajúci nepriateľ do jaskyne (netopier); prvky „vietor“ a „gejzír“ pre ďalšie levely (2026-11-20)
+- [ ] Prvky „vietor“, „gejzír“ a „svetlušky a tma“ pre ďalšie levely (2026-11-20)
+- [ ] Zlaté rybičky aj v leveli 1 a 2 (2026-11-20)
 
 ## Neskôr
 

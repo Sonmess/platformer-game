@@ -202,7 +202,7 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
 
 ## Milestone 4 — „Do jaskyne“
 
-> Stav: **SCHVÁLENÉ** (2026-11-20). Rozsah: [ADR 0010](decisions/0010-rozsah-m4.md).
+> Stav: **HOTOVÉ** (2026-11-20), schválené 2026-11-20. Rozsah: [ADR 0010](decisions/0010-rozsah-m4.md).
 
 Hra dostane druhý level: mačka vojde do jaskyne na konci lesa a prechádza ňou k východu. Jaskyňa má vlastný terén,
 pozadie a hudbu a jeden nový prvok — padajúce stalaktity. Levely sa stanú dátami (rámec aj pre ďalšie levely),
@@ -293,13 +293,14 @@ screenshot a tvoj playtest; každá novinka prináša vlastnú grafiku, zvuky a 
 
 ### Fáza D — záver
 
-- [ ] **9. Finálna kontrola M4** — všetky testy, FPS ~60 v oboch leveloch (so zapojenou nabíjačkou), reštart 10×
+- [x] **9. Finálna kontrola M4** — všetky testy, FPS ~60 v oboch leveloch (so zapojenou nabíjačkou), reštart 10×
   v oboch leveloch, playtest od úvodnej obrazovky cez oba levely po záverečnú obrazovku, aktualizácia dokumentov.
   Stav: unit testy (88) a všetky e2e testy (157) prechádzajú, build je v poriadku. FPS test beží v oboch leveloch
   (> 55 FPS, so zapojenou nabíjačkou). Reštart 10× v jaskyni teraz špiní aj stav z M4 (spadnutý stalaktit a smrť pod ním,
   klbko, pierko) a porovnáva stalaktity, nepriateľov, body, klbká, HUD a hudbu. README, backlog a CLAUDE.md
   aktualizované. Playtest (2026-11-20): hra funguje, pred uzavretím M4 ešte doladenie jaskyne (fáza E); krok 9 sa
-  zopakuje po nej.
+  zopakuje po nej. Zopakované po fáze E a odstránení prvého checkpointu a klbka v jaskyni: build, unit testy (89)
+  a všetky e2e testy (161) prechádzajú, FPS test v oboch leveloch bez opakovania (na nabíjačke). Playtest: v poriadku.
 
 ### Fáza E — doladenie jaskyne (po playteste 2026-11-20)
 
@@ -345,6 +346,59 @@ Každý bod je samostatný krok s vlastným testom, screenshotom a playtestom.
 - V jaskyni nie sú vrany. Lietajúci nepriateľ (napr. netopier) a ďalšie prvky (vietor, gejzír) sú v backlogu.
 - Level 3 (výstup z jaskyne, les za súmraku) je až v ďalšom míľniku.
 
+## Milestone 5 — „Les za súmraku“
+
+> Stav: **SCHVÁLENÉ** (2026-11-20). Rozsah: [ADR 0011](decisions/0011-rozsah-m5.md).
+
+Mačka vyjde z jaskyne do lesa za súmraku. Hra dostane tretí level s prefarbeným lesom, vlastnou oblohou s mesiacom
+a hviezdami, tmavším terénom a večernou hudbou. Novým prvkom je netopier, ktorý strmhlav zlietava z konárov. V leveli
+je tajná miestnosť so zlatou rybičkou. Level 3 je zatiaľ posledný. Postup ako doteraz: po každom kroku testy,
+screenshot a tvoj playtest; každá novinka prináša vlastnú grafiku, zvuky a efekty.
+
+### Fáza A — vzhľad súmraku
+
+- [x] **1. Pozadie za súmraku** — lesné vrstvy pozadia prefarbené do fialovomodrých tónov (`tint` v definícii levelu)
+  a nová vlastná vrstva oblohy úplne vzadu (`tools/parallax.mjs`): prechod z tmavomodrej do fialovej a ružovej pri
+  obzore, mesiac, hviezdy — v štýle výhľadu z jaskyne. Level 3 dostane zatiaľ zástupnú mapu, aby sa dal spustiť.
+  Test: level 3 má svoje vrstvy, posúvajú sa rôznou rýchlosťou, obloha je tmavá. Vzhľad: overené playtestom.
+  Stav: `DUSK_PARALLAX`: limetková zadná vrstva lesa nahradená vlastnou oblohou `dusk-sky` (`tools/parallax.mjs`,
+  0,05): pásy od tmavomodrej cez fialovú po ružovú žiaru pri obzore, hviezdy, kosáčik mesiaca nízko medzi korunami,
+  vzdialené vrcholky stromov; vrstvy `far`/`middle`/`near` lesa tónované do fialovomodrej, bližšie tmavšie. Obloha
+  `#141433`. Level 3 je zatiaľ greybox (60 stĺpcov, jama 52–55, checkpoint, prepadávacia plošina, cieľ) s trávou
+  z levelu 1 (vlastný terén v kroku 2). Jaskyňa už nie je posledný level. Vzhľad: čaká na playtest.
+- [ ] **2. Terén a plošiny za súmraku** — nový štýl v `tools/tiles.mjs`: tmavší trávnik a hlina v chladných tónoch
+  (ladí so súmrakom, stále čitateľný proti pozadiu), varianty ako pri tráve; vlastný vzhľad prepadávacích plošín.
+  Test: varianty sedia s konštantami. Vzhľad: overené playtestom.
+- [ ] **3. Večerná hudba** — tretia slučka v `tools/music.mjs`: pokojná, večerná (napr. cvrčky a jemná melódia),
+  prelínanie pri zmene levelu ako doteraz.
+  Test: v leveli 3 hrá večerná slučka, vždy len jedna inštancia. Kvalita: overené playtestom.
+
+### Fáza B — netopier a level
+
+- [ ] **4. Netopier** — visí hore nohami na konári (Tiled bod `bat`). Keď sa mačka priblíži, strmhlav k nej zlietne
+  oblúkom a vráti sa na konár; dotyk = zásah. Mňauknutie ho vyruší: odletí hore a chvíľu je neškodný. Pazúriky ho
+  odoženú z levelu. Vlastný sprite (visí, mávanie krídlami), zvuky (pišťanie, šuchot krídel). Logika v `src/core/`
+  (unit testy).
+  Test: visí, kým mačka nie je blízko; zlietne a vráti sa; zásah; mňauknutie ho vyruší; pazúriky ho odoženú.
+- [ ] **5. Level 3 „Les za súmraku“** — ~200 stĺpcov, začína pri východe z jaskyne (vidno ho za mačkou), 4–5
+  checkpointov, pierka (~80–90 bodov), klbká, ježkovia, hadíci, pohyblivé a prepadávacie plošiny, liany a kmene,
+  netopiere (najprv predstavené bezpečne), tajná miestnosť so zlatou rybičkou. Cieľ na konci lesa.
+  Test: `route.spec` prejde level 3 po úsekoch (aj s netopiermi a rybičkou). Férovosť a obtiažnosť: overené playtestom.
+
+### Fáza C — záver
+
+- [ ] **6. Finálna kontrola M5** — všetky testy, FPS ~60 vo všetkých troch leveloch (so zapojenou nabíjačkou),
+  reštart 10× v leveli 3, playtest celej hry od úvodnej obrazovky cez tri levely po záverečnú obrazovku, aktualizácia
+  dokumentov.
+
+### Predvolené rozhodnutia M5 (zmeníme, ak pri playteste nebudú sedieť)
+
+- ❓ **Cieľ levelu 3 a koniec hry:** návrh — na konci lesa chalúpka so svietiacim oknom (mačka je doma) a záverečná
+  obrazovka „Mačka je doma!“ namiesto „Hra dokončená!“. Rozhodneme pri kroku 5.
+- Netopiere sú len v leveli 3; lesu ani jaskyni sa nič nemení.
+- Zlatá rybička je len v leveli 3 (skrytá inak ako v jaskyni, napr. vchodom hore cez lianu — z backlogu).
+- Životy a body sa prenášajú ako doteraz; uložený postup odomkne level 3 po dokončení jaskyne.
+
 ## Rozhodnutia
 
 | # | Téma | Rozhodnutie | ADR |
@@ -364,6 +418,7 @@ Každý bod je samostatný krok s vlastným testom, screenshotom a playtestom.
 | 13 | Rozsah M3 | Animácia smrti, 3 životy + klbko vlny, pierka (1/5/10 bodov), útok pazúrikmi, hadík s jedom, šplhanie po lianach a kmeňoch; ďalšie levely v M4 | [0008](decisions/0008-rozsah-m3.md) |
 | 14 | Terén | Vlastné dlaždice „tráva a tmavá hlina“ s variantmi (`tools/tiles.mjs`); murivo a skala pripravené pre ďalšie levely | [0009](decisions/0009-vlastne-dlazdice-terenu.md) |
 | 15 | Rozsah M4 | Jeden nový level „Jaskyňa“ (vlastný terén, pozadie, hudba), padajúce stalaktity, levely ako dáta, lineárny postup s uloženým odomknutím; súmrak v lese neskôr | [0010](decisions/0010-rozsah-m4.md) |
+| 16 | Rozsah M5 | Jeden nový level „Les za súmraku“ (prefarbený les + vlastná obloha s mesiacom, tmavší terén, večerná hudba), netopier, zlatá rybička len v leveli 3 | [0011](decisions/0011-rozsah-m5.md) |
 
 ## Mimo rozsahu M1
 
@@ -384,3 +439,9 @@ menu s nastaveniami a ich ukladanie (aj ukladanie postupu), verejné nasadenie.
 Level 3 (výstup z jaskyne, les za súmraku) a ďalšie levely, lietajúci nepriateľ (netopier), vietor a gejzír,
 stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad, menu s nastaveniami a ich ukladanie,
 ukladanie checkpointov a životov, verejné nasadenie.
+
+## Mimo rozsahu M5
+
+Ďalšie levely (napr. ruiny s murivom), obchodník a kozmetika za poklady, poklady v leveli 1 a 2, vietor, gejzír,
+svetlušky a tma, stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad, menu s nastaveniami a ich ukladanie,
+verejné nasadenie.

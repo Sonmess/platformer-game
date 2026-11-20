@@ -50,6 +50,8 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
   licencie, patrí projektu.
 - **Liany a stromy** (`trunk-bark`, `trunk-roots`, `trunk-crown`, `vine-stem`, `vine-tip`, `vine-knot`) a **šplhajúca mačka**
   (`cat-climb`) — textový pixel art v `tools/sprites.mjs`, ako ostatné postavy.
+- **Obloha za súmraku** (`parallax/dusk-sky.png`) — vrstva kreslená procedurálne skriptom `tools/parallax.mjs`; v leveli 3
+  ju dopĺňajú vrstvy lesa Tall Forest, len tónované. Bez cudzej licencie, patrí projektu.
 - **Pozadie jaskyne** (`parallax/cave-back.png`, `cave-far`, `cave-mid`, `cave-near`) — vrstvy kreslené procedurálne
   pre tento projekt skriptom `tools/parallax.mjs`; PNG generuje `node tools/parallax.mjs`. Bez cudzej licencie, patrí projektu.
 - **Východ z jaskyne** (`exit/exit-arch.png`) — kreslený procedurálne pre tento projekt skriptom `tools/exit.mjs`

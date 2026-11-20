@@ -374,6 +374,6 @@ test.describe('level 2 (the cave)', () => {
         await page.evaluate(() => window.__game!.release(['right']));
         const s = await state(page);
         expect(s.deaths).toBe(0);
-        expect(s.finalScreen).toBe(true);
+        expect(s.finalScreen).toBe(false);                                     // the dusk forest comes next
     });
 });

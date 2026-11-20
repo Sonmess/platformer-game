@@ -1,7 +1,7 @@
 // Project-owned parallax backgrounds, drawn procedurally. Run: `node tools/parallax.mjs` → PNG layers in
 // public/assets/own/parallax/. Every layer repeats seamlessly sideways (shapes wrap around the width) and is as tall as a
-// level (272 px), pinned to the top of the screen. Far to near: the cave wall, distant stalactites and stalagmites,
-// big columns, hanging roots. Deterministic: the same script always writes the same files.
+// level (272 px), pinned to the top of the screen. Cave, far to near: the cave wall, distant stalactites and
+// stalagmites, big columns, hanging roots. Dusk forest: the sky behind the tinted forest layers. Deterministic: the same script always writes the same files.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
@@ -160,6 +160,50 @@ function near ()
     return c;
 }
 
+// ── Dusk forest (level 3) ────────────────────────────────────────────────────────────────────
+const mixHex = (a, b, t) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+
+/**
+ * The sky at dusk, far behind the (tinted) forest layers: deep blue at the top through violet to a warm pink glow at the
+ * horizon, stars, a crescent moon, and a far line of tree tops against the glow (like the forest's own back layer).
+ * Opaque, as tall as a level. Banded colours (no smooth gradient), so it stays pixel art.
+ */
+function duskSky ()
+{
+    const c = canvas(480);
+    const stops = [[0, '#141433'], [0.3, '#2a2457'], [0.52, '#4a3470'], [0.66, '#8a4f78'], [0.74, '#c4746e'], [0.8, '#de9a74']];
+    const band = y => {
+        const t = y / H;
+        for (let i = 1; i < stops.length; i++) {
+            if (t <= stops[i][0]) {
+                const [t0, c0] = stops[i - 1], [t1, c1] = stops[i];
+                return mixHex(c0, c1, Math.round(((t - t0) / (t1 - t0)) * 4) / 4);      // 4 steps between stops
+            }
+        }
+        return stops[stops.length - 1][1];
+    };
+    for (let y = 0; y < H; y++) for (let x = 0; x < c.w; x++) c.put(x, y, band(y));
+    for (let i = 0; i < 70; i++) {                                                     // stars, fewer towards the glow
+        const x = Math.floor(hash(i, 51) * c.w), y = Math.floor(Math.pow(hash(i, 52), 1.6) * 150);
+        c.put(x, y, hash(i, 53) < 0.25 ? '#ffffff' : '#b9bfe8', hash(i, 54) < 0.5 ? 1 : 0.6);
+    }
+    // A crescent moon with a faint halo.
+    const mx = 150, my = 108, r = 10;          // low enough to show between the canopy and the bushes
+    for (let y = -r - 8; y <= r + 8; y++) for (let x = -r - 8; x <= r + 8; x++) {
+        const d = Math.hypot(x, y);
+        if (d <= r) {
+            if (Math.hypot(x - r * 0.55, y - r * 0.25) < r * 0.85) continue;
+            c.put(mx + x, my + y, d > r - 1.2 ? '#e4dcb0' : (x + y) % 5 === 0 ? '#f8f2d4' : '#f4ecc8');
+        } else if (d <= r + 8 && (x + y) % 2 === 0) c.put(mx + x, my + y, '#cfd4ff', 0.22 * (1 - (d - r) / 8));
+    }
+    // Far tree tops against the glow, then the dark forest floor below them.
+    for (let x = 0; x < c.w; x++) {
+        const top = 150 + Math.round(noise(x, 0, 32, 61, c.w) * 18 + Math.abs(Math.sin(x / 7)) * 6);
+        for (let y = top; y < H; y++) c.put(x, y, y < top + 2 ? '#4a3a6e' : '#2c2550');
+    }
+    return c;
+}
+
 // ── PNG ──────────────────────────────────────────────────────────────────────────────────────
 function png ({ w, data })
 {
@@ -180,7 +224,7 @@ function png ({ w, data })
 
 const OUT = process.argv[2] ?? 'public/assets/own/parallax';
 mkdirSync(OUT, { recursive: true });
-for (const [name, draw] of [['cave-back', back], ['cave-far', far], ['cave-mid', mid], ['cave-near', near]]) {
+for (const [name, draw] of [['cave-back', back], ['cave-far', far], ['cave-mid', mid], ['cave-near', near], ['dusk-sky', duskSky]]) {
     const layer = draw();
     writeFileSync(`${OUT}/${name}.png`, png(layer));
     console.log(`${OUT}/${name}.png  ${layer.w}×${H}`);

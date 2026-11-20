@@ -182,6 +182,18 @@ export const CAVE_PARALLAX = {
     ] as readonly ParallaxLayerDef[]
 } as const;
 
+// The forest at dusk (level 3): its own sky (tools/parallax.mjs: gradient, stars, crescent moon, far tree tops) instead of
+// the lime back layer, and the forest's own layers tinted towards violet-blue, darker the nearer they are.
+export const DUSK_PARALLAX = {
+    SKY_COLOR: '#141433',
+    LAYERS: [
+        { key: 'dusk-sky', url: 'assets/own/parallax/dusk-sky.png', factor: 0.05 },
+        { key: 'bg-far', url: 'assets/tall-forest/far.png', factor: 0.3, fillBelow: 0x1e1a38, tint: 0x6f63a8 },
+        { key: 'bg-middle', url: 'assets/tall-forest/middle.png', factor: 0.5, gap: 128, tint: 0x5a5290 },
+        { key: 'bg-near', url: 'assets/tall-forest/middle.png', factor: 0.75, gap: 352, flip: true, tint: 0x3a3566 }
+    ] as readonly ParallaxLayerDef[]
+} as const;
+
 export interface ParallaxLayerDef
 {
     key: string;
@@ -424,6 +436,16 @@ export const LEVELS: readonly LevelDef[] = [
         skyColor: CAVE_PARALLAX.SKY_COLOR,
         music: AUDIO.CAVE_MUSIC,
         exit: { key: 'exit-arch', url: 'assets/own/exit/exit-arch.png' }
+    },
+    {
+        // Greybox until M5 step 5 (the level) and step 2 (its own terrain); background: the forest at dusk.
+        name: 'Les za súmraku',
+        map: 'level3',
+        tiles: { key: 'tiles-grass', url: 'assets/own/tiles/grass.png' },
+        crumble: { key: 'crumble-strip-planks', url: 'assets/own/tiles/crumble-planks.png' },
+        parallax: DUSK_PARALLAX.LAYERS,
+        skyColor: DUSK_PARALLAX.SKY_COLOR,
+        music: AUDIO.MUSIC
     }
 ];
 

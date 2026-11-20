@@ -2,10 +2,10 @@
 
 2D plošinovka do webového prehliadača s parallax scrollovacím pozadím. Cieľom je hra, ktorá sa hrá plynulo a vyzerá profesionálne.
 
-**Stav:** Milestone 4 je takmer hotový (čaká záverečný playtest) — hra **Lost Cat** má dva levely: dlhý **les**
-(~8 obrazoviek, 6 checkpointov) s ježkami, vranami a hadíkmi, pohyblivými a prepadávacími plošinami, lianami a stromami
-na šplhanie, a **jaskyňu** (~7 obrazoviek, 5 checkpointov) s vlastným terénom, pozadím a hudbou a padajúcimi
-stalaktitmi. Hra si pamätá odomknuté levely, úvodná obrazovka ponúkne pokračovať alebo vybrať level. Mačka začína
+**Stav:** Milestone 4 je hotový — hra **Lost Cat** má dva levely: dlhý **les** (~8 obrazoviek, 6 checkpointov)
+s ježkami, vranami a hadíkmi, pohyblivými a prepadávacími plošinami, lianami a stromami na šplhanie, a **jaskyňu**
+(~7 obrazoviek, 4 checkpointy) s vlastným terénom, pozadím a hudbou, padajúcimi stalaktitmi, tajnou miestnosťou so zlatou
+rybičkou a východom do mesačnej noci. Hra si pamätá odomknuté levely, úvodná obrazovka ponúkne pokračovať alebo vybrať level. Mačka začína
 s 3 životmi (pierkami si môže nazbierať až 9), má mňaukanie, pazúriky a klbko vlny ako power-up; životy a body sa
 prenášajú do ďalšieho levelu. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 
@@ -33,7 +33,8 @@ medzi vlnami. Dosky s puklinami
 sa pod mačkou po chvíli zrútia. Ružové klbko vlny mačku „nafúkne“ — zásah ju potom len zmenší. Po lianach a kmeňoch stromov sa dá šplhať
 (na kmeň sa mačka chytí aj skokom proti nemu); na ich vrchoch bývajú vzácnejšie pierka. S klbkom siahnu pazúriky o kúsok ďalej. Mačka začína s 3 životmi (hlávky vpravo hore), pierkami ich môže mať až 9;
 keď dôjdu, hra končí a level začína odznova. Ohnisko sa zapáli, aj keď ho mačka iba preskočí. V jaskyni visia zo stropu
-stalaktity: keď pod nimi mačka prebehne, zatrasú sa a spadnú — treba bežať ďalej, nie zastať.
+stalaktity: keď pod nimi mačka prebehne, zatrasú sa a spadnú — treba bežať ďalej, nie zastať. Niekde v jaskyni je
+tajná miestnosť so zlatou rybičkou; hra si nájdené poklady pamätá.
 
 ## Technológie
 
