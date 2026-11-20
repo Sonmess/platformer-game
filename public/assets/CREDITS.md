@@ -45,7 +45,7 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 - **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`, `cat-hurt`, `cat-claw`, hlávka do HUD `cat-head`), **pierka** (`feather-normal`, `feather-silver`, `feather-gold`), **klbko vlny** (`yarn`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
   **ježko** (`hedgehog-walk`, `hedgehog-scared`), **vrana** (`crow-fly`, `crow-scared`) a **hadík** (`snake-slither`, `snake-warn`, `snake-spray`) nakreslené pre tento projekt
   ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
-- **Dlaždice terénu** (`tiles/grass.png` v hre; `tiles/bricks.png` a `tiles/rock.png` pripravené pre ďalšie levely) —
+- **Dlaždice terénu** (`tiles/grass.png` v hre; `tiles/bricks.png` a `tiles/rock.png` pripravené pre ďalšie levely; prepadávacie plošiny `tiles/crumble-*.png`) —
   kreslené procedurálne pre tento projekt skriptom `tools/tiles.mjs`; PNG generuje `node tools/tiles.mjs`. Bez cudzej
   licencie, patrí projektu.
 - **Liany a stromy** (`trunk-bark`, `trunk-roots`, `trunk-crown`, `vine-stem`, `vine-tip`, `vine-knot`) a **šplhajúca mačka**

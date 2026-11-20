@@ -4,7 +4,7 @@
 
 **Stav:** Milestone 3 je hotový — hra **Lost Cat**: úvodná obrazovka, pauza, hudba
 a jeden dlhý lesný level (~8 obrazoviek, 6 checkpointov) s ježkami, vranami a hadíkmi, s pohyblivými a prepadávacími
-plošinami, lianami a stromami na šplhanie. Mačka má 3 životy, mňaukanie, pazúriky a klbko vlny ako power-up.
+plošinami, lianami a stromami na šplhanie. Mačka začína s 3 životmi (pierkami si môže nazbierať až 9), má mňaukanie, pazúriky a klbko vlny ako power-up.
 Ďalšie levely sú plánované v M4. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 
 ## Ovládanie
@@ -22,13 +22,14 @@ plošinami, lianami a stromami na šplhanie. Mačka má 3 životy, mňaukanie, p
 | Enter | hrať (na úvodnej obrazovke) |
 | Enter alebo R / Esc | hrať znova / úvodná obrazovka (na obrazovke s výsledkami) |
 
-Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj pierka (modré 1 bod, strieborné 5, zlaté 10; každých 50 bodov vráti stratený život), ohniská sú checkpointy. Ježka a vranu
+Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj pierka (modré 1 bod, strieborné 5, zlaté 10; každých 50 bodov pridá život, až do 9), ohniská sú checkpointy. Ježka a vranu
 sa nedá zašliapnuť — mňauknutie ich na pár sekúnd vystraší a vtedy sa dá cez ne prejsť. Pazúrikmi (C) sa dá vrana hneď vyhnať z levelu; ježko
 utečie, len keď je zvinutý od strachu — nevystrašený mačku popichá. Hadík mňaukania sa nebojí: v pravidelnom cykle
 sa zastaví, nafúkne kapucňu a vystrekne okolo seba fialový oblak jedu — pazúrikmi ho treba vyhnať v chvíľke pokoja
 medzi vlnami. Dosky s puklinami
 sa pod mačkou po chvíli zrútia. Ružové klbko vlny mačku „nafúkne“ — zásah ju potom len zmenší. Po lianach a kmeňoch stromov sa dá šplhať
-(na kmeň sa mačka chytí aj skokom proti nemu); na ich vrchoch bývajú vzácnejšie pierka. Mačka má 3 životy (hlávky vpravo hore); keď dôjdu, hra končí a level začína odznova.
+(na kmeň sa mačka chytí aj skokom proti nemu); na ich vrchoch bývajú vzácnejšie pierka. S klbkom siahnu pazúriky o kúsok ďalej. Mačka začína s 3 životmi (hlávky vpravo hore), pierkami ich môže mať až 9;
+keď dôjdu, hra končí a level začína odznova. Ohnisko sa zapáli, aj keď ho mačka iba preskočí.
 
 ## Technológie
 

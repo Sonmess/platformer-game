@@ -17,6 +17,10 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 ## Hotové po M3
 
 - Vlastné dlaždice terénu namiesto hnedej podlahy (ADR 0009, 2026-11-20)
+- Prepadávacie plošiny s vlastným vzhľadom: staré drevené dosky s povrazmi (popraskaná tráva a červenkastá skala
+  vygenerované pre ďalšie levely) (2026-11-20)
+- S klbkom siahnu pazúriky ďalej (+10 px); checkpoint sa aktivuje aj pri preskočení (spúšťač 10 dlaždíc nad ohniskom);
+  pierka pridávajú životy aj nad štartovné 3, najviac 9 (2026-11-20)
 
 ## M4
 

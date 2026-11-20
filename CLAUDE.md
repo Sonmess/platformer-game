@@ -67,11 +67,11 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   cat at the checkpoint, invulnerable for `DEATH.INVULNERABLE_MS` (blinks; a pit still kills) and with
   `awaitingRelease` (held arrows ignored until let go). `deaths` counts at the hit, the respawn comes later: specs
   that check the respawn wait for `!player.dying`.
-- Lives: `state.lives` (3, `LIVES` in constants); `state.loseLife()` counts the death and takes a life, and
+- Lives: `state.lives` (start 3, up to 9: `LIVES` in constants); `state.loseLife()` counts the death and takes a life, and
   `Game` emits `lives:change` for the HUD (one cat head per life, top right; a lost one pops and fades). At 0, after the death animation, `Game`
-  starts the `GameOver` scene (Enter/R = level from scratch with 9 lives, Esc = title); it stops the music
+  starts the `GameOver` scene (Enter/R = level from scratch with 3 lives, Esc = title); it stops the music
   (`music.stop()`) so the jingle plays alone, and the next `music.start()` brings the loop back. The results show
-  "Životy n/3" instead of deaths. Each death plays a hurt cat (hiss + sad meow, `die.wav`).
+  "Životy n" instead of deaths. Each death plays a hurt cat (hiss + sad meow, `die.wav`).
 - Feathers are the collectible ("coin" in code: `Coin`, `state.coins`, `coin:collect`). Tiled points of type
   `feather` with an int property `value` (1 blue, 5 silver, 10 gold; `FEATHERS` in constants). `state.collect(value)`
   adds `points`; every `COIN.LIFE_EVERY` (50) points give a lost life back (`life:gain`). The HUD shows points,
@@ -88,7 +88,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
 - Meow (X): `Player` owns a `Cooldown` and emits `player:meow` with a `MeowWave` (head position, `dir`, `range`,
   `halfHeight`, `behind`); enemies decide with `inMeowRange()` from `src/core/meow.ts` (pure, unit-tested).
   Effects draw the wave arcs, Audio plays the meow, Hud shows readiness. Tuning: `MEOW` in constants.
-- Claw (C): `Player` owns a `clawCooldown` and emits `player:claw` with a `ClawSwipe` (hitbox centre, `dir`, `reach`,
+- Claw (C): `Player` owns a `clawCooldown` and emits `player:claw` with a `ClawSwipe` (hitbox centre, `dir`, `reach` — longer
+  by `CLAW.BIG_EXTRA_REACH_PX` while big,
   `behind`, `halfHeight`); `Game.onClaw` uses `clawHits()` / `clawOutcome()` from `src/core/claw.ts` (pure, unit-tested):
   a crow or a scared hedgehog gets `Enemy.flee(dir)` (`gone`: body off, no update or sprite sync, a tween runs it off and
   fades it, `enemy:flee`); an unscared hedgehog (`spiky`) pricks the cat (`killPlayer('enemy')`). A fled enemy stays
@@ -129,7 +130,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `Crumble` (`src/core/crumble.ts`, pure: solid → shaking → falling → gone → solid). The body never moves; only
   the image shakes, falls and fades, and the collider's process callback skips it once it is not `solid`. Standing
   goes through the same `Player.standOnPlatform()` (any `Rideable`). `Game` resets them all when the cat
-  respawns.
+  respawns. Their look is a strip of their own (`ASSETS.CRUMBLE_TILES`, from `tools/tiles.mjs`), never the ground tiles.
 - The in-app browser pane throttles the page when hidden (game time stops); verify with
   headless Playwright screenshots instead.
 - Every e2e test fails on console errors/warnings; Chromium "GL Driver Message" lines are ignored
@@ -183,7 +184,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),
   136–157 moving platforms over a wide pit up to a cliff, 157–190 a crumbling bridge under a crow, 190–229 the
-  finale (spikes, an up-and-down crow, a hedgehog) and the cave. Checkpoints at 56, 73, 113, 136, 157, 190.
+  finale (spikes, an up-and-down crow, a hedgehog) and the cave. Checkpoints at 56, 73, 113, 136, 157, 190; a checkpoint's trigger reaches `CHECKPOINT.TRIGGER_TILES` above its campfire
+  (a jump over it counts).
   M3 additions: at the start a trunk (col 1, ledge row 7 cols 3–5, silver feather) and a vine (col 7, three blue
   feathers); a trunk at col 59 up to a ledge (row 7, cols 61–63, gold feather) over the wide pit; snakes at 76–79 and on
   the finale cliff 193–195; a vine at col 219 (ends at row 13: reached by jumping with up held) to the cave roof (silver).
