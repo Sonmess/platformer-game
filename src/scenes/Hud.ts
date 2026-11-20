@@ -129,6 +129,6 @@ export class Hud extends Scene
 
     private renderCoins (): void
     {
-        this.coinsText.setText(`${state.points}`);     // feather points
+        this.coinsText.setText(`${state.totalPoints}`);     // feather points of the whole run
     }
 }

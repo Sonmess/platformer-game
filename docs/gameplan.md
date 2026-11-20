@@ -200,6 +200,114 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
 - Koniec hry vracia na začiatok levelu (checkpointy sa zabudnú), body z pierok sa nulujú.
 - Veľká mačka (s klbkom) má rovnako široký hitbox ako malá, len o niečo vyšší — level sa nemusí prerábať.
 
+## Milestone 4 — „Do jaskyne“
+
+> Stav: **SCHVÁLENÉ** (2026-11-20). Rozsah: [ADR 0010](decisions/0010-rozsah-m4.md).
+
+Hra dostane druhý level: mačka vojde do jaskyne na konci lesa a prechádza ňou k východu. Jaskyňa má vlastný terén,
+pozadie a hudbu a jeden nový prvok — padajúce stalaktity. Levely sa stanú dátami (rámec aj pre ďalšie levely),
+postup medzi nimi je lineárny a hra si pamätá odomknuté levely. Postup ako doteraz: po každom kroku testy,
+screenshot a tvoj playtest; každá novinka prináša vlastnú grafiku, zvuky a efekty.
+
+### Fáza A — rámec pre viac levelov
+
+- [x] **1. Levely ako dáta** — zoznam `LEVELS` v `constants.ts`: mapa (Tiled JSON), štýl terénu a jeho varianty,
+  vzhľad prepadávacích plošín, vrstvy pozadia a farba oblohy, hudba, názov. Scéna `Game` dostane číslo levelu
+  (`init`), `state.level` ho nesie, dev parameter `?play=2` spustí rovno level 2. Level 1 sa nezmení.
+  `tests/e2e/landmarks.ts` dostane level ako parameter.
+  Test: každý level sa načíta a dá sa reštartovať 10× bez rozdielov; listenery nerastú pri prechode medzi levelmi.
+  Stav: `LEVELS` a `levelDef()` v `constants.ts`, mapy v `src/levels/index.ts`; textúry plošín sa pečú pre každý
+  level zvlášť (`platform-level1-3`, `crumble-level2-3`…), pozadie a obloha idú z definície levelu. Výsledky aj koniec
+  hry reštartujú aktuálny level. Level 2 je zatiaľ greybox (60 stĺpcov, skalný terén so stropom, jama, checkpoint,
+  prepadávacia plošina, cieľ; lesné pozadie do kroku 5). Test API: `levelNumber`, `levelName`; `landmarks(n)`
+  v testoch; nový `tests/e2e/levels.spec.ts`.
+- [x] **2. Prechod medzi levelmi** — výsledky levelu: Enter = ďalší level (s krátkym prelínaním), Esc = úvodná
+  obrazovka; životy a body sa prenášajú (výsledky ukážu body za level aj spolu). Po poslednom leveli záverečná
+  obrazovka. Koniec hry vráti na začiatok aktuálneho levelu s 3 životmi.
+  Test: cieľ levelu 1 → výsledky → Enter → level 2 s rovnakými životmi; koniec hry v leveli 2 → znova level 2.
+  Stav: výsledky — Enter = ďalší level (prelínanie), R = ten istý level znova (so životmi a bodmi ako na jeho začiatku,
+  takže sa nedajú „farmiť“ pierka), Esc = úvodná obrazovka. Riadky: pierka levelu, „Spolu“ za celú hru, životy, čas.
+  Po poslednom leveli titul „Hra dokončená!“ a Enter = nová hra od levelu 1. HUD ukazuje body za celú hru a život navyše
+  sa počíta z nich. Logika v `state.enter('new' | 'next' | 'replay' | 'retry')` (unit testy), scenáre
+  v `tests/e2e/levels.spec.ts`.
+- [x] **3. Uložený postup a výber levelu** — prehliadač si pamätá najvyšší odomknutý level (`localStorage`,
+  bez chyby pri zablokovanom úložisku). Úvodná obrazovka: Enter = pokračovať, šípky ←/→ = výber z odomknutých
+  levelov (názov levelu na obrazovke).
+  Test: dokončenie levelu ho odomkne, po obnovení stránky ostáva; zamknutý level sa vybrať nedá; bez úložiska hra
+  začne od levelu 1.
+  Stav: kľúč `lost-cat:unlocked-level` (najvyšší odomknutý level, len rastie). Úvodná obrazovka predvolene vyberie
+  najvyšší odomknutý level („Enter = pokračovať“), riadok „level 2: Jaskyňa“ so šípkami tam, kam sa dá posunúť.
+  Poškodená hodnota alebo zablokované úložisko = level 1, bez chyby. Text na úvodnej obrazovke posunutý vyššie a mačka
+  doľava, aby sa nič neprekrývalo. Logika v `src/core/progress.ts` (unit testy), scenáre v `tests/e2e/progress.spec.ts`.
+
+### Fáza B — vzhľad jaskyne
+
+- [x] **4. Terén jaskyne** — nový štýl v `tools/tiles.mjs`: tmavá vlhká skala s kryštálmi, strop (spodný rad bloku)
+  s kvapľami a kvapkami, varianty ako pri tráve; vlastný vzhľad prepadávacích plošín v jaskyni.
+  Test: varianty sedia s konštantami (unit test ako pri tráve). Vzhľad: overené playtestom.
+  Stav: štýl `cave` v `tools/tiles.mjs` — hrboľatá tmavá skala s vlhkými odleskami a prasklinami, svetlejší
+  ošúchaný okraj na chodenie (miestami mach), spodný rad bloku = strop s kvapľami (2–7 px) a kvapkami vody; varianty:
+  fialové kryštály, vlhký pruh, tyrkysový kryštál. Prepadávacie plošiny v jaskyni: svetlý krehký vápenec s prasklinami.
+  Pravidlo pre mapy: podlahy = vrchný + stredný rad, stropy a previsy = stredný + spodný rad. Greybox levelu 2 to už
+  používa (strop, nižší previs, plávajúca rímsa). Vzhľad: čaká na playtest (pozadie je do kroku 5 ešte les).
+- [x] **5. Pozadie jaskyne** — vlastné parallax vrstvy (nový generátor v `tools/`): vzdialená stena jaskyne so
+  slabo žiariacimi kryštálmi, siluety stalagmitov a stalaktitov, bližšie visiace korene; tmavá paleta.
+  Test: vrstvy sa posúvajú rôznou rýchlosťou a každý level má svoje pozadie. Vzhľad: overené playtestom.
+  Stav: `tools/parallax.mjs` kreslí 4 vrstvy vysoké ako level, bez švu pri opakovaní: stena jaskyne s matne žiariacimi
+  kryštálmi (0,1), vzdialené stalaktity a stalagmity (0,3), veľké stĺpy s kryštálmi (0,5), visiace korene a balvany
+  (0,75); obloha `#0d0b14`. Z lesa v jaskyni nič neostalo. FPS na nabíjačke: 59–60 v oboch leveloch.
+  Vzhľad: čaká na playtest.
+- [x] **6. Hudba jaskyne** — druhá slučka v `tools/music.mjs` (pomalšia, s ozvenou); hudba sa pri zmene levelu
+  prelne, M a pauza fungujú ako doteraz.
+  Test: v leveli 2 hrá jaskynná slučka, vždy len jedna inštancia hudby. Kvalita: overené playtestom.
+  Stav: `cave.wav` — 8 taktov, 66 BPM (~29 s), d mol (Dm–B–Gm–A): nízky bordún, jemne rozložené akordy, pomalá
+  melódia s dvoma tichšími ozvenami (o bodkovanú osminu), kvapky vody a dunenie pod akordom A, ktorý vedie späť na Dm.
+  Lesná slučka sa nezmenila. Každý level má svoju skladbu (`LevelDef.music`); pri zmene levelu sa prelínajú 1,2 s,
+  prelínanie beží na hernej slučke, takže prežije prepínanie scén. Úvodná obrazovka hrá les. Kvalita: čaká na playtest.
+
+### Fáza C — nový prvok a level
+
+- [x] **7. Padajúce stalaktity** — visia zo stropu (Tiled typ `stalactite`); keď mačka prebehne pod nimi, ~0,4 s
+  sa trasú a sypú kamienky (varovanie, zvuk), potom spadnú a pri dopade sa rozbijú (prach, zvuk). Zásah = zásah
+  (veľká mačka sa len zmenší, malá zomrie). Po respawne visia späť. Logika v `src/core/` (unit testy).
+  Test: spustí ich prechod pod nimi, varovanie pred pádom, pád zraní, rýchly beh stihne prebehnúť, reset po respawne.
+  Stav: Tiled bod `stalactite` = miesto, kde visí (horný stred). Spúšťa ho mačka pod hrotom do 24 px do strany;
+  0,45 s sa trasie (hukot, sypú sa kamienky), potom padá (gravitácia 1400 px/s², max. 520 px/s) na prvú pevnú dlaždicu
+  pod sebou, nad jamou vypadne z levelu. Zraňuje len počas pádu (hitbox 8×16 nad hrotom), príčina smrti `stalactite`.
+  Pri dopade sa rozbije (kúsky, krátke zatrasenie kamery, zvuk). Bežiaca mačka stihne prebehnúť, stojaca nie.
+  Po respawne visí späť. Vlastný sprite (12×26) a zvuky `rumble`/`shatter` (hrajú len blízko kamery). V greybox
+  leveli 2 sú tri. Logika v `src/core/stalactite.ts` (unit testy), scenáre v `tests/e2e/stalactite.spec.ts`.
+  Pocit a férovosť: čaká na playtest.
+- [x] **8. Level 2 „Jaskyňa“** — ~200 stĺpcov, nadväzuje na vchod do jaskyne z levelu 1, cieľ = východ z jaskyne
+  (svetlo). Stalaktity sa najprv predstavia bezpečne, potom nad jamami a s nepriateľmi; ježkovia, hadíky, liany
+  (korene z otvorov v strope), pohyblivé a prepadávacie plošiny nad priepasťami, 5–6 checkpointov, pierka
+  (~80–90 bodov, aby jedno prejdenie dalo život navyše), klbká.
+  Test: `route.spec` prejde level 2 po úsekoch (aj so stalaktitmi). Férovosť a obtiažnosť: overené playtestom.
+  Stav: 200 stĺpcov, 5 checkpointov (28, 61, 98, 133, 171), 37 pierok za 83 bodov, 8 stalaktitov, 2 ježkovia,
+  2 hadíci, 2 klbká. Úseky: vstup (klbko, prvý stalaktit nad rovinou) → ježko, dvojica stalaktitov, jama so stalaktitom
+  nad dopadom → priepasť (pohyblivá plošina 2 dlaždice nad okrajom, dve vápencové plošiny, rímsa, hadík) → korene
+  (útes len cez koreň, zlaté pierko pod nízkym stropom, koreň nad 6 dlaždíc širokou jamou) → hadík, jama a nízka
+  chodba so 4 stalaktitmi → ježko, vápencové plošiny nad poslednou jamou, východ. `route.spec` hrá všetkých 6 úsekov
+  (robot pri hadíkoch sleduje vzdialenosť priebežne a švihne až na zemi). Korene zatiaľ vyzerajú ako liany.
+  Férovosť a obtiažnosť: čaká na playtest.
+
+### Fáza D — záver
+
+- [ ] **9. Finálna kontrola M4** — všetky testy, FPS ~60 v oboch leveloch (so zapojenou nabíjačkou), reštart 10×
+  v oboch leveloch, playtest od úvodnej obrazovky cez oba levely po záverečnú obrazovku, aktualizácia dokumentov.
+  Stav: unit testy (88) a všetky e2e testy (157) prechádzajú, build je v poriadku. FPS test beží v oboch leveloch
+  (> 55 FPS, so zapojenou nabíjačkou). Reštart 10× v jaskyni teraz špiní aj stav z M4 (spadnutý stalaktit a smrť pod ním,
+  klbko, pierko) a porovnáva stalaktity, nepriateľov, body, klbká, HUD a hudbu. README, backlog a CLAUDE.md
+  aktualizované. Čaká: playtest celej hry od úvodnej obrazovky cez oba levely po záverečnú obrazovku.
+
+### Predvolené rozhodnutia M4 (zmeníme, ak pri playteste nebudú sedieť)
+
+- Životy aj body sa medzi levelmi prenášajú; život navyše dáva každých 50 bodov spolu za celú hru.
+- Koniec hry vráti na začiatok aktuálneho levelu (nie na level 1); checkpointy sa zabudnú.
+- Ukladá sa len najvyšší odomknutý level — nie životy, body ani checkpoint uprostred levelu.
+- V jaskyni nie sú vrany. Lietajúci nepriateľ (napr. netopier) a ďalšie prvky (vietor, gejzír) sú v backlogu.
+- Level 3 (výstup z jaskyne, les za súmraku) je až v ďalšom míľniku.
+
 ## Rozhodnutia
 
 | # | Téma | Rozhodnutie | ADR |
@@ -218,6 +326,7 @@ Postup ako v M1 a M2: po každom kroku testy, screenshot a tvoj playtest.
 | 12 | Rozsah M2 | Úvodná obrazovka, pauza, hudba, ježko a vrána vystrašení mňauknutím (bez stompu), pohyblivé a prepadávacie plošiny; ďalšie levely v M3 | [0007](decisions/0007-rozsah-m2.md) |
 | 13 | Rozsah M3 | Animácia smrti, 3 životy + klbko vlny, pierka (1/5/10 bodov), útok pazúrikmi, hadík s jedom, šplhanie po lianach a kmeňoch; ďalšie levely v M4 | [0008](decisions/0008-rozsah-m3.md) |
 | 14 | Terén | Vlastné dlaždice „tráva a tmavá hlina“ s variantmi (`tools/tiles.mjs`); murivo a skala pripravené pre ďalšie levely | [0009](decisions/0009-vlastne-dlazdice-terenu.md) |
+| 15 | Rozsah M4 | Jeden nový level „Jaskyňa“ (vlastný terén, pozadie, hudba), padajúce stalaktity, levely ako dáta, lineárny postup s uloženým odomknutím; súmrak v lese neskôr | [0010](decisions/0010-rozsah-m4.md) |
 
 ## Mimo rozsahu M1
 
@@ -232,3 +341,9 @@ menu s nastaveniami a ich ukladanie, verejné nasadenie.
 
 Ďalšie levely a palety (M4), stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad,
 menu s nastaveniami a ich ukladanie (aj ukladanie postupu), verejné nasadenie.
+
+## Mimo rozsahu M4
+
+Level 3 (výstup z jaskyne, les za súmraku) a ďalšie levely, lietajúci nepriateľ (netopier), vietor a gejzír,
+stomp mechanika (zámerne nie), dvojskok a wall jump, mobil a gamepad, menu s nastaveniami a ich ukladanie,
+ukladanie checkpointov a životov, verejné nasadenie.

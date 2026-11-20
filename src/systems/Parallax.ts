@@ -1,13 +1,17 @@
 import Phaser from 'phaser';
-import { DEPTH, PARALLAX, type ParallaxLayerDef } from '../config/constants';
+import { DEPTH, LEVELS, type ParallaxLayerDef } from '../config/constants';
 
 /** Loaded image for a layer; Preload bakes it into the layer's own texture (`def.key`). */
 export const parallaxSourceKey = (def: ParallaxLayerDef) => `${def.key}-src`;
 
+/** Every level's layers, each once (levels may share layers). */
+export const allParallaxLayers = (): ParallaxLayerDef[] =>
+    [...new Map(LEVELS.flatMap(l => l.parallax).map(d => [d.key, d])).values()];
+
 /** Bakes each layer's texture: the source image plus `gap` empty px, mirrored when `flip` is set. */
 export function bakeParallaxTextures (textures: Phaser.Textures.TextureManager): void
 {
-    for (const def of PARALLAX.LAYERS) {
+    for (const def of allParallaxLayers()) {
         if (textures.exists(def.key)) continue;
         const src = textures.get(parallaxSourceKey(def)).getSourceImage() as HTMLImageElement;
         const canvas = textures.createCanvas(def.key, src.width + (def.gap ?? 0), src.height)!;
@@ -30,13 +34,13 @@ export class Parallax
 {
     readonly layers: { sprite: Phaser.GameObjects.TileSprite; def: ParallaxLayerDef }[] = [];
 
-    constructor (scene: Phaser.Scene)
+    constructor (scene: Phaser.Scene, layers: readonly ParallaxLayerDef[], skyColor: string)
     {
         const { width, height } = scene.scale;
         const camera = scene.cameras.main;
-        camera.setBackgroundColor(PARALLAX.SKY_COLOR);
+        camera.setBackgroundColor(skyColor);
 
-        PARALLAX.LAYERS.forEach((def, i) => {
+        layers.forEach((def, i) => {
             const depth = DEPTH.PARALLAX + i * 2;
             const texHeight = scene.textures.get(def.key).getSourceImage().height;
             const sprite = scene.add.tileSprite(0, 0, width, texHeight, def.key)

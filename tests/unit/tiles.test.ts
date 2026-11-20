@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { GROUND_TILES } from '../../src/config/constants';
+import { GROUND_TILES, LEVELS } from '../../src/config/constants';
 import { tileHash, tileVariant } from '../../src/core/tiles';
 
 const V = { 38: [64, 65, 66], 45: [67, 68, 69] };
@@ -34,8 +34,12 @@ describe('tileVariant', () => {
 });
 
 describe('ground tileset', () => {
-    it('the variant gids in constants match what tools/tiles.mjs generated', () => {
-        const generated = JSON.parse(readFileSync('public/assets/own/tiles/grass.json', 'utf8')) as { variants: Record<string, number[]> };
-        expect(Object.fromEntries(Object.entries(GROUND_TILES.VARIANTS).map(([k, v]) => [k, [...v]]))).toEqual(generated.variants);
+    it('the variant gids in constants match what tools/tiles.mjs generated, for every level\'s tileset', () => {
+        const ours = Object.fromEntries(Object.entries(GROUND_TILES.VARIANTS).map(([k, v]) => [k, [...v]]));
+        for (const level of LEVELS) {
+            const style = level.tiles.url.replace(/^.*\/(\w+)\.png$/, '$1');
+            const generated = JSON.parse(readFileSync(`public/assets/own/tiles/${style}.json`, 'utf8')) as { variants: Record<string, number[]> };
+            expect(ours, level.map).toEqual(generated.variants);
+        }
     });
 });

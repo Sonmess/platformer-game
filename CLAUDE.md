@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
 **Status:** Milestones 1 (2026-11-05), 2 (2026-11-19, ADR 0007) and 3 (2026-11-19, game
-improvements, ADR 0008) complete and playtested. Next: M4 (more levels), not planned yet. Checklists in
+improvements, ADR 0008) complete and playtested. Milestone 4 (level 2 "Jaskyňa", ADR 0010) is approved and in progress. Checklists in
 `docs/gameplan.md`.
 
 ## Stack
@@ -61,7 +61,12 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   claws): each section must be passable without dying. Jump points near hazards need margin: frames jitter by a few px. When
   editing the level, keep the cat's test spots clear of patrols and spikes, and keep every section passable.
 - The game boots into the `Title` scene; level specs open `/?play` (dev-only, handled in `Preload`) to start
-  straight in `Game`. Only `boot.spec.ts` and `title.spec.ts` open `/`.
+  straight in `Game` (level 1; `/?play=2` = level 2). Only `boot.spec.ts` and `title.spec.ts` open `/`.
+- Levels are data (M4): `LEVELS` in constants (map key, ground tiles, crumble strip, parallax layers, sky colour, name),
+  maps imported in `src/levels/index.ts`. `Game.init({ level })` (1-based, clamped by `levelNumber()`), `state.level`
+  carries it; results and game over restart `state.level`. Platform textures are baked per level in `Game.create`
+  (`platformTexturePrefix(map)`, `crumbleTexturePrefix(map)`). The test API's `level` is the map size; the number is
+  `levelNumber`. Specs use `landmarks(n)` from `tests/e2e/landmarks.ts` (the old named exports are level 1).
 - Death is not instant: `Game.killPlayer()` → `Player.die()` (body off, controls off, hurt frame), the camera holds
   (`CameraRig.hold()`), Effects hops/spins/fades the sprite; after `DEATH.ANIM_MS` `Game.respawnPlayer()` puts the
   cat at the checkpoint, invulnerable for `DEATH.INVULNERABLE_MS` (blinks; a pit still kills) and with
@@ -71,7 +76,18 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `Game` emits `lives:change` for the HUD (one cat head per life, top right; a lost one pops and fades). At 0, after the death animation, `Game`
   starts the `GameOver` scene (Enter/R = level from scratch with 3 lives, Esc = title); it stops the music
   (`music.stop()`) so the jingle plays alone, and the next `music.start()` brings the loop back. The results show
-  "Životy n" instead of deaths. Each death plays a hurt cat (hiss + sad meow, `die.wav`).
+  "Životy n" instead of deaths.
+- Moving between levels: `Game.init({ level, entry })` calls `state.enter(entry)` — 'new' (title, final screen, `?play`:
+  3 lives, no points), 'next' (results Enter: lives kept, the level's points added to `state.runPoints`), 'replay'
+  (results R: lives and run points as the level started, `state.levelStart`), 'retry' (game over: 3 lives, earlier
+  levels' points kept). `state.reset()` in `Game.create` clears only per-level fields. The HUD and extra lives use
+  `state.totalPoints` (run + level). R is a confirm key too, so the results check `replayPressed` first; virtual key
+  `replay` in specs. After the last level the results are the final screen (`finalScreen` in the test API).
+- Saved progress: `src/core/progress.ts` (pure, store injected; `browserStore()` returns null when localStorage is
+  blocked) keeps the highest unlocked level under `PROGRESS.STORAGE_KEY`; `Game.completeLevel` unlocks the next one.
+  The title starts the highest unlocked level; ←/→ (`leftPressed`/`rightPressed` edges in `Input`) choose among the
+  unlocked ones. Each Playwright test has a fresh context (empty storage), but a spec that finishes level 1 and then goes
+  through the title must pick level 1 again (press left) — the title continues at level 2. Each death plays a hurt cat (hiss + sad meow, `die.wav`).
 - Feathers are the collectible ("coin" in code: `Coin`, `state.coins`, `coin:collect`). Tiled points of type
   `feather` with an int property `value` (1 blue, 5 silver, 10 gold; `FEATHERS` in constants). `state.collect(value)`
   adds `points`; every `COIN.LIFE_EVERY` (50) points give a lost life back (`life:gain`). The HUD shows points,
@@ -126,6 +142,11 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   Input: the `up` action (↑/W) is separate from `jump` (space/Z) but still counts in `jumpPressed`; next to a climbable
   only `jumpButtonPressed` jumps. Events `player:grab`, `player:climb-step`, `player:let-go` (`how`: jump/top/drop/
   ground/end); the test API has `player.climbing`, `climbables` and a `climb` log. Tuning: `CLIMB`, `JUICE.CLIMB`.
+- Stalactites (`src/entities/Stalactite.ts`, Tiled point `stalactite` = where it hangs, top centre): phases in
+  `StalactiteLife` (`src/core/stalactite.ts`, pure: hanging → shaking → falling → shattered), set off by `catUnder()`.
+  No physics body: `Game` finds the fall distance (first colliding tile below, or out of the level over a pit), calls
+  `update()` every frame and kills the cat (`'stalactite'`) when `hurts()`; respawn resets them. Events
+  `stalactite:shake|fall|shatter`; Audio/Effects only near the camera. Tuning: `STALACTITE`, `JUICE.STALACTITE`.
 - Crumbling platforms (`src/entities/CrumblePlatform.ts`, Tiled type `crumble`, width = tiles): the phases live in
   `Crumble` (`src/core/crumble.ts`, pure: solid → shaking → falling → gone → solid). The body never moves; only
   the image shakes, falls and fades, and the collider's process callback skips it once it is not `solid`. Standing
@@ -163,12 +184,15 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `public/assets/own/` (outline is added automatically). The repo is public: never add assets whose license forbids
   redistribution. Sound works the same way: `tools/synth.mjs` (tiny synth: square/triangle/noise notes → WAV) is
   used by `tools/sfx.mjs` (→ `public/assets/own/sfx/`, played on gameplay events by `src/systems/Audio.ts`) and
-  `tools/music.mjs` (→ `public/assets/own/music/forest.wav`, a 30 s loop rendered with wrap-around so the seam is
-  clean). `src/systems/Music.ts` keeps one loop in the game-wide sound manager: every scene calls `music.start()`
-  (idempotent) and `music.handleKeys()` (M = mute); the pause ducks it. Tuning: `AUDIO` in constants. Headless
+  `tools/music.mjs` (→ `public/assets/own/music/forest.wav` and `cave.wav`, ~30 s loops rendered with wrap-around so
+  the seam is clean). `src/systems/Music.ts` keeps one loop per track in the game-wide sound manager: every scene calls
+  `music.start(scene, track)` (idempotent; the level's `LevelDef.music`, the title plays the forest) and
+  `music.handleKeys()` (M = mute); the pause ducks it. A different track crossfades over `AUDIO.MUSIC_FADE_MS`,
+  stepped on the game's STEP event (not a scene clock). The test API's `music` has `track` and `fading`. Tuning: `AUDIO` in constants. Headless
   Chromium keeps the AudioContext locked, so e2e tests assert the `sfx` log and `music` state in `getState()`,
   not audio output.
-- Parallax (`src/systems/Parallax.ts`): layers are `PARALLAX.LAYERS` in constants (far to near); Preload bakes each
+- Parallax (`src/systems/Parallax.ts`): each level's layers come from its `LevelDef` (`PARALLAX` = the forest,
+  `CAVE_PARALLAX` = the cave, drawn by `node tools/parallax.mjs`: 272 px tall, seamless sideways); Preload bakes each
   into its own texture (`gap` spacing, `flip`), and TileSprite offsets update on the camera's `FOLLOW_UPDATE` so they
   never lag the world.
 - Juice (`src/systems/Effects.ts`) only subscribes to gameplay events and touches visuals (cat sprite scale,
@@ -180,6 +204,12 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   swap plain centre tiles for variants by position (`tileVariant()` in `src/core/tiles.ts`, `GROUND_TILES` in constants;
   a unit test checks the gids against the generator's JSON). Swap `tile.index` after the collision setup: the tile keeps
   its collision flags.
+- Level 2 `src/levels/level2.json` "Jaskyňa" (ADR 0010): 200 cols, `cave` tile style; 0–29 entrance (yarn, first
+  stalactite), 30–61 hedgehog + stalactites + pit 52–55, 62–99 chasm 66–84 (platform row 13, limestone crumbles,
+  ledge 85–88, snake 92–95), 100–134 roots (cliff 107–118 only via the root at col 105, root over pit 123–128),
+  135–171 snake, pit 148–151, stalactite corridor 156–168, 172–199 hedgehog, crumbles over pit 184–191, exit at 196.
+  Checkpoints at 28, 61, 98, 133, 171. `route.spec.ts` has a "level 2" describe playing all six sections. In cave maps, floors use the block's top + middle rows and ceilings/overhangs the middle + bottom rows:
+  the bottom row hangs stalactites (transparent below), so never put it at the bottom of a floor.
 - Level `src/levels/level1.json` uses that tileset (autotiled 3×3 block); it opens in Tiled because the
   tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),

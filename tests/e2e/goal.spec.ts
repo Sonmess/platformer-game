@@ -43,10 +43,11 @@ async function finishLevel (page: Page)
     await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
 }
 
+/** R on the results: the same level again. */
 async function restartFromResults (page: Page)
 {
     await page.evaluate(d => window.__game!.wait(d), RESULTS.INPUT_DELAY_MS);
-    await page.evaluate(() => window.__game!.press(['confirm'], 100));
+    await page.evaluate(() => window.__game!.press(['replay'], 100));
     await waitForPlaying(page);
 }
 
@@ -65,8 +66,10 @@ test('reaching the goal shows the results with coins, deaths and time', async ({
     const s = await state(page);
     expect(s.hud).toBeNull();                               // HUD is stopped with the level
     expect(s.results![0]).toBe(`${RESULTS.TEXT.COINS}: 1/${s.pointsTotal}`);     // a blue feather: 1 point
-    expect(s.results![1]).toBe(`${RESULTS.TEXT.LIVES}: ${LIVES.START - 1}`);   // one life lost
-    expect(s.results![2]).toMatch(new RegExp(`^${RESULTS.TEXT.TIME}: \\d+:\\d\\d\\.\\d$`));
+    expect(s.results![1]).toBe(`${RESULTS.TEXT.TOTAL}: 1`);                      // the whole run so far
+    expect(s.results![2]).toBe(`${RESULTS.TEXT.LIVES}: ${LIVES.START - 1}`);   // one life lost
+    expect(s.results![3]).toMatch(new RegExp(`^${RESULTS.TEXT.TIME}: \\d+:\\d\\d\\.\\d$`));
+    expect(s.finalScreen).toBe(false);                     // level 1 is not the last one
     expect(s.timeMs).toBeGreaterThan(0);
 });
 
@@ -85,9 +88,10 @@ test('confirm held from the moment the results appear does not skip them', async
     await page.evaluate(() => window.__game!.wait(300));
     expect((await state(page)).scene).toBe('LevelComplete');
 
-    // A fresh press after the delay restarts.
+    // A fresh press after the delay goes on to the next level.
     await page.evaluate(() => window.__game!.press(['confirm'], 100));
     await waitForPlaying(page);
+    expect((await state(page)).levelNumber).toBe(2);
 });
 
 test('restarting 10× yields an identical initial state', async ({ page }) => {
@@ -130,8 +134,8 @@ test('restarting 10× yields an identical initial state', async ({ page }) => {
     }
 });
 
-test('real Enter and R keys restart from the results screen, Space does not', async ({ page }) => {
-    for (const key of ['Enter', 'KeyR']) {
+test('real keys on the results: R plays the level again, Enter goes on to level 2, Space does nothing', async ({ page }) => {
+    for (const [key, level] of [['KeyR', 1], ['Enter', 2]] as const) {
         await finishLevel(page);
         await page.evaluate(d => window.__game!.wait(d), RESULTS.INPUT_DELAY_MS);
         await page.keyboard.press('Space');                 // instant tap: down and up in one frame
@@ -140,5 +144,6 @@ test('real Enter and R keys restart from the results screen, Space does not', as
 
         await page.keyboard.press(key);
         await waitForPlaying(page);
+        expect((await state(page)).levelNumber).toBe(level);
     }
 });

@@ -1,18 +1,17 @@
 import Phaser from 'phaser';
-import { ASSETS, DEPTH, PLATFORM, TILE } from '../config/constants';
+import { DEPTH, PLATFORM, TILE } from '../config/constants';
 import { pingPong } from '../core/path';
 
+/** Texture prefix of a level's moving platforms (one texture per width: prefix + tiles). */
+export const platformTexturePrefix = (mapKey: string) => `${PLATFORM.TEXTURE_PREFIX}${mapKey}-`;
+
 /**
- * Bakes one texture per platform width (2..MAX_TILES tiles) under `prefix + n` from the level tileset: left end,
- * middle tiles, right end. `decorate` may draw over each tile.
+ * Bakes one texture per platform width (2..MAX_TILES tiles) under `prefix + n` from a level's tileset (texture
+ * `tilesKey`): left end, middle tiles, right end. Once per level; textures outlive scene restarts.
  */
-export function bakePlatformTextures (
-    textures: Phaser.Textures.TextureManager,
-    prefix: string = PLATFORM.TEXTURE_PREFIX,
-    decorate?: (ctx: CanvasRenderingContext2D, tileX: number) => void
-): void
+export function bakePlatformTextures (textures: Phaser.Textures.TextureManager, tilesKey: string, prefix: string): void
 {
-    const src = textures.get(ASSETS.TILESET.key).getSourceImage() as HTMLImageElement;
+    const src = textures.get(tilesKey).getSourceImage() as HTMLImageElement;
     const tileAt = (gid: number) => {
         const i = gid - 1;
         return { sx: (i % PLATFORM.TILESET_COLUMNS) * TILE, sy: Math.floor(i / PLATFORM.TILESET_COLUMNS) * TILE };
@@ -25,7 +24,6 @@ export function bakePlatformTextures (
             const gid = i === 0 ? PLATFORM.GIDS.LEFT : i === n - 1 ? PLATFORM.GIDS.RIGHT : PLATFORM.GIDS.MID;
             const { sx, sy } = tileAt(gid);
             canvas.context.drawImage(src, sx, sy, TILE, TILE, i * TILE, 0, TILE, TILE);
-            decorate?.(canvas.context, i * TILE);
         }
         canvas.refresh();
     }
@@ -51,7 +49,7 @@ export class MovingPlatform extends Phaser.GameObjects.Rectangle
     private readonly length: number;
     private travelled = 0;
 
-    constructor (scene: Phaser.Scene, path: { x: number; y: number; width: number; height: number }, tiles: number)
+    constructor (scene: Phaser.Scene, path: { x: number; y: number; width: number; height: number }, tiles: number, texturePrefix: string)
     {
         const n = Phaser.Math.Clamp(Math.round(tiles), 2, PLATFORM.MAX_TILES);
         const w = n * TILE;
@@ -69,7 +67,7 @@ export class MovingPlatform extends Phaser.GameObjects.Rectangle
         this.from = from;
         this.to = to;
         this.length = Phaser.Math.Distance.BetweenPoints(from, to);
-        this.image = scene.add.image(from.x, from.y, PLATFORM.TEXTURE_PREFIX + n).setOrigin(0).setDepth(DEPTH.PLATFORMS);
+        this.image = scene.add.image(from.x, from.y, texturePrefix + n).setOrigin(0).setDepth(DEPTH.PLATFORMS);
 
         const world = scene.physics.world;
         world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, this.step, this);

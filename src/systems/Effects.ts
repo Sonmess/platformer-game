@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DEATH, DEPTH, JUICE, MEOW, PLAYER_FEEL, POWER, type FeatherKind } from '../config/constants';
+import { DEATH, DEPTH, JUICE, MEOW, PLAYER_FEEL, POWER, STALACTITE, type FeatherKind } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import type { ClimbKind } from '../core/climb';
 import type { ClawSwipe } from '../core/claw';
@@ -39,6 +39,9 @@ export class Effects
     private readonly poisonDrops: Phaser.GameObjects.Particles.ParticleEmitter;
     /** Bark or leaf bits where the paws grab and climb, one emitter per kind (its colours). */
     private readonly climbBits: Record<ClimbKind, Phaser.GameObjects.Particles.ParticleEmitter>;
+    /** Stone bits: pebbles trickling from a shaking stalactite, pieces where one shatters. */
+    private readonly stoneBits: Phaser.GameObjects.Particles.ParticleEmitter;
+    private readonly pebbleTimers: Phaser.Time.TimerEvent[] = [];
     private readonly handlers: [string, (...args: never[]) => void][];
     // The cat sprite's tweens, kept apart so a jump's squash never cuts the respawn blink short.
     private popTween?: Phaser.Tweens.Tween;
@@ -96,11 +99,15 @@ export class Effects
             emitting: false
         }).setDepth(DEPTH.EFFECTS);
         this.climbBits = { trunk: bits(JUICE.CLIMB.TINT.trunk), vine: bits(JUICE.CLIMB.TINT.vine) };
+        this.stoneBits = bits(JUICE.STALACTITE.TINT);
 
         this.handlers = [
             [EV.PLAYER_JUMP, this.onJump],
             [EV.PLAYER_GRAB, this.onGrab],
             [EV.PLAYER_CLIMB_STEP, this.onClimbStep],
+            [EV.STALACTITE_SHAKE, this.onStalactiteShake],
+            [EV.STALACTITE_SHATTER, this.onStalactiteShatter],
+            [EV.PLAYER_RESPAWN, this.stopPebbles],
             [EV.PLAYER_LAND, this.onLand],
             [EV.PLAYER_DIE, this.onDie],
             [EV.PLAYER_RESPAWN, this.onRespawn],
@@ -126,7 +133,7 @@ export class Effects
     /** Live particles across all emitters; exposed to the test API. */
     get particles (): number
     {
-        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff, this.poisonDrops, ...Object.values(this.climbBits)]
+        return [this.dust, ...Object.values(this.coinSparks), this.lifeSparks, this.powerSparks, this.fireSparks, this.deathBits, this.scareDrops, this.furPuff, this.poisonDrops, ...Object.values(this.climbBits), this.stoneBits]
             .reduce((n, e) => n + e.getAliveParticleCount(), 0);
     }
 
@@ -140,6 +147,34 @@ export class Effects
     private onGrab ({ x, y, kind }: { x: number; y: number; kind: ClimbKind }): void
     {
         this.climbBits[kind].explode(JUICE.CLIMB.GRAB_BITS, x, y);
+    }
+
+    /** A loose stalactite: pebbles trickle down from where it hangs until it falls. */
+    private onStalactiteShake ({ x, y }: { x: number; y: number }): void
+    {
+        if (!nearView(this.scene.cameras.main, x, y)) return;
+        const S = JUICE.STALACTITE;
+        const timer = this.scene.time.addEvent({
+            delay: S.PEBBLE_EVERY_MS,
+            repeat: Math.floor(STALACTITE.SHAKE_MS / S.PEBBLE_EVERY_MS),
+            callback: () => this.stoneBits.explode(S.PEBBLES, x, y + STALACTITE.SPRITE_HEIGHT / 3)
+        });
+        this.pebbleTimers.push(timer);
+    }
+
+    /** It hits the floor: a burst of pieces and a little camera shake. */
+    private onStalactiteShatter ({ x, y }: { x: number; y: number }): void
+    {
+        if (!nearView(this.scene.cameras.main, x, y)) return;
+        const S = JUICE.STALACTITE;
+        this.stoneBits.explode(S.BITS, x, y);
+        this.shake(S.SHAKE_MS, S.SHAKE_INTENSITY);
+    }
+
+    private stopPebbles (): void
+    {
+        this.pebbleTimers.forEach(t => t.remove());
+        this.pebbleTimers.length = 0;
     }
 
     private onClimbStep ({ x, y, kind }: { x: number; y: number; kind: ClimbKind }): void

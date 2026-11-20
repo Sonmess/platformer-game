@@ -1,6 +1,7 @@
 import Phaser, { Scene } from 'phaser';
-import { ANIM, ASSETS, GAME, GROUND_TILES, HUD, LEVEL, TILE, TITLE } from '../config/constants';
+import { ANIM, ASSETS, GAME, GROUND_TILES, HUD, LEVELS, PROGRESS, TILE, TITLE, levelDef } from '../config/constants';
 import { tileVariant } from '../core/tiles';
+import { browserStore, loadUnlocked, stepLevel } from '../core/progress';
 import { Input } from '../systems/Input';
 import { music } from '../systems/Music';
 import { Parallax } from '../systems/Parallax';
@@ -17,6 +18,10 @@ export class Title extends Scene
     /** World column of the strip's first tile (the variants scroll along with the ground). */
     private groundCol = -1;
     private prompt: Phaser.GameObjects.Text;
+    private levelText: Phaser.GameObjects.Text;
+    /** Highest unlocked level (saved progress) and the one Enter starts; exposed to the test API. */
+    unlocked = 1;
+    selected = 1;
     private shownMs = 0;
     private starting = false;
     /** Virtual camera scroll the background is drawn at (px). */
@@ -33,11 +38,13 @@ export class Title extends Scene
         this.scrollX = 0;
         this.groundCol = -1;
         this.starting = false;
+        this.unlocked = loadUnlocked(browserStore(), PROGRESS.STORAGE_KEY, LEVELS.length);
+        this.selected = this.unlocked;      // continue where the player got to
     }
 
     create ()
     {
-        this.parallax = new Parallax(this);
+        this.parallax = new Parallax(this, LEVELS[0].parallax, LEVELS[0].skyColor);
         this.ground = this.createGround();
 
         this.add.sprite(TITLE.CAT_X, TITLE.GROUND_ROW * TILE, ASSETS.CAT.run.key)
@@ -49,14 +56,17 @@ export class Title extends Scene
             stroke: HUD.TEXT_STROKE, strokeThickness, testString: HUD.TEXT_METRICS
         });
         this.add.text(cx, TITLE.NAME_Y, TITLE.TEXT.NAME, style(TITLE.NAME_SIZE, 2 * HUD.TEXT_STROKE_WIDTH)).setOrigin(0.5);
-        const controls = this.add.text(cx, TITLE.CONTROLS_Y, TITLE.TEXT.CONTROLS.join('\n'), { ...style(TITLE.LINE_SIZE), lineSpacing: 4 })
+        const controls = this.add.text(cx, TITLE.CONTROLS_Y, TITLE.TEXT.CONTROLS.join('\n'), { ...style(TITLE.LINE_SIZE), lineSpacing: TITLE.LINE_GAP })
             .setOrigin(0.5, 0).setDepth(1);
         const { COLOR, ALPHA, PADDING } = TITLE.PANEL;
         this.add.rectangle(cx, controls.y + controls.height / 2, controls.width + 2 * PADDING, controls.height + 2 * PADDING, COLOR, ALPHA);
         this.prompt = this.add.text(cx, TITLE.PROMPT_Y, TITLE.TEXT.PROMPT, style(TITLE.PROMPT_SIZE)).setOrigin(0.5);
+        this.levelText = this.add.text(cx, TITLE.LEVEL_Y, '', style(TITLE.LINE_SIZE)).setOrigin(0.5);
+        this.showLevel();
 
         this.controls = new Input(this);
-        music.start(this);
+        this.controls.reset();      // a key still held from the previous screen is not a new press here
+        music.start(this, LEVELS[0].music);
         this.cameras.main.fadeIn(TITLE.FADE_MS);
     }
 
@@ -78,12 +88,25 @@ export class Title extends Scene
 
         const input = this.controls.read();
         music.handleKeys(input);
+        const dir = (input.rightPressed ? 1 : 0) - (input.leftPressed ? 1 : 0);
+        if (dir !== 0 && !this.starting) {
+            this.selected = stepLevel(this.selected, dir, this.unlocked);
+            this.showLevel();
+        }
         if (input.confirmPressed && this.shownMs >= TITLE.INPUT_DELAY_MS && !this.starting) {
             this.starting = true;
             const camera = this.cameras.main;
-            camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Game'));
+            camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Game', { level: this.selected, entry: 'new' }));
             camera.fadeOut(TITLE.FADE_MS);
         }
+    }
+
+    /** The chosen level's line (arrows where there is more to choose) and the prompt that goes with it. */
+    private showLevel (): void
+    {
+        const n = this.selected;
+        this.levelText.setText(TITLE.TEXT.level(n, levelDef(n).name, n > 1, n < this.unlocked));
+        this.prompt.setText(this.unlocked > 1 && n === this.unlocked ? TITLE.TEXT.CONTINUE : TITLE.TEXT.PROMPT);
     }
 
     /** Tile variants for the strip starting at world column `col`, so stones and flowers move with the ground. */
@@ -105,7 +128,7 @@ export class Title extends Scene
         const { TOP, FILL } = TITLE.GROUND_TILES;
         const data = Array.from({ length: rows }, (_, r) => Array(cols).fill(r === 0 ? TOP : FILL));
         const map = this.make.tilemap({ data, tileWidth: TILE, tileHeight: TILE });
-        const tileset = map.addTilesetImage(LEVEL.TILESET_NAME, ASSETS.TILESET.key, TILE, TILE, 0, 0, 1)!;
+        const tileset = map.addTilesetImage(LEVELS[0].map, LEVELS[0].tiles.key, TILE, TILE, 0, 0, 1)!;
         return (map.createLayer(0, tileset, 0, TITLE.GROUND_ROW * TILE) as Phaser.Tilemaps.TilemapLayer).setScrollFactor(0);
     }
 }

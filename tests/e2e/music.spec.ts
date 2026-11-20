@@ -2,16 +2,18 @@ import { test, expect, type Page } from '@playwright/test';
 import { AUDIO, RESULTS, TITLE } from '../../src/config/constants';
 import { GOAL } from './landmarks';
 
-const { MUSIC } = AUDIO;
+const { MUSIC, CAVE_MUSIC } = AUDIO;
 
 const music = async (page: Page) => (await page.evaluate(() => window.__game!.getState())).music;
 const wait = (page: Page, ms: number) => page.evaluate(m => window.__game!.wait(m), ms);
 const waitForScene = (page: Page, scene: string) =>
     page.waitForFunction(s => window.__game?.getState().scene === s, scene);
 
+/** From the title into level 1 (once level 2 is unlocked the title would continue there, so choose level 1). */
 async function startLevel (page: Page)
 {
     await wait(page, TITLE.INPUT_DELAY_MS);
+    await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => window.__game!.getState().player?.onGround === true);
 }
@@ -23,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 
 test('the loop is loaded and plays from the title screen', async ({ page }) => {
     expect(await page.evaluate(k => window.__game!.game.cache.audio.exists(k), MUSIC.key)).toBe(true);
-    expect(await music(page)).toEqual({ playing: true, muted: false, ducked: false, volume: MUSIC.volume, instances: 1 });
+    expect(await music(page)).toEqual({ playing: true, muted: false, ducked: false, volume: MUSIC.volume, track: MUSIC.key, fading: false, instances: 1 });
 });
 
 test('M mutes and unmutes the music on the title and in the level', async ({ page }) => {
@@ -57,7 +59,7 @@ test('the pause ducks the music; resuming or quitting restores it', async ({ pag
 
 test('finishing, restarting and going back to the title never duplicates or restarts the loop', async ({ page }) => {
     await startLevel(page);
-    for (const back of ['Enter', 'Escape', 'Enter']) {
+    for (const back of ['KeyR', 'Escape', 'KeyR']) {           // R = the same level again
         await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [GOAL.x, GOAL.y]);
         await waitForScene(page, 'LevelComplete');
         await wait(page, RESULTS.INPUT_DELAY_MS);
@@ -70,4 +72,46 @@ test('finishing, restarting and going back to the title never duplicates or rest
         }
         expect(await music(page)).toMatchObject({ playing: true, instances: 1 });
     }
+});
+
+// ── The cave has its own loop (M4 step 6) ────────────────────────────────────────────────
+
+const isPlaying = (page: Page, key: string) =>
+    page.evaluate(k => (window.__game!.game.sound.get(k) as { isPlaying: boolean } | null)?.isPlaying ?? false, key);
+
+test('going on from level 1 to the cave crossfades to the cave loop, and the forest loop stops', async ({ page }) => {
+    await startLevel(page);
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [GOAL.x, GOAL.y]);
+    await waitForScene(page, 'LevelComplete');
+    await wait(page, RESULTS.INPUT_DELAY_MS);
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__game!.getState().levelNumber === 2 && window.__game!.getState().scene === 'Game');
+    let m = await music(page);
+    expect(m).toMatchObject({ track: CAVE_MUSIC.key, playing: true, instances: 1 });
+
+    await wait(page, AUDIO.MUSIC_FADE_MS + 300);
+    m = await music(page);
+    expect(m).toMatchObject({ track: CAVE_MUSIC.key, fading: false, volume: CAVE_MUSIC.volume, instances: 1 });
+    expect(await isPlaying(page, MUSIC.key)).toBe(false);
+    expect(await isPlaying(page, CAVE_MUSIC.key)).toBe(true);
+});
+
+test('in the cave the pause ducks the cave loop, M mutes it, and the title brings the forest loop back', async ({ page }) => {
+    await page.goto('/?play=2');
+    await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
+    await wait(page, AUDIO.MUSIC_FADE_MS + 300);
+    expect(await music(page)).toMatchObject({ track: CAVE_MUSIC.key, volume: CAVE_MUSIC.volume, fading: false });
+
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => window.__game!.getState().paused);
+    expect((await music(page)).volume).toBe(CAVE_MUSIC.pausedVolume);
+    await page.keyboard.press('m');
+    await page.waitForFunction(() => window.__game!.getState().music.muted);
+    expect((await music(page)).volume).toBe(0);
+    await page.keyboard.press('m');
+    await page.keyboard.press('q');
+    await waitForScene(page, 'Title');
+    await wait(page, AUDIO.MUSIC_FADE_MS + 300);
+    expect(await music(page)).toMatchObject({ track: MUSIC.key, volume: MUSIC.volume, fading: false, instances: 1 });
+    expect(await isPlaying(page, CAVE_MUSIC.key)).toBe(false);
 });

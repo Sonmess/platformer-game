@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { AUDIO } from './config/constants';
+import { levelDef } from './config/constants';
 import { state } from './core/state';
 import type { Game } from './scenes/Game';
 import type { Hud } from './scenes/Hud';
@@ -18,6 +18,9 @@ import { virtualKeys, type VirtualKey } from './systems/Input';
 export interface GameState {
     scene: string;
     fps: number;
+    /** The level being (or last) played, 1-based, and its name. (`level` is the map size.) */
+    levelNumber: number;
+    levelName: string;
     /**
      * `dying`: the death animation plays (controls off); `invulnerable`: just respawned; `awaitingRelease`: the
      * arrows are ignored until let go. `spriteAlpha`/`spriteAngle` show the death and blink animations.
@@ -37,9 +40,12 @@ export interface GameState {
     lives: number;
     coins: number;
     coinsTotal: number;
-    /** Feather points (1 / 5 / 10 each) and the level's total; the HUD shows `points`. */
+    /** Feather points (1 / 5 / 10 each) in this level and the level's total; `runPoints` = earlier levels of the run,
+     *  `totalPoints` = both (the HUD shows it). */
     points: number;
     pointsTotal: number;
+    runPoints: number;
+    totalPoints: number;
     /** Coins still in the level. */
     coinsLeft: number;
     /** Yarn balls still in the level. */
@@ -66,6 +72,8 @@ export interface GameState {
     climbables: { kind: string; x: number; y: number; width: number; height: number }[];
     /** Climbing events seen on this page: grabs, and the last let-go (how: jump/top/drop/ground/end). */
     climb: { grabs: number; steps: number; lastLetGo: string | null };
+    /** Stalactites in level order: where it hangs (top centre), phase (hanging/shaking/falling/shattered), how far it fell. */
+    stalactites: { x: number; y: number; phase: string; dropPx: number; visible: boolean }[];
     /** Per checkpoint (level order): is its campfire burning? */
     campfiresLit: boolean[];
     timeMs: number;
@@ -75,16 +83,18 @@ export interface GameState {
     parallaxListeners: number;
     /** Juice: live particles, the visible cat's scale (squash & stretch), camera shake running. */
     effects: { particles: number; catScaleX: number; catScaleY: number; shaking: boolean } | null;
-    /** Background loop: playing, M-muted, ducked by the pause, current volume, and how many copies exist. */
-    music: { playing: boolean; muted: boolean; ducked: boolean; volume: number; instances: number };
+    /** Background loop: playing, M-muted, ducked by the pause, current volume, which track (sound key), whether a
+     *  crossfade runs, and how many copies of the track exist. */
+    music: { playing: boolean; muted: boolean; ducked: boolean; volume: number; track: string; fading: boolean; instances: number };
     /** Keys of recently played sound effects, newest last. */
     sfx: string[];
     /** The level is frozen under the pause overlay. */
     paused: boolean;
     /** While the title screen is shown: background scroll (px) and the blinking prompt. */
-    title: { scrollX: number; promptVisible: boolean } | null;
-    /** Result lines while the LevelComplete screen is shown. */
+    title: { scrollX: number; promptVisible: boolean; unlocked: number; selected: number } | null;
+    /** Result lines while the LevelComplete screen is shown; `finalScreen` = after the last level. */
     results: string[] | null;
+    finalScreen: boolean;
     /** Event-bus subscriber counts; must not grow across restarts (listener leaks). */
     listeners: Record<string, number>;
 }
@@ -149,6 +159,8 @@ export function installTestApi (game: Phaser.Game): void
             return {
                 scene: activeScene()?.scene.key ?? '',
                 fps: game.loop.actualFps,
+                levelNumber: state.level,
+                levelName: levelDef(state.level).name,
                 player: p?.body ? {
                     x: p.x, y: p.y,
                     vx: p.body.velocity.x, vy: p.body.velocity.y,
@@ -169,6 +181,8 @@ export function installTestApi (game: Phaser.Game): void
                 coinsTotal: state.coinsTotal,
                 points: state.points,
                 pointsTotal: state.pointsTotal,
+                runPoints: state.runPoints,
+                totalPoints: state.totalPoints,
                 coinsLeft: g?.coins.countActive() ?? 0,
                 yarnsLeft: g?.yarns.countActive() ?? 0,
                 hud: hud?.sys.isActive() || hud?.sys.isPaused() ? { coinsText: hud.coinsLabel, meowReady: hud.meowReady, livesShown: hud.livesShown } : null,
@@ -180,16 +194,18 @@ export function installTestApi (game: Phaser.Game): void
                 crumbles: g?.crumbles.map(c => ({ x: c.x, y: c.y, width: c.width, phase: c.phase, solid: c.solid, imageX: c.image.x, imageY: c.image.y, visible: c.image.visible })) ?? [],
                 climbables: g?.climbables.map(c => ({ kind: c.kind, x: c.x, y: c.y, width: c.width, height: c.height })) ?? [],
                 climb: { ...climbLog },
+                stalactites: g?.stalactites.map(s => ({ x: s.x, y: s.y, phase: s.phase, dropPx: s.dropPx, visible: s.image.visible })) ?? [],
                 campfiresLit: g?.checkpoints.map(c => c.lit) ?? [],
                 timeMs: state.timeMs,
                 parallax: g?.parallax.layers.map(({ sprite, def }) => ({ key: def.key, factor: def.factor, offsetX: sprite.tilePositionX })) ?? [],
                 parallaxListeners: cam?.listenerCount(Phaser.Cameras.Scene2D.Events.FOLLOW_UPDATE) ?? 0,
                 effects: g && p ? { particles: g.effects.particles, catScaleX: p.sprite.scaleX, catScaleY: p.sprite.scaleY, shaking: cam!.shakeEffect.isRunning } : null,
                 sfx: [...sfxLog],
-                music: { ...music.state, instances: game.sound.getAll(AUDIO.MUSIC.key).length },
+                music: { ...music.state, instances: game.sound.getAll(music.state.track).length },
                 paused: gs?.sys.isPaused() ?? false,
-                title: title?.sys.isActive() ? { scrollX: title.scrollX, promptVisible: title.promptVisible } : null,
+                title: title?.sys.isActive() ? { scrollX: title.scrollX, promptVisible: title.promptVisible, unlocked: title.unlocked, selected: title.selected } : null,
                 results: results?.sys.isActive() ? [...results.lines] : null,
+                finalScreen: results?.sys.isActive() ? results.final : false,
                 listeners: Object.fromEntries(Object.values(EV).map(e => [e, events.listenerCount(e)]))
             };
         },

@@ -76,6 +76,17 @@ const SFX = {
     climb: [
         note({ wave: 'noise', from: 4500, to: 3000, dur: 0.035, vol: 0.3, decay: 3 })
     ],
+    // A stalactite comes loose: a low grinding rumble with a crack in it (the warning before it falls).
+    rumble: [
+        note({ wave: 'noise', from: 400, to: 250, dur: 0.45, vol: 0.4, attack: 0.05, decay: 0.8, vibrato: [22, 0.15] }),
+        note({ wave: 'noise', from: 5000, to: 2500, at: 0.18, dur: 0.05, vol: 0.3, decay: 3 })
+    ],
+    // ...and shatters on the floor: a bright smash, then pieces tinkling and a thud.
+    shatter: [
+        note({ wave: 'noise', from: 7000, to: 1500, dur: 0.2, vol: 0.45, decay: 1.8 }),
+        note({ wave: 'triangle', from: 160, to: 70, dur: 0.18, vol: 0.4, decay: 1.5 }),
+        ...[0, 1, 2].map(i => note({ wave: 'noise', from: 9000 - i * 1200, to: 6000, at: 0.08 + i * 0.06, dur: 0.03, vol: 0.18 - i * 0.04, decay: 3 }))
+    ],
     // A crumbling platform starts to give: two dry cracks.
     crack: [
         note({ wave: 'noise', from: 6000, to: 3000, dur: 0.04, vol: 0.4, decay: 3 }),

@@ -1,21 +1,23 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, COIN, DEATH, GROUND_TILES, HAZARD, LEVEL, PLATFORM, PLAYER, TILE, TITLE } from '../config/constants';
+import { ASSETS, COIN, DEATH, GROUND_TILES, HAZARD, LEVEL, LEVELS, PLATFORM, PLAYER, PROGRESS, STALACTITE, TILE, TITLE, levelDef, levelNumber, type LevelDef } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { clawHits, clawOutcome, type ClawSwipe } from '../core/claw';
 import { inMeowRange, type MeowWave } from '../core/meow';
-import { state } from '../core/state';
+import { state, type LevelEntry } from '../core/state';
+import { browserStore, unlockLevel } from '../core/progress';
 import { tileVariant } from '../core/tiles';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Climbable } from '../entities/Climbable';
 import { Coin } from '../entities/Coin';
 import { Crow } from '../entities/Crow';
-import { CrumblePlatform } from '../entities/CrumblePlatform';
+import { CrumblePlatform, bakeCrumbleTextures, crumbleTexturePrefix } from '../entities/CrumblePlatform';
 import type { Enemy } from '../entities/Enemy';
 import { Goal } from '../entities/Goal';
 import { Hedgehog } from '../entities/Hedgehog';
 import { Snake } from '../entities/Snake';
+import { Stalactite } from '../entities/Stalactite';
 import { Yarn } from '../entities/Yarn';
-import { MovingPlatform } from '../entities/MovingPlatform';
+import { MovingPlatform, bakePlatformTextures, platformTexturePrefix } from '../entities/MovingPlatform';
 import { Player } from '../entities/Player';
 import { SoundEffects } from '../systems/Audio';
 import { CameraRig } from '../systems/CameraRig';
@@ -37,8 +39,12 @@ export class Game extends Scene
     platforms: MovingPlatform[] = [];
     crumbles: CrumblePlatform[] = [];
     climbables: Climbable[] = [];
+    stalactites: Stalactite[] = [];
     coins: Phaser.Physics.Arcade.StaticGroup;
     yarns: Phaser.Physics.Arcade.StaticGroup;
+    /** The level being played (1-based) and its definition. */
+    level = 1;
+    private def: LevelDef;
     private completed = false;
     /** Time left of the death animation before the cat reappears at the checkpoint (0 = not dying). */
     private respawnInMs = 0;
@@ -48,18 +54,26 @@ export class Game extends Scene
         super('Game');
     }
 
-    init ()
+    init (data?: { level?: number; entry?: LevelEntry })
     {
+        this.level = levelNumber(data?.level ?? 1);
+        state.enter(data?.entry ?? 'new');
+        this.def = levelDef(this.level);
         this.completed = false;
         this.respawnInMs = 0;
     }
 
     create ()
     {
-        this.parallax = new Parallax(this);
+        const def = this.def;
+        this.parallax = new Parallax(this, def.parallax, def.skyColor);
 
-        this.map = this.make.tilemap({ key: LEVEL.MAP_KEY });
-        const tileset = this.map.addTilesetImage(LEVEL.TILESET_NAME, ASSETS.TILESET.key)!;
+        this.map = this.make.tilemap({ key: def.map });
+        const tileset = this.map.addTilesetImage(this.map.tilesets[0].name, def.tiles.key)!;
+        // Platform looks come from this level's tiles; baked once per level (textures outlive restarts).
+        const platformPrefix = platformTexturePrefix(def.map), crumblePrefix = crumbleTexturePrefix(def.map);
+        bakePlatformTextures(this.textures, def.tiles.key, platformPrefix);
+        bakeCrumbleTextures(this.textures, def.crumble.key, crumblePrefix);
         this.map.createLayer(LEVEL.DECOR_LAYER, tileset);
         const ground = this.map.createLayer(LEVEL.GROUND_LAYER, tileset) as Phaser.Tilemaps.TilemapLayer;
         ground.setCollisionByProperty({ collides: true });
@@ -74,7 +88,7 @@ export class Game extends Scene
         const coinObjects = this.objectsOfType(LEVEL.COIN_TYPE);
         const valueOf = (o: Phaser.Types.Tilemaps.TiledObject) =>
             (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === COIN.VALUE_PROPERTY)?.value ?? 1;
-        state.reset(1, { x: spawn.x!, y: spawn.y! }, coinObjects.length, coinObjects.reduce((sum, o) => sum + valueOf(o), 0));
+        state.reset(this.level, { x: spawn.x!, y: spawn.y! }, coinObjects.length, coinObjects.reduce((sum, o) => sum + valueOf(o), 0));
 
         // Vines and trunks first: they are drawn behind everything that moves.
         const rect = (o: Phaser.Types.Tilemaps.TiledObject) => ({ x: o.x!, y: o.y!, width: o.width!, height: o.height! });
@@ -87,9 +101,9 @@ export class Game extends Scene
         this.player.climbables = this.climbables;
         this.physics.add.collider(this.player, ground);
         this.platforms = this.objectsOfType(LEVEL.PLATFORM_TYPE).map(o => new MovingPlatform(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! },
-            (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === PLATFORM.TILES_PROPERTY)?.value ?? PLATFORM.DEFAULT_TILES));
+            (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === PLATFORM.TILES_PROPERTY)?.value ?? PLATFORM.DEFAULT_TILES, platformPrefix));
         this.physics.add.collider(this.player, this.platforms, (_p, platform) => this.player.standOnPlatform(platform as MovingPlatform));
-        this.crumbles = this.objectsOfType(LEVEL.CRUMBLE_TYPE).map(o => new CrumblePlatform(this, { x: o.x!, y: o.y!, width: o.width! }, () => this.player.getBounds()));
+        this.crumbles = this.objectsOfType(LEVEL.CRUMBLE_TYPE).map(o => new CrumblePlatform(this, { x: o.x!, y: o.y!, width: o.width! }, crumblePrefix, () => this.player.getBounds()));
         this.physics.add.collider(this.player, this.crumbles,
             (_p, c) => { if (this.player.standOnPlatform(c as CrumblePlatform)) (c as CrumblePlatform).touch(); },
             (_p, c) => (c as CrumblePlatform).solid);     // a fallen one lets the cat through
@@ -102,6 +116,8 @@ export class Game extends Scene
         this.yarns = this.physics.add.staticGroup(this.objectsOfType(LEVEL.YARN_TYPE).map(o => new Yarn(this, o.x!, o.y!)));
         this.physics.add.overlap(this.player, this.yarns, (_p, y) => this.collectYarn(y as Yarn));
 
+        // Stalactites fall to the first solid tile below them (or out of the level over a pit).
+        this.stalactites = this.objectsOfType(LEVEL.STALACTITE_TYPE).map(o => new Stalactite(this, o.x!, o.y!, this.fallDistance(ground, o.x!, o.y! + STALACTITE.SPRITE_HEIGHT)));
         const hedgehogs = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, rect(o), ground));
         const crows = this.objectsOfType(LEVEL.CROW_TYPE).map(o => new Crow(this, rect(o)));
         const snakes = this.objectsOfType(LEVEL.SNAKE_TYPE).map(o => new Snake(this, rect(o), ground));
@@ -121,7 +137,7 @@ export class Game extends Scene
         new SoundEffects(this);
         this.effects = new Effects(this, this.player);
         this.controls = new Input(this);
-        music.start(this);
+        music.start(this, def.music);     // crossfades when the level's track differs
         this.cameraRig = new CameraRig(this.cameras.main, this.player, { width: w, height: h });
         this.cameraRig.snap();     // the camera survives scene restarts; never start from the old scroll
         this.cameras.main.fadeIn(TITLE.FADE_MS);
@@ -160,8 +176,21 @@ export class Game extends Scene
         }
         for (const crumble of this.crumbles) crumble.update(delta);
         const playerBounds = this.player.getBounds();
+        for (const s of this.stalactites) s.update(delta, playerBounds);
+        if (this.stalactites.some(s => s.hurts(playerBounds))) this.killPlayer('stalactite');
         for (const enemy of this.enemies) enemy.update(delta, playerBounds);
         if (this.enemies.some(e => e.poisons(playerBounds))) this.killPlayer('poison');
+    }
+
+    /** Pixels from `tipY` down to the top of the first colliding ground tile in column `x`; past the level over a pit. */
+    private fallDistance (ground: Phaser.Tilemaps.TilemapLayer, x: number, tipY: number): number
+    {
+        const bottom = this.map.heightInPixels;
+        for (let y = Math.floor(tipY / TILE) * TILE + TILE / 2; y < bottom; y += TILE) {
+            const tile = ground.getTileAtWorldXY(x, y);
+            if (tile?.collides && tile.pixelY >= tipY) return tile.pixelY - tipY;
+        }
+        return bottom + STALACTITE.FALL_OUT_PX - tipY;
     }
 
     private objectsOfType (type: string)
@@ -219,6 +248,7 @@ export class Game extends Scene
     {
         if (this.completed) return;
         this.completed = true;
+        unlockLevel(browserStore(), PROGRESS.STORAGE_KEY, this.level + 1, LEVELS.length);     // saved for the title screen
         events.emit(EV.LEVEL_COMPLETE, { coins: state.coins, coinsTotal: state.coinsTotal, deaths: state.deaths, timeMs: state.timeMs });
         this.scene.stop('Hud');
         this.scene.start('LevelComplete');
@@ -283,6 +313,7 @@ export class Game extends Scene
         const { x, y } = state.checkpoint;
         this.player.respawn(x, y);
         this.crumbles.forEach(c => c.reset());
+        this.stalactites.forEach(s => s.reset());
         this.cameraRig.resume();
         this.controls.reset();      // a key still held from before the death is not a new press
         events.emit(EV.PLAYER_RESPAWN, { x, y });

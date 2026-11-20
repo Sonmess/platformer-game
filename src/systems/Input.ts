@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { EdgeLatch } from './inputEdges';
 
-export type VirtualKey = 'left' | 'right' | 'jump' | 'up' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw';
+export type VirtualKey = 'left' | 'right' | 'jump' | 'up' | 'down' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw' | 'replay';
 
 export interface InputSnapshot {
     left: boolean;
@@ -29,6 +29,11 @@ export interface InputSnapshot {
     meowPressed: boolean;
     /** Claw swipe (C), edge-triggered. */
     clawPressed: boolean;
+    /** Replay the level (R) on the results; R is a confirm key too, so check this first. Edge-triggered. */
+    replayPressed: boolean;
+    /** Arrow presses (also a tap shorter than a frame), for menus such as the level choice. */
+    leftPressed: boolean;
+    rightPressed: boolean;
 }
 
 /** Keys held by the dev test API; merged with the keyboard so they behave like real keys. */
@@ -37,8 +42,8 @@ export const virtualKeys = new Set<VirtualKey>();
 const K = Phaser.Input.Keyboard.KeyCodes;
 
 /** Actions read as edges (pressed/released), not only as held. */
-type EdgeAction = 'jump' | 'up' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw';
-const EDGE_ACTIONS: EdgeAction[] = ['jump', 'up', 'confirm', 'back', 'pause', 'quit', 'mute', 'meow', 'claw'];
+type EdgeAction = 'jump' | 'up' | 'confirm' | 'back' | 'pause' | 'quit' | 'mute' | 'meow' | 'claw' | 'replay' | 'left' | 'right';
+const EDGE_ACTIONS: EdgeAction[] = ['jump', 'up', 'confirm', 'back', 'pause', 'quit', 'mute', 'meow', 'claw', 'replay', 'left', 'right'];
 
 /** One normalized snapshot per frame; the Player never reads devices directly. */
 export class Input
@@ -66,7 +71,8 @@ export class Input
             quit: add(K.Q),
             mute: add(K.M),
             meow: add(K.X),
-            claw: add(K.C)
+            claw: add(K.C),
+            replay: add(K.R)
         };
         for (const [action, keys] of Object.entries(this.keys) as [VirtualKey, Phaser.Input.Keyboard.Key[]][]) {
             for (const key of keys) {
@@ -107,7 +113,7 @@ export class Input
 
     read (): InputSnapshot
     {
-        const [jump, up, confirm, back, pause, quit, mute, meow, claw] = EDGE_ACTIONS.map(a => this.edges(a));
+        const [jump, up, confirm, back, pause, quit, mute, meow, claw, replay, left, right] = EDGE_ACTIONS.map(a => this.edges(a));
         const jumpHeld = jump.held || up.held;
         this.downSeen.clear();
         this.upSeen.clear();
@@ -126,7 +132,10 @@ export class Input
             quitPressed: quit.pressed,
             mutePressed: mute.pressed,
             meowPressed: meow.pressed,
-            clawPressed: claw.pressed
+            clawPressed: claw.pressed,
+            replayPressed: replay.pressed,
+            leftPressed: left.pressed,
+            rightPressed: right.pressed
         };
     }
 }

@@ -2,10 +2,12 @@
 
 2D plošinovka do webového prehliadača s parallax scrollovacím pozadím. Cieľom je hra, ktorá sa hrá plynulo a vyzerá profesionálne.
 
-**Stav:** Milestone 3 je hotový — hra **Lost Cat**: úvodná obrazovka, pauza, hudba
-a jeden dlhý lesný level (~8 obrazoviek, 6 checkpointov) s ježkami, vranami a hadíkmi, s pohyblivými a prepadávacími
-plošinami, lianami a stromami na šplhanie. Mačka začína s 3 životmi (pierkami si môže nazbierať až 9), má mňaukanie, pazúriky a klbko vlny ako power-up.
-Ďalšie levely sú plánované v M4. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
+**Stav:** Milestone 4 je takmer hotový (čaká záverečný playtest) — hra **Lost Cat** má dva levely: dlhý **les**
+(~8 obrazoviek, 6 checkpointov) s ježkami, vranami a hadíkmi, pohyblivými a prepadávacími plošinami, lianami a stromami
+na šplhanie, a **jaskyňu** (~7 obrazoviek, 5 checkpointov) s vlastným terénom, pozadím a hudbou a padajúcimi
+stalaktitmi. Hra si pamätá odomknuté levely, úvodná obrazovka ponúkne pokračovať alebo vybrať level. Mačka začína
+s 3 životmi (pierkami si môže nazbierať až 9), má mňaukanie, pazúriky a klbko vlny ako power-up; životy a body sa
+prenášajú do ďalšieho levelu. Postup a rozhodnutia: [`docs/gameplan.md`](docs/gameplan.md).
 
 ## Ovládanie
 
@@ -19,17 +21,19 @@ plošinami, lianami a stromami na šplhanie. Mačka začína s 3 životmi (pierk
 | C | útok pazúrikmi (zasiahnutý nepriateľ utečie z levelu) |
 | Esc alebo P | pauza (v pauze Q = úvodná obrazovka) |
 | M | hudba zapnúť / vypnúť |
-| Enter | hrať (na úvodnej obrazovke) |
-| Enter alebo R / Esc | hrať znova / úvodná obrazovka (na obrazovke s výsledkami) |
+| Enter | hrať / pokračovať od posledného odomknutého levelu (na úvodnej obrazovke) |
+| ← → | výber z odomknutých levelov (na úvodnej obrazovke) |
+| Enter / R / Esc | ďalší level / ten istý level znova / úvodná obrazovka (na obrazovke s výsledkami) |
 
-Cieľom je dobehnúť do jaskyne na konci lesa. Cestou zbieraj pierka (modré 1 bod, strieborné 5, zlaté 10; každých 50 bodov pridá život, až do 9), ohniská sú checkpointy. Ježka a vranu
+Cieľom je dobehnúť do jaskyne na konci lesa a potom jaskyňou až k východu. Cestou zbieraj pierka (modré 1 bod, strieborné 5, zlaté 10; každých 50 bodov pridá život, až do 9), ohniská sú checkpointy. Ježka a vranu
 sa nedá zašliapnuť — mňauknutie ich na pár sekúnd vystraší a vtedy sa dá cez ne prejsť. Pazúrikmi (C) sa dá vrana hneď vyhnať z levelu; ježko
 utečie, len keď je zvinutý od strachu — nevystrašený mačku popichá. Hadík mňaukania sa nebojí: v pravidelnom cykle
 sa zastaví, nafúkne kapucňu a vystrekne okolo seba fialový oblak jedu — pazúrikmi ho treba vyhnať v chvíľke pokoja
 medzi vlnami. Dosky s puklinami
 sa pod mačkou po chvíli zrútia. Ružové klbko vlny mačku „nafúkne“ — zásah ju potom len zmenší. Po lianach a kmeňoch stromov sa dá šplhať
 (na kmeň sa mačka chytí aj skokom proti nemu); na ich vrchoch bývajú vzácnejšie pierka. S klbkom siahnu pazúriky o kúsok ďalej. Mačka začína s 3 životmi (hlávky vpravo hore), pierkami ich môže mať až 9;
-keď dôjdu, hra končí a level začína odznova. Ohnisko sa zapáli, aj keď ho mačka iba preskočí.
+keď dôjdu, hra končí a level začína odznova. Ohnisko sa zapáli, aj keď ho mačka iba preskočí. V jaskyni visia zo stropu
+stalaktity: keď pod nimi mačka prebehne, zatrasú sa a spadnú — treba bežať ďalej, nie zastať.
 
 ## Technológie
 
@@ -59,7 +63,7 @@ npm run test:e2e                  # len Playwright scenáre
 | `src/` | Hra: `config` (ladiace konštanty), `core` (eventy, stav), `scenes`, `entities`, `systems` (vstup, kamera, parallax, efekty, zvuk) |
 | `src/levels/level1.json` | Level (Tiled JSON) |
 | `public/assets/` | Grafika, písmo a zvuky; zdroje a licencie v `CREDITS.md` |
-| `tools/` | Generátory vlastnej grafiky (`sprites.mjs`), dlaždíc terénu (`tiles.mjs`), zvukov (`sfx.mjs`) a hudby (`music.mjs`); spoločný syntetizátor `synth.mjs` |
+| `tools/` | Generátory vlastnej grafiky (`sprites.mjs`), dlaždíc terénu (`tiles.mjs`), pozadia jaskyne (`parallax.mjs`), zvukov (`sfx.mjs`) a hudby (`music.mjs`); spoločný syntetizátor `synth.mjs` |
 | `tests/` | Unit (Vitest) a e2e (Playwright) testy |
 | `CLAUDE.md` | Pravidlá projektu pre Claude |
 | `.claude/skills/phaser-platformer/` | Claude skill: pocit zo skoku, parallax, efekty, architektúra, testovanie |

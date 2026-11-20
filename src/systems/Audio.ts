@@ -43,6 +43,8 @@ export class SoundEffects
             [EV.ENEMY_FLEE, () => this.play(AUDIO.SFX.FLEE)],
             [EV.SNAKE_WARN, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.HISS, p)],
             [EV.SNAKE_SPRAY, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.SPRAY, p)],
+            [EV.STALACTITE_SHAKE, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.RUMBLE, p)],
+            [EV.STALACTITE_SHATTER, (p: { x: number; y: number }) => this.playNear(AUDIO.SFX.SHATTER, p)],
             [EV.CRUMBLE_SHAKE, () => this.play(AUDIO.SFX.CRACK)],
             [EV.CRUMBLE_FALL, () => this.play(AUDIO.SFX.CRUMBLE)]
         ];

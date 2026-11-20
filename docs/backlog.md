@@ -22,10 +22,20 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
 - S klbkom siahnu pazúriky ďalej (+10 px); checkpoint sa aktivuje aj pri preskočení (spúšťač 10 dlaždíc nad ohniskom);
   pierka pridávajú životy aj nad štartovné 3, najviac 9 (2026-11-20)
 
-## M4
+## Hotové v M4 (pozri `docs/gameplan.md`)
 
-- [ ] Viac levelov s rôznymi paletami pozadia (2026-11-05, presunuté z M3 2026-11-19); terén môže použiť pripravené
-  štýly „kamenné murivo“ a „vrstvená skala“ z `tools/tiles.mjs` (2026-11-20)
+- Level 2 „Jaskyňa“ s vlastným terénom, pozadím a hudbou, padajúce stalaktity, levely ako dáta, lineárny postup
+  s uloženým odomknutím a výberom levelu (ADR 0010, 2026-11-20)
+- [ ] Korene v jaskyni s vlastným vzhľadom (zatiaľ vyzerajú ako zelené liany) (2026-11-20)
+- [ ] Východ z jaskyne so svetlom (zatiaľ len zóna cieľa) (2026-11-20)
+- [ ] Úvodná obrazovka: riadok „cieľ“ spomína len jaskyňu na konci lesa (2026-11-20)
+
+## Ďalší míľnik (M5)
+
+- [ ] Level 3: výstup z jaskyne do lesa za súmraku — les na pozadí prefarbený (súmrak), iná farba oblohy (2026-11-20)
+- [ ] Ďalšie levely; terén môže použiť pripravené štýly „kamenné murivo“ a „vrstvená skala“ z `tools/tiles.mjs`
+  a prepadávacie plošiny „popraskaná tráva“ / „červenkastá skala“ (2026-11-05, upravené 2026-11-20)
+- [ ] Lietajúci nepriateľ do jaskyne (netopier); prvky „vietor“ a „gejzír“ pre ďalšie levely (2026-11-20)
 
 ## Neskôr
 

@@ -79,16 +79,28 @@ export const AUDIO = {
         HISS: { key: 'sfx-hiss', url: 'assets/own/sfx/hiss.wav', volume: 0.4, detune: 60 },
         SPRAY: { key: 'sfx-spray', url: 'assets/own/sfx/spray.wav', volume: 0.45, detune: 60 },
         GRAB: { key: 'sfx-grab', url: 'assets/own/sfx/grab.wav', volume: 0.4, detune: 80 },
-        CLIMB: { key: 'sfx-climb', url: 'assets/own/sfx/climb.wav', volume: 0.25, detune: 150 }
+        CLIMB: { key: 'sfx-climb', url: 'assets/own/sfx/climb.wav', volume: 0.25, detune: 150 },
+        RUMBLE: { key: 'sfx-rumble', url: 'assets/own/sfx/rumble.wav', volume: 0.45, detune: 80 },
+        SHATTER: { key: 'sfx-shatter', url: 'assets/own/sfx/shatter.wav', volume: 0.45, detune: 100 }
     },
-    // Background loop from tools/music.mjs; one instance for the whole game (title, level, results).
-    MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 },
+    // Background loops from tools/music.mjs, one per level (LevelDef.music); one instance each for the whole game.
+    MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 } as MusicTrack,
+    CAVE_MUSIC: { key: 'music-cave', url: 'assets/own/music/cave.wav', volume: 0.45, pausedVolume: 0.12 } as MusicTrack,
+    MUSIC_FADE_MS: 1200,        // a different level's track crossfades over this long
     // Coins picked up in quick succession climb in pitch (a combo).
     COIN_COMBO: { windowMs: 700, stepCents: 100, maxSteps: 5 },
     // Precious feathers ring higher (cents added to the pickup sound).
     FEATHER_PITCH: { normal: 0, silver: 400, gold: 700 },
     LOG_SIZE: 20            // recently played keys kept for the test API
 } as const;
+
+export interface MusicTrack
+{
+    key: string;
+    url: string;
+    volume: number;
+    pausedVolume: number;       // ducked under the pause overlay
+}
 
 /**
  * Juice (see references/juice.md): transient feedback driven by gameplay events, never touching
@@ -133,6 +145,8 @@ export const JUICE = {
     // Climbing: bits of bark or leaves fly off where the paws grab, a few fall with every climbing step.
     CLIMB: { GRAB_BITS: 6, STEP_BITS: 2, TINT: { trunk: [0x7a5538, 0x553829, 0x33211a], vine: [0x5f9e3c, 0x33703a, 0x1d4630] },
         SPEED: { min: 15, max: 45 }, LIFESPAN: { min: 300, max: 500 }, GRAVITY_Y: 160 },
+    // Stalactites: pebbles trickle down while one shakes; it bursts into pieces where it lands.
+    STALACTITE: { PEBBLES: 2, PEBBLE_EVERY_MS: 90, BITS: 16, TINT: [0xb3aec8, 0x7e7996, 0x57536b], SHAKE_MS: 90, SHAKE_INTENSITY: 0.003 },
     RESPAWN: { fromScale: 0.5, ms: 220, blinkMs: 90, blinkAlpha: 0.35 }     // blinks while invulnerable
 } as const;
 
@@ -149,6 +163,17 @@ export const PARALLAX = {
         { key: 'bg-far', url: 'assets/tall-forest/far.png', factor: 0.3, fillBelow: 0x37482c },
         { key: 'bg-middle', url: 'assets/tall-forest/middle.png', factor: 0.5, gap: 128 },
         { key: 'bg-near', url: 'assets/tall-forest/middle.png', factor: 0.75, gap: 352, flip: true, tint: 0x66767a }
+    ] as readonly ParallaxLayerDef[]
+} as const;
+
+// The cave (level 2): project-owned layers from tools/parallax.mjs, as tall as the level, far to near.
+export const CAVE_PARALLAX = {
+    SKY_COLOR: '#0d0b14',
+    LAYERS: [
+        { key: 'cave-back', url: 'assets/own/parallax/cave-back.png', factor: 0.1 },
+        { key: 'cave-far', url: 'assets/own/parallax/cave-far.png', factor: 0.3 },
+        { key: 'cave-mid', url: 'assets/own/parallax/cave-mid.png', factor: 0.5 },
+        { key: 'cave-near', url: 'assets/own/parallax/cave-near.png', factor: 0.75 }
     ] as readonly ParallaxLayerDef[]
 } as const;
 
@@ -243,6 +268,21 @@ export const SNAKE = {
     CLOUD_RAISE_PX: 4           // cloud centre above the hitbox centre (about the cat's middle)
 } as const;
 
+// Falling stalactites (src/core/stalactite.ts): a Tiled point of type "stalactite" where one hangs from the ceiling (its
+// top centre). When the cat passes under it, it shakes for a moment (the warning), then falls and shatters on the floor;
+// only a falling one hurts. A cat that keeps running gets past; one that stops under it does not. Back after a respawn.
+export const STALACTITE = {
+    SHAKE_MS: 450,
+    FALL_GRAVITY: 1400,         // px/s²
+    MAX_FALL_SPEED: 520,        // px/s (below TILE per 60 Hz step: it never skips the floor)
+    TRIGGER_REACH_PX: 24,       // the cat's centre this close sideways, and below the tip
+    HITBOX: { WIDTH: 8, HEIGHT: 16 },   // above the tip (the sprite is 12×26)
+    SPRITE_HEIGHT: 26,
+    SHAKE_PX: 1,
+    SHAKE_STEP_MS: 50,
+    FALL_OUT_PX: 64             // over a pit it falls this far below the level, then counts as shattered
+} as const;
+
 // Moving platforms: a Tiled rectangle of type "platform" is the path (wider than tall = left-right, otherwise
 // up-down); the custom property "tiles" sets the platform width. Drawn from the level tileset.
 export const PLATFORM = {
@@ -311,7 +351,8 @@ export const CAMERA = {
 
 // Ground tile variety: the plain centre tiles of the autotile block (top, middle, bottom row) are swapped at level start
 // for variants (stones, roots, flowers…) at fixed positions, so long runs of ground do not repeat one tile. The gids
-// must match tools/tiles.mjs (it writes them to public/assets/own/tiles/<style>.json; a unit test compares).
+// must match tools/tiles.mjs (it writes them to public/assets/own/tiles/<style>.json, the same for every style; a unit
+// test compares).
 export const GROUND_TILES = {
     VARIANTS: { 38: [64, 65, 66], 45: [67, 68, 69], 52: [70, 71, 72] } as Record<number, readonly number[]>,
     PLAIN_SHARE: 0.55           // share of tiles that stay plain
@@ -319,8 +360,6 @@ export const GROUND_TILES = {
 
 // Tiled map names (src/levels/*.json). The spawn point marks the player's feet.
 export const LEVEL = {
-    MAP_KEY: 'level1',
-    TILESET_NAME: 'forest',         // tileset name inside the Tiled JSON
     GROUND_LAYER: 'ground',
     DECOR_LAYER: 'decor',           // non-colliding backdrop (cave interior), drawn behind the ground
     OBJECT_LAYER: 'objects',
@@ -335,9 +374,53 @@ export const LEVEL = {
     SNAKE_TYPE: 'snake',            // rectangle = patrol range, bottom edge = the ground it slithers on
     YARN_TYPE: 'yarn',              // point = a yarn ball power-up
     VINE_TYPE: 'vine',              // rectangle = the climbable vine (drawn centred, hanging from its top)
-    TRUNK_TYPE: 'trunk',            // rectangle = the climbable trunk, bottom edge on the ground; a crown on top
+    TRUNK_TYPE: 'trunk',
+    STALACTITE_TYPE: 'stalactite',  // point = where it hangs (top centre), falls straight down            // rectangle = the climbable trunk, bottom edge on the ground; a crown on top
     GOAL_TYPE: 'goal'
 } as const;
+
+/**
+ * One playable level: its Tiled map (src/levels/index.ts), the ground tileset and crumbling-platform strip
+ * (tools/tiles.mjs), the background and the sky colour. The game plays them in order; `Game` gets the level number
+ * (1-based) in `init`, and every per-level look is baked under the map key, so levels never share a texture by mistake.
+ */
+export interface LevelDef
+{
+    name: string;               // shown to the player (Slovak)
+    map: string;                // tilemap cache key = key in LEVEL_MAPS
+    tiles: { key: string; url: string };
+    crumble: { key: string; url: string };
+    parallax: readonly ParallaxLayerDef[];
+    skyColor: string;
+    music: MusicTrack;
+}
+
+export const LEVELS: readonly LevelDef[] = [
+    {
+        name: 'Les',
+        map: 'level1',
+        tiles: { key: 'tiles-grass', url: 'assets/own/tiles/grass.png' },
+        crumble: { key: 'crumble-strip-planks', url: 'assets/own/tiles/crumble-planks.png' },
+        parallax: PARALLAX.LAYERS,
+        skyColor: PARALLAX.SKY_COLOR,
+        music: AUDIO.MUSIC
+    },
+    {
+        // Cave terrain (floors: top + middle rows; ceilings: middle + bottom rows, which hang stalactites), cave background.
+        name: 'Jaskyňa',
+        map: 'level2',
+        tiles: { key: 'tiles-cave', url: 'assets/own/tiles/cave.png' },
+        crumble: { key: 'crumble-strip-cave', url: 'assets/own/tiles/crumble-cave.png' },
+        parallax: CAVE_PARALLAX.LAYERS,
+        skyColor: CAVE_PARALLAX.SKY_COLOR,
+        music: AUDIO.CAVE_MUSIC
+    }
+];
+
+/** A level number (1-based) clamped to the levels that exist. */
+export const levelNumber = (n: number): number => Math.min(Math.max(Math.round(n) || 1, 1), LEVELS.length);
+/** The definition of level `n` (1-based, clamped). */
+export const levelDef = (n: number): LevelDef => LEVELS[levelNumber(n) - 1];
 
 // Checkpoints: the campfire stands where the Tiled rectangle's bottom is, but the trigger reaches far above it (and a
 // little to the sides), so jumping over a campfire still lights it.
@@ -393,18 +476,25 @@ export const HUD = {
 // "Level complete" screen. UI text is Slovak, like the rest of the project.
 export const RESULTS = {
     INPUT_DELAY_MS: 600,        // ignore confirm briefly so a held key doesn't skip the screen
+    FADE_MS: 250,               // fade out before the next level starts
     OVERLAY_COLOR: 0x0d1410,
     TITLE_SIZE: '32px',
     LINE_SIZE: '24px',          // Pixelify Sans shows carons on capitals (Č, Š…) only from 24px up
     HINT_SIZE: '16px',          // lowercase-only hint line
     LINE_SPACING: 24,
+    TITLE_Y: 40,
+    LINES_Y: 84,                // first result line; hints follow the lines
+    HINT_GAP: 12,
     TEXT: {
         TITLE: 'Level dokončený!',
+        FINAL_TITLE: 'Hra dokončená!',     // after the last level
         COINS: 'Pierka',
+        TOTAL: 'Spolu',                    // feather points of the whole run
         DEATHS: 'Smrti',
         LIVES: 'Životy',
         TIME: 'Čas',
-        RESTART: 'Enter alebo R = hrať znova',
+        NEXT: 'Enter = ďalší level, R = hrať znova',
+        NEW_GAME: 'Enter = hrať od začiatku, R = level znova',
         BACK: 'Esc = úvodná obrazovka'
     }
 } as const;
@@ -446,11 +536,13 @@ export const TITLE = {
     NAME_SIZE: '48px',
     LINE_SIZE: '16px',
     PROMPT_SIZE: '24px',
-    NAME_Y: 48,
-    CONTROLS_Y: 84,
-    PROMPT_Y: 216,
+    NAME_Y: 40,
+    CONTROLS_Y: 68,
+    LINE_GAP: 2,                // extra px between the control lines
+    PROMPT_Y: 212,
+    LEVEL_Y: 184,               // the chosen level, between the controls and the prompt
     PANEL: { COLOR: 0x0d1410, ALPHA: 0.55, PADDING: 8 },   // behind the controls, for contrast with the forest
-    CAT_X: 128,                 // the cat runs in place on the ground strip
+    CAT_X: 72,                  // the cat runs in place on the ground strip, left of the prompt
     GROUND_ROW: 15,             // same ground line as the level (feet at row 15)
     GROUND_TILES: { TOP: 38, FILL: 45 },    // tileset gids, as in level1.json
     TEXT: {
@@ -462,17 +554,21 @@ export const TITLE = {
             'šplhanie: W a S pri liane alebo kmeni',
             'cieľ: dobehni do jaskyne, zbieraj pierka'
         ],
-        PROMPT: 'Enter = hrať'
+        PROMPT: 'Enter = hrať',
+        CONTINUE: 'Enter = pokračovať',     // the highest unlocked level is chosen
+        // Lowercase on purpose (16px). Arrows only where there is a level to step to.
+        level: (n: number, name: string, left: boolean, right: boolean) => `${left ? '<  ' : ''}level ${n}: ${name}${right ? '  >' : ''}`
     }
+} as const;
+
+// Saved progress (src/core/progress.ts): the highest unlocked level, in the browser's localStorage.
+export const PROGRESS = {
+    STORAGE_KEY: 'lost-cat:unlocked-level'
 } as const;
 
 // Art and fonts in public/assets (sources and licenses: public/assets/CREDITS.md).
 export const ASSETS = {
-    // Project-owned ground tiles from tools/tiles.mjs (style "grass": grass mat over dark soil); same layout as the
-    // level's tileset gids. The other styles (bricks, rock) are generated too, for later levels.
-    TILESET: { key: 'forest-tiles', url: 'assets/own/tiles/grass.png' },
-    // Crumbling platforms: a strip of three tiles (left end, middle, right end) from tools/tiles.mjs.
-    CRUMBLE_TILES: { key: 'crumble-tiles', url: 'assets/own/tiles/crumble-planks.png' },
+    // Ground tiles and crumbling-platform strips (tools/tiles.mjs) are per level: see LEVELS.
     // Project-owned pixel art from tools/sprites.mjs (run `node tools/sprites.mjs` to regenerate the PNGs).
     CAT: {
         frameWidth: 32, frameHeight: 22,
@@ -486,6 +582,7 @@ export const ASSETS = {
         head: { key: 'cat-head', url: 'assets/own/cat-head.png' }        // HUD lives icon
     },
     YARN: { key: 'yarn', url: 'assets/own/yarn.png' },
+    STALACTITE: { key: 'stalactite', url: 'assets/own/stalactite.png' },
     CAMPFIRE: {
         frameWidth: 24, frameHeight: 24,
         unlit: { key: 'campfire-unlit', url: 'assets/own/campfire-unlit.png' },

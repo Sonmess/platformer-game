@@ -167,7 +167,7 @@ test('a fled enemy stays away after the cat dies, and is back when the level res
     await teleport(page, GOAL.x, GOAL.y);
     await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
     await wait(page, RESULTS.INPUT_DELAY_MS);
-    await page.evaluate(() => window.__game!.press(['confirm'], 100));
+    await page.evaluate(() => window.__game!.press(['replay'], 100));          // R: the same level again
     await page.waitForFunction(() => window.__game!.getState().scene === 'Game' && window.__game!.getState().player?.onGround === true);
     const s = await state(page);
     expect(s.enemies[i]).toMatchObject({ gone: false, harmful: true, spriteAlpha: 1 });

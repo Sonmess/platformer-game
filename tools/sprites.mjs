@@ -47,7 +47,10 @@ const PALETTE = {
     E: '#7a5538',   //   lit edge, ridges
     N: '#1d4630',   // leaves: dark (also the vine stem)
     O: '#33703a',   //   leaves
-    Q: '#5f9e3c'    //   light leaves
+    Q: '#5f9e3c',   //   light leaves
+    R: '#b3aec8',   // stalactite: lit side
+    T: '#7e7996',   //   stone
+    U: '#57536b'    //   shade
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -317,6 +320,18 @@ const VINE_KNOT = [
     '.......NN.........',
     '.......N..........'
 ].map(r => r.padEnd(18, '.'));
+
+// ── Stalactite (cave hazard): 12×26, hanging from its top row, the tip at the bottom; lit from the left ─────────
+const STALACTITE = [Array.from({ length: 26 }, (_, y) => {
+    const half = Math.max(0, Math.round(5 * Math.pow(1 - y / 25, 0.9)));
+    return Array.from({ length: 12 }, (_, x) => {
+        const d = x - 5.5;
+        if (Math.abs(d) > half + 0.5 || (y > 22 && Math.abs(d) > 0.5)) return '.';
+        if (d < -half + 1.5) return 'R';                          // lit edge
+        if (d > half - 1.5) return 'U';                           // shaded edge
+        return (x + y) % 7 === 0 ? 'U' : 'T';                      // a few streaks of shade
+    }).join('');
+})];
 
 // ── Campfire (checkpoint): 24×24, unlit = 1 frame, lit = 4 flame frames ──────────────────────
 // ── Hedgehog (enemy): 20×14 frames, facing right, feet on the bottom row ───────────────────────
@@ -632,6 +647,7 @@ write('trunk-crown', [TRUNK_CROWN], true);
 write('vine-stem', [VINE_STEM], true);
 write('vine-tip', [VINE_TIP], true);
 write('vine-knot', [VINE_KNOT], true);
+write('stalactite', STALACTITE, true);
 write('feather-normal', FEATHER.normal, true);
 write('feather-silver', FEATHER.silver, true);
 write('feather-gold', FEATHER.gold, true);

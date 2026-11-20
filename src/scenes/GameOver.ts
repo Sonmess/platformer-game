@@ -1,10 +1,12 @@
 import Phaser, { Scene } from 'phaser';
 import { GAME, GAME_OVER, HUD, RESULTS } from '../config/constants';
+import { state } from '../core/state';
 import { Input } from '../systems/Input';
 import { music } from '../systems/Music';
 
 /**
- * The last life is gone: confirm (Enter/R) starts the level from scratch with LIVES.START lives, back (Esc) goes to the
+ * The last life is gone: confirm (Enter/R) starts the same level from scratch with LIVES.START lives (the points of the
+ * earlier levels kept), back (Esc) goes to the
  * title. A short delay first, so a key mashed during the death animation does not skip the screen.
  */
 export class GameOver extends Scene
@@ -44,7 +46,7 @@ export class GameOver extends Scene
         const input = this.controls.read();
         music.handleKeys(input);
         if (this.shownMs < GAME_OVER.INPUT_DELAY_MS) return;
-        if (input.confirmPressed) this.scene.start('Game');
+        if (input.confirmPressed) this.scene.start('Game', { level: state.level, entry: 'retry' });
         else if (input.backPressed) this.scene.start('Title');
     }
 }

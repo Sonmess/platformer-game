@@ -5,8 +5,8 @@ import { test, expect } from '@playwright/test';
 // FPS also depends on whatever else the machine is doing, so a dip gets a retry before it fails.
 test.describe.configure({ retries: 2 });
 
-test('holds ~60 FPS while running and jumping through the level', async ({ page }) => {
-    await page.goto('/?play');      // straight into the level
+for (const level of [1, 2]) test(`holds ~60 FPS while running and jumping through level ${level}`, async ({ page }) => {
+    await page.goto(`/?play=${level}`);      // straight into the level
     await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
 
     const fps = await page.evaluate(async () => {

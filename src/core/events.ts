@@ -25,10 +25,13 @@ export const EV = {
     ENEMY_FLEE: 'enemy:flee',           // { x, y, kind, dir } (clawed: leaves the level until it restarts)
     SNAKE_WARN: 'snake:warn',           // { x, y } (stops and puffs up its hood: a spray is coming)
     SNAKE_SPRAY: 'snake:spray',         // { x, y, radius, ms } (the poison cloud: centre, radius, how long it hurts)
+    STALACTITE_SHAKE: 'stalactite:shake',   // { x, y } (top centre; the warning before it falls)
+    STALACTITE_FALL: 'stalactite:fall',     // { x, y }
+    STALACTITE_SHATTER: 'stalactite:shatter', // { x, y } (where it landed: its tip on the floor)
     CRUMBLE_SHAKE: 'crumble:shake',     // { x, y, width } (top-left corner)
     CRUMBLE_FALL: 'crumble:fall'        // { x, y, width }
 } as const;
 
-export type DeathCause = 'pit' | 'spikes' | 'enemy' | 'poison';
+export type DeathCause = 'pit' | 'spikes' | 'enemy' | 'poison' | 'stalactite';
 
 export const events = new Phaser.Events.EventEmitter();

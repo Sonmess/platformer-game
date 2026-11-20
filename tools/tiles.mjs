@@ -148,6 +148,70 @@ const STYLES = {
             return g;
         },
         cave () { const g = blank(); for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) g[y][x] = hash(x, y, 8) < 0.08 ? '#262c3c' : this.C.cave; return g; }
+    },
+
+    // ── D: cave — dark, damp rock with wet glints; a worn pale rim where the cat walks, stalactites and drops under a
+    //    ceiling (the block's bottom row), now and then a glowing crystal cluster. Floors use the top and middle rows
+    //    (the bottom row hangs drips, so it is for ceilings and overhangs).
+    cave: {
+        name: 'Vlhká jaskynná skala',
+        C: { r1: '#2c2a3a', r2: '#363447', r3: '#23212e', dark: '#17151f', wet: '#5d6f93', wetL: '#9fb6d8',
+            rim: '#6a6680', rimL: '#8c88a3', rimD: '#4a475c', moss: '#3f6b4a',
+            xp: '#b48cff', xpL: '#ecdcff', xpD: '#6c45b8', xt: '#7ef0ff', xtL: '#e8ffff', xtD: '#2f9fb4', drop: '#9fd8ff', cave: '#121118' },
+        tile (pos, v, col)
+        {
+            const { C } = this, g = blank();
+            // Lumpy rock: a few soft blobs of the three base shades, then tiny wet glints.
+            for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+                const n = hash(Math.floor(x / 3), Math.floor(y / 3), 41) * 0.6 + hash(x, y, 42) * 0.4;
+                g[y][x] = n < 0.33 ? C.r3 : n < 0.72 ? C.r1 : C.r2;
+                if (hash(x, y, 43) < 0.025) g[y][x] = C.wet;
+            }
+            // Dark cracks between the lumps.
+            for (const [x, y] of [[3, 5], [4, 6], [4, 7], [11, 9], [12, 10], [12, 11], [7, 13], [8, 13]]) g[y][x] = C.dark;
+            if (v === 1) {                                                                       // a purple crystal cluster
+                for (const [x, y, c] of [[7, 6, C.xpL], [7, 7, C.xp], [8, 7, C.xpL], [6, 8, C.xp], [7, 8, C.xp], [8, 8, C.xpD], [9, 8, C.xp],
+                    [5, 9, C.xpL], [6, 9, C.xp], [7, 9, C.xpD], [8, 9, C.xpD], [9, 9, C.xpD], [10, 9, C.xp], [4, 10, C.dark], [5, 10, C.dark],
+                    [6, 10, C.dark], [7, 10, C.dark], [8, 10, C.dark], [9, 10, C.dark], [10, 10, C.dark], [11, 10, C.dark]]) g[y][x] = c;
+            }
+            if (v === 2) {                                                                       // a wet streak running down
+                for (let y = 0; y < T; y++) { const x = 9 + (y % 6 < 3 ? 0 : 1); g[y][x] = y % 4 === 0 ? C.wetL : C.wet; }
+            }
+            if (v === 3) {                                                                       // a small teal crystal
+                for (const [x, y, c] of [[4, 4, C.xtL], [4, 5, C.xt], [5, 5, C.xtL], [3, 6, C.xt], [4, 6, C.xtD], [5, 6, C.xt], [2, 7, C.dark],
+                    [3, 7, C.dark], [4, 7, C.dark], [5, 7, C.dark], [6, 7, C.dark], [11, 12, C.xt], [12, 12, C.xtL], [11, 13, C.xtD]]) g[y][x] = c;
+            }
+            if (pos.top) {
+                // A worn, paler rim to walk on, a little uneven, with damp moss in places.
+                for (let x = 0; x < T; x++) {
+                    const h = 2 + (hash(x, 13, v) < 0.3 ? 1 : 0);
+                    for (let y = 0; y < h; y++) g[y][x] = y === 0 ? C.rimL : y === h - 1 ? C.rimD : C.rim;
+                    if (hash(x, 17, v) < 0.12) g[0][x] = C.moss;
+                }
+                if (v === 1) { g[0][12] = C.xtL; }                                               // a glint of crystal in the rim
+            }
+            if (pos.bottom) {
+                // A ceiling's underside: the rock ends in stalactites, with a drop of water at a tip or two.
+                const tips = v === 2 ? [[3, 6], [10, 4]] : v === 3 ? [[6, 7], [13, 4]] : v === 1 ? [[2, 4], [8, 7], [13, 5]] : [[5, 5], [11, 7]];
+                const edge = T - 8;                                                              // last row of solid rock
+                for (let y = edge + 1; y < T; y++) for (let x = 0; x < T; x++) g[y][x] = null;
+                for (let x = 0; x < T; x++) g[edge][x] = C.rimD;                                // the underside, shaded
+                for (const [tx, len] of tips) {
+                    for (let k = 0; k < len; k++) {
+                        const w = Math.floor((len - k) / 2);
+                        for (let dx = -w; dx <= w; dx++) g[edge + 1 + k][tx + dx] = k === len - 1 ? C.rim : C.r2;
+                    }
+                    if (v !== 0 && edge + 1 + len < T) g[edge + 1 + len][tx] = C.drop;          // a drop of water
+                }
+            }
+            if (pos.left || pos.right) {
+                const x = pos.left ? 0 : T - 1;
+                for (let y = 0; y < T; y++) if (g[y][x]) g[y][x] = pos.top && y < 2 ? C.rimD : C.dark;
+            }
+            void col;
+            return g;
+        },
+        cave () { const g = blank(); for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) g[y][x] = hash(x, y, 9) < 0.06 ? '#1c1a24' : this.C.cave; return g; }
     }
 };
 
@@ -226,6 +290,26 @@ const CRUMBLE_STYLES = {
             crack(g, side === 'mid' ? 7 : 4, 1, 13, C.crack, C.rl);
             crack(g, side === 'mid' ? 12 : 11, 4, 8, C.crack);
             ragged(g, side === 'mid' ? 7 : side === 'left' ? 8 : 9);
+            return g;
+        }
+    },
+    // Pale, brittle limestone: light against the dark cave rock, cracked through, crumbs missing underneath.
+    cave: {
+        name: 'Krehký vápenec (jaskyňa)',
+        tile (side)
+        {
+            const C = { l: '#a9a3b8', ll: '#d2cce0', ld: '#7b758c', crack: '#2a2533', speck: '#8f88a3' };
+            const g = blank();
+            for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+                const r = hash(x, y, 61);
+                g[y][x] = y === 0 ? C.ll : y === 1 ? C.l : r < 0.18 ? C.ld : r > 0.9 ? C.speck : C.l;
+            }
+            if (side === 'left') for (let y = 0; y < T; y++) g[y][0] = C.ld;
+            if (side === 'right') for (let y = 0; y < T; y++) g[y][T - 1] = C.ld;
+            crack(g, side === 'mid' ? 6 : 9, 1, 14, C.crack, C.ll);
+            crack(g, side === 'mid' ? 12 : 4, 5, 8, C.crack);
+            for (const [x, y] of [[2, 4], [13, 7], [10, 12]]) g[y][x] = C.crack;
+            ragged(g, side === 'mid' ? 10 : side === 'left' ? 11 : 12);
             return g;
         }
     }

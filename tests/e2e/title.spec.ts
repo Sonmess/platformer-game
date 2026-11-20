@@ -62,9 +62,11 @@ test('Esc on the results goes back to the title, and the next run starts clean',
         await waitForScene(page, 'Title');
 
         await wait(page, TITLE.INPUT_DELAY_MS);
+        await page.evaluate(() => window.__game!.press(['left'], 100));      // level 2 is unlocked now: choose level 1 again
         await page.evaluate(() => window.__game!.press(['confirm'], 100));
         await waitForPlaying(page);
         const s = await state(page);
+        expect(s.levelNumber).toBe(1);
         expect(s.listeners, `run ${i + 2}`).toEqual(firstRun.listeners);
         expect(s.parallaxListeners).toBe(1);
         expect(s.deaths).toBe(0);

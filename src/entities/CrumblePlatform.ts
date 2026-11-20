@@ -1,17 +1,20 @@
 import Phaser from 'phaser';
-import { ASSETS, CRUMBLE, DEPTH, PLATFORM, TILE } from '../config/constants';
+import { CRUMBLE, DEPTH, PLATFORM, TILE } from '../config/constants';
 import { Crumble, type CrumblePhase } from '../core/crumble';
 import { EV, events } from '../core/events';
 
+/** Texture prefix of a level's crumbling platforms (one texture per width: prefix + tiles). */
+export const crumbleTexturePrefix = (mapKey: string) => `${CRUMBLE.TEXTURE_PREFIX}${mapKey}-`;
+
 /**
- * One texture per width (2..MAX_TILES tiles) from the crumbling-platform strip (left end, middle, right end): a look of
- * its own, so a platform that gives way never passes for a solid one.
+ * One texture per width (2..MAX_TILES tiles) under `prefix + n` from a level's crumbling-platform strip (texture
+ * `stripKey`: left end, middle, right end): a look of its own, so a platform that gives way never passes for a solid one.
  */
-export function bakeCrumbleTextures (textures: Phaser.Textures.TextureManager): void
+export function bakeCrumbleTextures (textures: Phaser.Textures.TextureManager, stripKey: string, prefix: string): void
 {
-    const src = textures.get(ASSETS.CRUMBLE_TILES.key).getSourceImage() as HTMLImageElement;
+    const src = textures.get(stripKey).getSourceImage() as HTMLImageElement;
     for (let n = 2; n <= PLATFORM.MAX_TILES; n++) {
-        const key = CRUMBLE.TEXTURE_PREFIX + n;
+        const key = prefix + n;
         if (textures.exists(key)) continue;
         const canvas = textures.createCanvas(key, n * TILE, TILE)!;
         for (let i = 0; i < n; i++) {
@@ -34,7 +37,7 @@ export class CrumblePlatform extends Phaser.GameObjects.Rectangle
     private readonly life = new Crumble(CRUMBLE.SHAKE_MS, CRUMBLE.FALL_MS, CRUMBLE.RESPAWN_MS);
     private readonly home: { x: number; y: number };
 
-    constructor (scene: Phaser.Scene, rect: { x: number; y: number; width: number }, private readonly playerBounds: () => Phaser.Geom.Rectangle)
+    constructor (scene: Phaser.Scene, rect: { x: number; y: number; width: number }, texturePrefix: string, private readonly playerBounds: () => Phaser.Geom.Rectangle)
     {
         const n = Phaser.Math.Clamp(Math.round(rect.width / TILE), 2, PLATFORM.MAX_TILES);
         super(scene, rect.x, rect.y, n * TILE, TILE);
@@ -44,7 +47,7 @@ export class CrumblePlatform extends Phaser.GameObjects.Rectangle
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
         this.home = { x: rect.x, y: rect.y };
-        this.image = scene.add.image(rect.x, rect.y, CRUMBLE.TEXTURE_PREFIX + n).setOrigin(0).setDepth(DEPTH.PLATFORMS);
+        this.image = scene.add.image(rect.x, rect.y, texturePrefix + n).setOrigin(0).setDepth(DEPTH.PLATFORMS);
         this.once(Phaser.GameObjects.Events.DESTROY, () => this.image.destroy());
     }
 

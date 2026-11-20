@@ -1,10 +1,8 @@
 import { Scene } from 'phaser';
-import { ANIM, ASSETS, AUDIO, FEATHER_SHEET, FEATHERS, LEVEL, PARALLAX } from '../config/constants';
-import { bakeCrumbleTextures } from '../entities/CrumblePlatform';
-import { bakePlatformTextures } from '../entities/MovingPlatform';
+import { ANIM, ASSETS, AUDIO, FEATHER_SHEET, FEATHERS, LEVELS } from '../config/constants';
+import { LEVEL_MAPS } from '../levels';
 import { bakeEffectTextures } from '../systems/Effects';
-import { bakeParallaxTextures, parallaxSourceKey } from '../systems/Parallax';
-import level1 from '../levels/level1.json';
+import { allParallaxLayers, bakeParallaxTextures, parallaxSourceKey } from '../systems/Parallax';
 
 export class Preload extends Scene
 {
@@ -16,9 +14,11 @@ export class Preload extends Scene
     preload ()
     {
         const { CAT, CAMPFIRE } = ASSETS;
-        this.load.tilemapTiledJSON(LEVEL.MAP_KEY, level1);
-        this.load.image(ASSETS.TILESET.key, ASSETS.TILESET.url);
-        this.load.image(ASSETS.CRUMBLE_TILES.key, ASSETS.CRUMBLE_TILES.url);
+        for (const level of LEVELS) {
+            this.load.tilemapTiledJSON(level.map, LEVEL_MAPS[level.map]);
+            this.load.image(level.tiles.key, level.tiles.url);
+            this.load.image(level.crumble.key, level.crumble.url);
+        }
 
         const cat = { frameWidth: CAT.frameWidth, frameHeight: CAT.frameHeight };
         this.load.spritesheet(CAT.idle.key, CAT.idle.url, cat);
@@ -33,13 +33,14 @@ export class Preload extends Scene
         }
         this.load.image(CAT.head.key, CAT.head.url);
         this.load.image(ASSETS.YARN.key, ASSETS.YARN.url);
+        this.load.image(ASSETS.STALACTITE.key, ASSETS.STALACTITE.url);
         for (const f of Object.values(FEATHERS)) {
             this.load.spritesheet(f.key, f.url, { frameWidth: FEATHER_SHEET.frameWidth, frameHeight: FEATHER_SHEET.frameHeight });
         }
         this.load.image(CAMPFIRE.unlit.key, CAMPFIRE.unlit.url);
         this.load.spritesheet(CAMPFIRE.lit.key, CAMPFIRE.lit.url, { frameWidth: CAMPFIRE.frameWidth, frameHeight: CAMPFIRE.frameHeight });
 
-        for (const layer of PARALLAX.LAYERS) this.load.image(parallaxSourceKey(layer), layer.url);
+        for (const layer of allParallaxLayers()) this.load.image(parallaxSourceKey(layer), layer.url);
         this.load.image(ASSETS.SPIKES.key, ASSETS.SPIKES.url);
         const { HEDGEHOG } = ASSETS;
         this.load.spritesheet(HEDGEHOG.walk.key, HEDGEHOG.walk.url, { frameWidth: HEDGEHOG.frameWidth, frameHeight: HEDGEHOG.frameHeight });
@@ -53,7 +54,7 @@ export class Preload extends Scene
         this.load.image(SNAKE.spray.key, SNAKE.spray.url);
         this.load.font(ASSETS.FONT.key, ASSETS.FONT.url);
         for (const sfx of Object.values(AUDIO.SFX)) this.load.audio(sfx.key, sfx.url);
-        this.load.audio(AUDIO.MUSIC.key, AUDIO.MUSIC.url);
+        for (const track of new Set(LEVELS.map(l => l.music))) this.load.audio(track.key, track.url);
     }
 
     create ()
@@ -61,11 +62,10 @@ export class Preload extends Scene
         this.createAnimations();
         bakeParallaxTextures(this.textures);
         bakeEffectTextures(this);
-        bakePlatformTextures(this.textures);
-        bakeCrumbleTextures(this.textures);
-        // Dev only: "?play" skips the title screen (e2e tests start in the level).
-        const skipTitle = import.meta.env.DEV && new URLSearchParams(location.search).has('play');
-        this.scene.start(skipTitle ? 'Game' : 'Title');
+        // Dev only: "?play" skips the title screen (e2e tests start in the level); "?play=2" starts level 2.
+        const play = import.meta.env.DEV ? new URLSearchParams(location.search).get('play') : null;
+        if (play !== null) this.scene.start('Game', { level: Number(play) || 1, entry: 'new' });
+        else this.scene.start('Title');
     }
 
     /** Global animations, created once (the animation manager outlives scene restarts). */
