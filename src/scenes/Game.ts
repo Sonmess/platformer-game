@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { ASSETS, COIN, DEATH, GROUND_TILES, HAZARD, LEVEL, LEVELS, PLATFORM, PLAYER, PROGRESS, SECRET, STALACTITE, TILE, TITLE, levelDef, levelNumber, type LevelDef } from '../config/constants';
+import { ASSETS, COIN, DEATH, DEPTH, GROUND_TILES, HAZARD, LEVEL, LEVELS, PLATFORM, PLAYER, PROGRESS, SECRET, STALACTITE, TILE, TITLE, levelDef, levelNumber, type LevelDef } from '../config/constants';
 import { EV, events, type DeathCause } from '../core/events';
 import { clawHits, clawOutcome, type ClawSwipe } from '../core/claw';
 import { inMeowRange, type MeowWave } from '../core/meow';
@@ -10,6 +10,7 @@ import { CaveExit } from '../entities/CaveExit';
 import { Checkpoint } from '../entities/Checkpoint';
 import { Climbable } from '../entities/Climbable';
 import { Coin } from '../entities/Coin';
+import { Bat } from '../entities/Bat';
 import { Crow } from '../entities/Crow';
 import { CrumblePlatform, bakeCrumbleTextures, crumbleTexturePrefix } from '../entities/CrumblePlatform';
 import type { Enemy } from '../entities/Enemy';
@@ -92,6 +93,8 @@ export class Game extends Scene
         this.physics.world.setBoundsCollision(true, true, true, false);    // open bottom: pits kill
 
         const spawn = this.map.findObject(LEVEL.OBJECT_LAYER, o => o.name === LEVEL.SPAWN_OBJECT)!;
+        // Where the level starts (decoration): on the floor at the left edge, behind the cat.
+        if (def.entrance) this.add.image(0, spawn.y!, def.entrance.key).setOrigin(0, 1).setDepth(DEPTH.CLIMBABLES);
         const coinObjects = this.objectsOfType(LEVEL.COIN_TYPE);
         const valueOf = (o: Phaser.Types.Tilemaps.TiledObject) =>
             (o.properties as { name: string; value: number }[] | undefined)?.find(p => p.name === COIN.VALUE_PROPERTY)?.value ?? 1;
@@ -124,10 +127,14 @@ export class Game extends Scene
         this.yarns = this.physics.add.staticGroup(this.objectsOfType(LEVEL.YARN_TYPE).map(o => new Yarn(this, o.x!, o.y!)));
         this.physics.add.overlap(this.player, this.yarns, (_p, y) => this.collectYarn(y as Yarn));
 
-        // Secret rooms: fake rock (no collision) that only a small cat squeezes into; golden fish inside.
-        this.secrets = this.objectsOfType(LEVEL.SECRET_TYPE).map(o => new Secret(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! }, ground,
-            (o.properties as { name: string; value: string }[] | undefined)?.find(p => p.name === SECRET.ENTRANCE_PROPERTY)?.value === 'left' ? 'left' : 'right'));
-        this.physics.add.collider(this.player, this.secrets.map(s => s.barrier), undefined, () => this.player.big);
+        // Secret rooms: fake rock (no collision) with a golden fish inside; a tight one only a small cat squeezes into.
+        this.secrets = this.objectsOfType(LEVEL.SECRET_TYPE).map(o => {
+            const props = (o.properties ?? []) as { name: string; value: unknown }[];
+            const prop = (name: string) => props.find(p => p.name === name)?.value;
+            return new Secret(this, { x: o.x!, y: o.y!, width: o.width!, height: o.height! }, ground,
+                prop(SECRET.ENTRANCE_PROPERTY) === 'left' ? 'left' : 'right', prop(SECRET.TIGHT_PROPERTY) === true);
+        });
+        this.physics.add.collider(this.player, this.secrets.flatMap(s => s.barrier ? [s.barrier] : []), undefined, () => this.player.big);
         const found = loadFound(browserStore(), PROGRESS.TREASURES_KEY);
         this.treasures = this.physics.add.staticGroup(treasureObjects.map((o, i) => {
             const id = `${def.map}:${i}`;
@@ -140,7 +147,8 @@ export class Game extends Scene
         const hedgehogs = this.objectsOfType(LEVEL.HEDGEHOG_TYPE).map(o => new Hedgehog(this, rect(o), ground));
         const crows = this.objectsOfType(LEVEL.CROW_TYPE).map(o => new Crow(this, rect(o)));
         const snakes = this.objectsOfType(LEVEL.SNAKE_TYPE).map(o => new Snake(this, rect(o), ground));
-        this.enemies = [...hedgehogs, ...crows, ...snakes];
+        const bats = this.objectsOfType(LEVEL.BAT_TYPE).map(o => new Bat(this, o.x!, o.y!));
+        this.enemies = [...hedgehogs, ...crows, ...snakes, ...bats];     // bats last: specs index snakes after crows
         this.physics.add.collider([...hedgehogs, ...snakes], ground);     // crows fly a fixed path
         this.physics.add.overlap(this.player, this.enemies, (_p, e) => { if ((e as Enemy).harmful) this.killPlayer('enemy'); });
         // A meow scares every enemy within its reach (enemies never read the player directly).
@@ -254,7 +262,10 @@ export class Game extends Scene
     {
         const goals = this.objectsOfType(LEVEL.GOAL_TYPE);
         const last = goals[goals.length - 1];
-        this.exit = this.def.exit && last ? new CaveExit(this, this.def.exit.key, last.x! + last.width!, last.y! + last.height!) : null;
+        const exit = this.def.exit;
+        const atMapEnd = exit?.at === 'mapEnd';
+        this.exit = exit && last ? new CaveExit(this, exit.key,
+            atMapEnd ? this.map.widthInPixels : last.x! + last.width!, atMapEnd ? this.map.heightInPixels : last.y! + last.height!) : null;
         return goals.map(o => new Goal(this, o.x!, o.y!, o.width!, o.height!));
     }
 

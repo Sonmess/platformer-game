@@ -5,13 +5,14 @@ import { EV, events } from '../core/events';
 /**
  * Rock that is not really there: the ground tiles inside a Tiled rectangle of type "secret" keep their look but lose
  * their collision, so the cat walks into a hidden room. While the cat is inside they fade to see-through, and back
- * when it leaves. A thin crack on the entrance side is the only hint; a zone there stops a big cat (Game's collider
- * only collides while the cat is big), so only a small one squeezes through.
+ * when it leaves. A thin crack on the entrance side is the only hint. A `tight` room (Tiled bool property) also has a zone
+ * there that stops a big cat (Game's collider only collides while the cat is big), so only a small one squeezes through.
  */
 export class Secret
 {
     readonly rect: Phaser.Geom.Rectangle;
-    readonly barrier: Phaser.GameObjects.Zone;
+    /** Only in a tight room: stops a big cat at the crack. */
+    readonly barrier: Phaser.GameObjects.Zone | null;
     private readonly tiles: Phaser.Tilemaps.Tile[];
     private readonly crack: Phaser.GameObjects.Image;
     /** Dust drifting out of the crack now and then (a draught from the room behind). */
@@ -20,7 +21,7 @@ export class Secret
     alpha = 1;
     private revealed = false;
 
-    constructor (scene: Phaser.Scene, rect: { x: number; y: number; width: number; height: number }, ground: Phaser.Tilemaps.TilemapLayer, entrance: 'left' | 'right')
+    constructor (scene: Phaser.Scene, rect: { x: number; y: number; width: number; height: number }, ground: Phaser.Tilemaps.TilemapLayer, entrance: 'left' | 'right', tight = false)
     {
         this.rect = new Phaser.Geom.Rectangle(rect.x, rect.y, rect.width, rect.height);
         this.tiles = ground.getTilesWithinWorldXY(rect.x, rect.y, rect.width, rect.height).filter(t => t.index > 0);
@@ -42,8 +43,8 @@ export class Secret
             alpha: { start: 0.9, end: 0 },
             tint: [...D.TINT]
         }).setDepth(DEPTH.EFFECTS);
-        this.barrier = scene.add.zone(doorX, rect.y, TILE, rect.height).setOrigin(0);
-        scene.physics.add.existing(this.barrier, true);
+        this.barrier = tight ? scene.add.zone(doorX, rect.y, TILE, rect.height).setOrigin(0) : null;
+        if (this.barrier) scene.physics.add.existing(this.barrier, true);
     }
 
     update (deltaMs: number, cat: Phaser.Geom.Rectangle): void

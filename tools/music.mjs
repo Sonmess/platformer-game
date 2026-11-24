@@ -1,4 +1,4 @@
-// Project-owned 8-bit music. Run: `node tools/music.mjs` → public/assets/own/music/forest.wav and cave.wav.
+// Project-owned 8-bit music. Run: `node tools/music.mjs` → public/assets/own/music/forest.wav, cave.wav, dusk.wav.
 // Forest: a calm loop, 12 bars at 96 BPM (30 s) over Am–F–C–G. Bars 1–4 are bass + arpeggio only,
 // bars 5–8 add the melody, bars 9–12 vary it and end on G, which leads back into the Am of bar 1.
 // Cave: slower and darker (see caveTrack below).
@@ -114,9 +114,59 @@ function caveTrack ()
     return { notes: out, length: bars * bar };
 }
 
+/**
+ * The forest at dusk: 8 bars at 72 BPM (~27 s) in F major, F–Dm–B♭–C. Soft, sustained triangle chords like a warm
+ * evening, a slow music-box melody high above, crickets chirping in little trills, and once in a while an owl.
+ */
+function duskTrack ()
+{
+    const bpm = 72, beat = 60 / bpm, bar = 4 * beat, bars = 8;
+    const chords = [{ notes: [53, 57, 60], bass: 41 }, { notes: [50, 53, 57], bass: 38 }, { notes: [46, 50, 53], bass: 34 }, { notes: [48, 52, 55], bass: 36 }];
+    // Music box: [midi, beats] per bar (0 = rest), F major pentatonic, sparse.
+    const line = {
+        0: [[0, 1], [81, 1], [84, 1], [81, 1]],
+        1: [[79, 2], [77, 1], [0, 1]],
+        2: [[0, 1], [77, 1], [79, 1], [81, 1]],
+        3: [[79, 3], [0, 1]],
+        4: [[0, 1], [84, 1], [86, 1], [84, 1]],
+        5: [[81, 2], [79, 1], [77, 1]],
+        6: [[74, 1], [77, 1], [79, 1], [81, 1]],
+        7: [[77, 3], [0, 1]]
+    };
+    const out = [];
+    for (let b = 0; b < bars; b++) {
+        const t0 = b * bar, c = chords[b % chords.length];
+        // Warm pad: the chord held through the bar, swelling in, plus a soft bass note.
+        for (const m of c.notes) out.push(note({ wave: 'triangle', from: hz(m), at: t0, dur: bar * 0.98, vol: 0.13, attack: 0.6, decay: 0.4 }));
+        out.push(note({ wave: 'triangle', from: hz(c.bass), at: t0, dur: bar * 0.9, vol: 0.4, attack: 0.2, decay: 0.6 }));
+        // Music box: a bright, quickly fading pluck an octave up, with a quiet echo of itself.
+        let at = t0;
+        for (const [midi, beats] of line[b]) {
+            if (midi) {
+                out.push(note({ wave: 'triangle', from: hz(midi), at, dur: Math.min(beats, 1.5) * beat, vol: 0.2, attack: 0.005, decay: 2.2 }));
+                out.push(note({ from: hz(midi), at, dur: 0.08, vol: 0.05, duty: 0.125, decay: 3 }));
+                out.push(note({ wave: 'triangle', from: hz(midi), at: at + 0.75 * beat, dur: beat, vol: 0.06, decay: 2.2 }));
+            }
+            at += beats * beat;
+        }
+        // Crickets: trills of three quick high chirps, twice a bar, a little uneven.
+        for (const [when, pitch] of [[0.3, 4700], [2.4, 4500]]) {
+            for (let k = 0; k < 3; k++) {
+                out.push(note({ from: pitch, to: pitch * 0.96, at: t0 + when * beat + k * 0.055 + (b % 2) * 0.02, dur: 0.035, vol: 0.035, duty: 0.25, decay: 1.5 }));
+            }
+        }
+        // An owl now and then: "hoo-hoo", low and soft, with a wobble.
+        if (b === 2 || b === 6) {
+            out.push(note({ wave: 'triangle', from: hz(67), to: hz(66), at: t0 + 2 * beat, dur: 0.28, vol: 0.22, attack: 0.04, decay: 1, vibrato: [5, 0.01] }));
+            out.push(note({ wave: 'triangle', from: hz(64), to: hz(62), at: t0 + 2 * beat + 0.36, dur: 0.45, vol: 0.2, attack: 0.04, decay: 1.2, vibrato: [5, 0.012] }));
+        }
+    }
+    return { notes: out, length: bars * bar };
+}
+
 const OUT = 'public/assets/own/music';
 mkdirSync(OUT, { recursive: true });
-for (const [name, track] of [['forest', { notes, length: BARS * BAR }], ['cave', caveTrack()]]) {
+for (const [name, track] of [['forest', { notes, length: BARS * BAR }], ['cave', caveTrack()], ['dusk', duskTrack()]]) {
     const file = `${OUT}/${name}.wav`;
     const bytes = wav(render(track.notes, { length: track.length, loop: true }));
     writeFileSync(file, bytes);

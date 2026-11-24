@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A professional-looking 2D side-scrolling platformer for the browser, with parallax backgrounds.
 
 **Status:** Milestones 1 (2026-11-05), 2 (2026-11-19, ADR 0007), 3 (2026-11-19, game improvements,
-ADR 0008) and 4 (2026-11-20, level 2 "Jaskyňa", ADR 0010) complete and playtested. Milestone 5 (level 3 "Les za súmraku", ADR 0011) is approved, not started. Checklists in
+ADR 0008), 4 (2026-11-20, level 2 "Jaskyňa", ADR 0010) and 5 (2026-11-24, level 3 "Les za súmraku", ADR 0011) complete
+and playtested. Next ideas (a boat level, the cottage ending) are in `docs/backlog.md`. Checklists in
 `docs/gameplan.md`.
 
 ## Stack
@@ -124,6 +125,10 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `SNAKE.CLOUD_RADIUS_PX`). `Game.update` kills the cat with cause `poison` when any `Enemy.poisons(playerBounds)`.
   Audio plays its hiss/spray only when it is near the camera (`playNear`; Effects skips them too, via `nearView()` in `src/systems/view.ts`). Snakes come last in `enemies` (after crows);
   the test API adds `phase` and `cloud` (null for other enemies); specs use `snakeIndex()` from landmarks.
+- Bat (`src/entities/Bat.ts`, Tiled point `bat` = where its feet grip; it draws its own branch stub): `BatFlight` in
+  `src/core/bat.ts` (pure: hanging → waking → swooping → resting, `offset` = arc from the roost), positioned directly like
+  the crow. `Enemy.whileScared()` (a hook, frozen by default) flutters it back to the roost. Bats come after the snakes in
+  `enemies` (`batIndex()` in landmarks); the test API's `phase` covers bats too. Event `bat:swoop` (Audio near the camera).
 - Moving platforms (`src/entities/MovingPlatform.ts`): Tiled rectangle of type `platform` = path (wider than tall =
   sideways), int property `tiles` = width; textures are baked from the tileset in Preload. An invisible immovable
   body moved by velocity (steered along `pingPong()`), so Arcade carries a rider sideways via `friction.x`, plus a
@@ -150,7 +155,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `stalactite:shake|fall|shatter`; Audio/Effects only near the camera. Tuning: `STALACTITE`, `JUICE.STALACTITE`.
 - Secret rooms (`src/entities/Secret.ts`, Tiled rectangle `secret` + string property `entrance` left/right): the ground
   tiles inside keep their look but lose collision (`tile.setCollision(false…, true)`), fade to `SECRET.REVEAL_ALPHA`
-  while the cat is really inside (not just touching), and a zone at the entrance collides only while the cat is big.
+  while the cat is really inside (not just touching), and in a `tight` room (Tiled bool property, only level 2's) a zone at the entrance collides while the cat is big.
   Treasures (`src/entities/Treasure.ts`, Tiled point `treasure`, a golden fish) sit at `DEPTH.TREASURE` (behind the
   tilemap, so the fake rock hides them); `state.treasures`/`treasuresTotal` per level, ids `<map>:<n>` saved with
   `saveFound()` under `PROGRESS.TREASURES_KEY`. Events `secret:reveal`, `treasure:collect`; test API `treasures`, `secrets`.
@@ -165,7 +170,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   (headless GPU noise).
 - On Windows, Playwright launches Chromium on the real GPU (`--use-angle=d3d11` in `playwright.config.ts`);
   software GL (SwiftShader) drops frames with 4 workers and the physics tests flake. Ad-hoc screenshot scripts
-  should pass the same args. E2e runs with `workers: 2`: input is sampled per frame, so heavy parallel load
+  should pass the same args (plus `--mute-audio`: all browsers in tests are muted). E2e runs with `workers: 2`: input is sampled per frame, so heavy parallel load
   stretches frames and the traversal/jump tests flake. `performance.spec.ts` (FPS > 55) has retries, because
   FPS also depends on whatever else the machine is running.
 - Phaser gotcha: inside `create()` of a freshly started scene `this.time.now` is stale; time UI delays
@@ -191,7 +196,7 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   `public/assets/own/` (outline is added automatically). The repo is public: never add assets whose license forbids
   redistribution. Sound works the same way: `tools/synth.mjs` (tiny synth: square/triangle/noise notes → WAV) is
   used by `tools/sfx.mjs` (→ `public/assets/own/sfx/`, played on gameplay events by `src/systems/Audio.ts`) and
-  `tools/music.mjs` (→ `public/assets/own/music/forest.wav` and `cave.wav`, ~30 s loops rendered with wrap-around so
+  `tools/music.mjs` (→ `public/assets/own/music/forest.wav`, `cave.wav` and `dusk.wav`, ~30 s loops rendered with wrap-around so
   the seam is clean). `src/systems/Music.ts` keeps one loop per track in the game-wide sound manager: every scene calls
   `music.start(scene, track)` (idempotent; the level's `LevelDef.music`, the title plays the forest) and
   `music.handleKeys()` (M = mute); the pause ducks it. A different track crossfades over `AUDIO.MUSIC_FADE_MS`,
@@ -207,7 +212,8 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   particles, camera shake); tuning is `JUICE` in constants. Set a pop's start scale immediately — a tween's `from`
   applies a frame late. Particle `x`/`y` ops are ignored when `explode(n, x, y)` gets a position; spread with an
   `emitZone`. For screenshots of effects freeze with `game.loop.sleep()` (a paused scene's camera keeps following).
-- Ground tiles are project-owned too (ADR 0009): `node tools/tiles.mjs` draws three styles (grass = in use, bricks, rock)
+- Ground tiles are project-owned too (ADR 0009): `node tools/tiles.mjs` draws the styles (grass = level 1, cave = level 2,
+  dusk = level 3 = re-coloured grass, bricks and rock spare)
   into `public/assets/own/tiles/`, keeping the Tall Forest gid layout plus variant rows; `Game` (and the Title strip)
   swap plain centre tiles for variants by position (`tileVariant()` in `src/core/tiles.ts`, `GROUND_TILES` in constants;
   a unit test checks the gids against the generator's JSON). Swap `tile.index` after the collision setup: the tile keeps
@@ -220,8 +226,15 @@ Phaser 4 (Arcade Physics only, no Matter) · TypeScript · Vite · Playwright
   anchored at the goal's bottom-right; test API `exit`).
   Checkpoints at 61, 98, 133, 171 (none in the entrance; the only yarn ball is at col 145). `route.spec.ts` has a "level 2" describe playing the level checkpoint to checkpoint (five tests). In cave maps, floors use the block's top + middle rows and ceilings/overhangs the middle + bottom rows:
   the bottom row hangs stalactites (transparent below), so never put it at the bottom of a floor.
-- Level 3 `src/levels/level3.json` "Les za súmraku" (ADR 0011) is a greybox (60 cols, pit 52–55 like level 2's first pit)
-  until M5 step 5.
+- Level 3 `src/levels/level3.json` "Les za súmraku" (ADR 0011): 200 cols, `dusk` tile style; starts at the cave mouth
+  (`LevelDef.entrance`: an image on the floor at the left edge), 0–33 first bat (under a low ledge, row 12, cols 14–18), 34–67
+  hedgehog + trunk (col 50) to a high ledge (yarn ball, a bat under it) + pit 60–63, 68–107 marsh (platform over pit
+  74–90, crumbles 84–85 row 12 and 87–88 row 11 with no bat — one there was unfair, ledge 91–94, snake 98–101), 108–143 mound 118–128 reached only by the vine
+  at col 116 (secret room 118–121 rows 8–10, entrance left, its fish), a crow 132–140, 144–171 bat grove (three canopy
+  ledges 149–153, 157–162, 166–169 with bats under them, pits 154–156 and 163–165, yarn at 146; a vine at col 171 leads
+  up so the canopy feathers can be collected on the way back; `bat.spec.ts` uses its first bat), 172–199 hedgehog, shore ends at col 189, a lake from 190 with the
+  boat = goal 191–193 (`exit.at: 'mapEnd'`: `exit-lake.png` anchored at the map's bottom-right). Checkpoints 34, 68,
+  108, 144, 172. `route.spec.ts` has a "level 3" describe (six tests).
 - Level `src/levels/level1.json` uses that tileset (autotiled 3×3 block); it opens in Tiled because the
   tileset image path is relative to the map. The JSON is the source of truth (edit it in Tiled or with a script).
   230 columns: cols 0–113 are the M1 course (run, pits, wall, climb); 113–136 hedgehogs (ground + ledge),

@@ -8,6 +8,7 @@ import type { LevelComplete } from './scenes/LevelComplete';
 import type { Title } from './scenes/Title';
 import { EV, events } from './core/events';
 import { Snake } from './entities/Snake';
+import { Bat } from './entities/Bat';
 import { sfxLog } from './systems/Audio';
 import { music } from './systems/Music';
 import type { ClawSwipe } from './core/claw';
@@ -196,7 +197,7 @@ export function installTestApi (game: Phaser.Game): void
                 meow: { cooldownMs: p?.meowCooldown.remainingMs ?? 0, count: meowLog.count, last: meowLog.last },
                 claw: { cooldownMs: p?.clawCooldown.remainingMs ?? 0, count: clawLog.count, last: clawLog.last },
                 checkpoint: { ...state.checkpoint },
-                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key, gone: e.gone, spriteAlpha: e.sprite.alpha, phase: e instanceof Snake ? e.phase : null, cloud: e instanceof Snake ? e.cloud : null })) ?? [],
+                enemies: g?.enemies.map(e => ({ kind: e.kind, x: e.x, y: e.y, dir: e.dir, scared: e.scared, scaredMs: e.scaredMs, harmful: e.harmful, anim: e.sprite.texture.key, gone: e.gone, spriteAlpha: e.sprite.alpha, phase: e instanceof Snake || e instanceof Bat ? e.phase : null, cloud: e instanceof Snake ? e.cloud : null })) ?? [],
                 platforms: g?.platforms.map(p => ({ x: p.x, y: p.y, width: p.width, vx: p.body.velocity.x, vy: p.body.velocity.y, drawX: p.image.x, drawY: p.image.y })) ?? [],
                 crumbles: g?.crumbles.map(c => ({ x: c.x, y: c.y, width: c.width, phase: c.phase, solid: c.solid, imageX: c.image.x, imageY: c.image.y, visible: c.image.visible })) ?? [],
                 climbables: g?.climbables.map(c => ({ kind: c.kind, x: c.x, y: c.y, width: c.width, height: c.height })) ?? [],

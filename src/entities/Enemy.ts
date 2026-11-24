@@ -3,7 +3,7 @@ import { DEPTH, ENEMY, FLEE } from '../config/constants';
 import { EV, events } from '../core/events';
 import { Scare } from '../core/meow';
 
-export type EnemyKind = 'hedgehog' | 'crow' | 'snake';
+export type EnemyKind = 'hedgehog' | 'crow' | 'snake' | 'bat';
 
 /**
  * Shared enemy behaviour: an invisible Arcade hitbox (all physics and tests use it) with a sprite that
@@ -99,6 +99,7 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
 
         if (this.fright.scared) {
             this.body.setVelocityX(0);
+            this.whileScared(deltaMs);
             this.shakeMs -= deltaMs;
             if (this.shakeMs <= 0) {
                 this.shakeMs = this.fright.warning ? ENEMY.WARN_SHAKE_MS : ENEMY.SHAKE_MS;
@@ -108,6 +109,12 @@ export abstract class Enemy extends Phaser.GameObjects.Rectangle
             this.shakeOffset = 0;
             this.move(deltaMs, player);
         }
+    }
+
+    /** While scared (frozen by default; a bat flutters back to its branch). */
+    protected whileScared (_deltaMs: number): void
+    {
+        // Most enemies just freeze where they are.
     }
 
     /** Does a hazard of its own (the snake's poison cloud) reach `box`, the cat's hitbox? */

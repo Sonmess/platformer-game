@@ -89,3 +89,23 @@ test('without the fish the results say 0/1; the forest has no treasure line', as
     await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
     expect((await state(page)).results!.some(l => l.startsWith(RESULTS.TEXT.TREASURE))).toBe(false);
 });
+
+test('level 3: its room by the vine is not tight, a big cat gets in too', async ({ page }) => {
+    const L3 = landmarks(3);
+    const room = L3.SECRETS[0];
+    await page.goto('/?play=3');
+    await page.waitForFunction(() => window.__game?.getState().player?.onGround === true && window.__game.getState().levelNumber === 3);
+    await teleport(page, 146.5 * TILE, 14.5 * TILE);                                  // the yarn ball of the bat grove
+    await page.waitForFunction(() => window.__game!.getState().player!.big);
+    // Like a player: onto the vine left of the room, level with it, then a little hop off it into the crack.
+    const vine = L3.VINES.find(v => v.col === 116)!;
+    await teleport(page, vine.x + vine.width / 2, room.y + room.height - PLAYER.HEIGHT / 2 - 4);
+    await page.evaluate(() => window.__game!.hold(['up']));
+    await page.waitForFunction(() => window.__game!.getState().player!.climbing);
+    await page.evaluate(() => { window.__game!.release(['up']); window.__game!.hold(['right']); void window.__game!.press(['jump'], 120); });
+    await page.waitForFunction(() => window.__game!.getState().treasures.found === 1);
+    await page.evaluate(() => window.__game!.release(['right']));
+    const s = await state(page);
+    expect(s.player!.big).toBe(true);
+    expect(s.secrets[0].inside).toBe(true);
+});

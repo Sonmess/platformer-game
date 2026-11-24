@@ -238,9 +238,10 @@ const CRUMBLE_STYLES = {
     // Old weathered planks: two boards with grain, gaps and nails, tied with rope at the ends, splintered underneath.
     planks: {
         name: 'Staré drevené dosky',
+        C: { wood: '#a8743f', light: '#d4a565', dark: '#6e4423', gap: '#2e1c10', grain: '#8a5a30', nail: '#c9ccd6', rope: '#e3cf8f', ropeD: '#9c8650' },
         tile (side)
         {
-            const C = { wood: '#a8743f', light: '#d4a565', dark: '#6e4423', gap: '#2e1c10', grain: '#8a5a30', nail: '#c9ccd6', rope: '#e3cf8f', ropeD: '#9c8650' };
+            const { C } = this;
             const g = blank();
             for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
                 const board = y < 7 ? 0 : 1;
@@ -313,6 +314,22 @@ const CRUMBLE_STYLES = {
             return g;
         }
     }
+};
+
+// ── Dusk (level 3): the same grass and planks, re-coloured for a moonlit evening ──────────────────────────────────────
+// Grass in cool, moonlit mint over violet-grey soil, pale blue and pink flowers: dark enough for the dusk, but the light
+// top edge still stands out against the violet forest behind it.
+STYLES.dusk = {
+    ...STYLES.grass,
+    name: 'Tráva za súmraku',
+    C: { soil: '#2c2643', soilD: '#1d1930', soilL: '#3d355a', stone: '#726f95', stoneL: '#a09cc6', stoneD: '#4c4968',
+        root: '#4e4058', g1: '#8fdcbc', g2: '#55a48e', g3: '#317068', g4: '#1e4a4c', flower: '#d6ecff', flower2: '#f2b6e6', cave: '#141022' }
+};
+// Planks under the moon: cool grey-violet wood, the rope pale.
+CRUMBLE_STYLES.dusk = {
+    ...CRUMBLE_STYLES.planks,
+    name: 'Dosky za súmraku',
+    C: { wood: '#7a6680', light: '#ab98b4', dark: '#4a3c54', gap: '#1c1526', grain: '#634f6a', nail: '#c9ccd6', rope: '#cfc4a4', ropeD: '#877c66' }
 };
 
 // ── Layout ───────────────────────────────────────────────────────────────────────────────────

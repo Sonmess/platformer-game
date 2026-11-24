@@ -41,8 +41,12 @@ export function landmarks (n = 1)
         TREASURES: ofType('treasure').map(o => ({ x: o.x, y: o.y })),
         /** Stalactites: where each hangs (top centre). */
         STALACTITES: ofType('stalactite').map(o => ({ x: o.x, y: o.y })),
-        /** Index of the i-th snake in getState().enemies (hedgehogs, then crows, then snakes). */
-        snakeIndex: (i = 0) => hedgehogs.length + crows.length + i
+        /** Bats: where each hangs (its feet, under the branch). */
+        BATS: ofType('bat').map(o => ({ x: o.x, y: o.y })),
+        /** Index of the i-th snake in getState().enemies (hedgehogs, then crows, then snakes, then bats). */
+        snakeIndex: (i = 0) => hedgehogs.length + crows.length + i,
+        /** Index of the i-th bat in getState().enemies (after the snakes). */
+        batIndex: (i = 0) => hedgehogs.length + crows.length + ofType('snake').length + i
     };
 }
 

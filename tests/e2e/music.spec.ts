@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { AUDIO, RESULTS, TITLE } from '../../src/config/constants';
-import { GOAL } from './landmarks';
+import { GOAL, landmarks } from './landmarks';
 
 const { MUSIC, CAVE_MUSIC } = AUDIO;
 
@@ -113,5 +113,24 @@ test('in the cave the pause ducks the cave loop, M mutes it, and the title bring
     await waitForScene(page, 'Title');
     await wait(page, AUDIO.MUSIC_FADE_MS + 300);
     expect(await music(page)).toMatchObject({ track: MUSIC.key, volume: MUSIC.volume, fading: false, instances: 1 });
+    expect(await isPlaying(page, CAVE_MUSIC.key)).toBe(false);
+});
+
+// ── The dusk forest has its own evening loop (M5 step 3) ──────────────────────────────────────
+
+test('going on from the cave to the dusk forest crossfades to the evening loop, and the cave loop stops', async ({ page }) => {
+    const { DUSK_MUSIC } = AUDIO;
+    const caveGoal = landmarks(2).GOAL;
+    await page.goto('/?play=2');
+    await page.waitForFunction(() => window.__game?.getState().player?.onGround === true);
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [caveGoal.x, caveGoal.y]);
+    await waitForScene(page, 'LevelComplete');
+    await wait(page, RESULTS.INPUT_DELAY_MS);
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__game!.getState().levelNumber === 3 && window.__game!.getState().scene === 'Game');
+    expect(await music(page)).toMatchObject({ track: DUSK_MUSIC.key, playing: true, instances: 1 });
+
+    await wait(page, AUDIO.MUSIC_FADE_MS + 300);
+    expect(await music(page)).toMatchObject({ track: DUSK_MUSIC.key, fading: false, volume: DUSK_MUSIC.volume, instances: 1 });
     expect(await isPlaying(page, CAVE_MUSIC.key)).toBe(false);
 });

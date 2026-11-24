@@ -348,7 +348,7 @@ Každý bod je samostatný krok s vlastným testom, screenshotom a playtestom.
 
 ## Milestone 5 — „Les za súmraku“
 
-> Stav: **SCHVÁLENÉ** (2026-11-20). Rozsah: [ADR 0011](decisions/0011-rozsah-m5.md).
+> Stav: **HOTOVÉ** (2026-11-24), schválené 2026-11-20. Rozsah: [ADR 0011](decisions/0011-rozsah-m5.md).
 
 Mačka vyjde z jaskyne do lesa za súmraku. Hra dostane tretí level s prefarbeným lesom, vlastnou oblohou s mesiacom
 a hviezdami, tmavším terénom a večernou hudbou. Novým prvkom je netopier, ktorý strmhlav zlietava z konárov. V leveli
@@ -366,35 +366,74 @@ screenshot a tvoj playtest; každá novinka prináša vlastnú grafiku, zvuky a 
   vzdialené vrcholky stromov; vrstvy `far`/`middle`/`near` lesa tónované do fialovomodrej, bližšie tmavšie. Obloha
   `#141433`. Level 3 je zatiaľ greybox (60 stĺpcov, jama 52–55, checkpoint, prepadávacia plošina, cieľ) s trávou
   z levelu 1 (vlastný terén v kroku 2). Jaskyňa už nie je posledný level. Vzhľad: čaká na playtest.
-- [ ] **2. Terén a plošiny za súmraku** — nový štýl v `tools/tiles.mjs`: tmavší trávnik a hlina v chladných tónoch
+- [x] **2. Terén a plošiny za súmraku** — nový štýl v `tools/tiles.mjs`: tmavší trávnik a hlina v chladných tónoch
   (ladí so súmrakom, stále čitateľný proti pozadiu), varianty ako pri tráve; vlastný vzhľad prepadávacích plošín.
   Test: varianty sedia s konštantami. Vzhľad: overené playtestom.
-- [ ] **3. Večerná hudba** — tretia slučka v `tools/music.mjs`: pokojná, večerná (napr. cvrčky a jemná melódia),
+  Stav: štýl `dusk` v `tools/tiles.mjs` = tráva z levelu 1 prefarbená: mesačne mätový trávnik nad fialovosivou hlinou,
+  bledomodré a ružové kvietky; prepadávacie plošiny `crumble-dusk` = tie isté dosky v chladnom sivofialovom dreve
+  (paleta dosiek sa teraz dá meniť jedným riadkom). Vzhľad: čaká na playtest.
+- [x] **3. Večerná hudba** — tretia slučka v `tools/music.mjs`: pokojná, večerná (napr. cvrčky a jemná melódia),
   prelínanie pri zmene levelu ako doteraz.
   Test: v leveli 3 hrá večerná slučka, vždy len jedna inštancia. Kvalita: overené playtestom.
+  Stav: `dusk.wav` — 8 taktov, 72 BPM (~27 s), F dur (F–Dm–B–C): teplé držané akordy, pomalá melódia ako
+  z hracej skrinky (s tichou ozvenou), trilky cvrčkov dvakrát za takt, v 3. a 7. takte sova („hú-hú“). Pri prechode
+  z jaskyne sa prelne. Kvalita: čaká na playtest.
 
 ### Fáza B — netopier a level
 
-- [ ] **4. Netopier** — visí hore nohami na konári (Tiled bod `bat`). Keď sa mačka priblíži, strmhlav k nej zlietne
+- [x] **4. Netopier** — visí hore nohami na konári (Tiled bod `bat`). Keď sa mačka priblíži, strmhlav k nej zlietne
   oblúkom a vráti sa na konár; dotyk = zásah. Mňauknutie ho vyruší: odletí hore a chvíľu je neškodný. Pazúriky ho
   odoženú z levelu. Vlastný sprite (visí, mávanie krídlami), zvuky (pišťanie, šuchot krídel). Logika v `src/core/`
   (unit testy).
   Test: visí, kým mačka nie je blízko; zlietne a vráti sa; zásah; mňauknutie ho vyruší; pazúriky ho odoženú.
-- [ ] **5. Level 3 „Les za súmraku“** — ~200 stĺpcov, začína pri východe z jaskyne (vidno ho za mačkou), 4–5
+  Stav: Tiled bod `bat` = kde sa drží nohami (pod konárikom, ktorý kreslí sám). Keď je mačka pod ním (do 40 px do strany,
+  do 130 px nižšie), prebudí sa (0,32 s, roztiahne krídla, zapiští — varovanie), strmhlav zlietne oblúkom na miesto, kde
+  mačka bola (dosah 64 px do strany, 120 px dole), za 1,1 s sa vráti hore a 1,2 s odpočíva. Bežiaca mačka prebehne,
+  stojaca dostane zásah. Mňauknutie ho pošle späť na konár, neškodného; pazúriky ho odoženú (aj vystrašeného). Vlastné
+  sprity (visí, letí 2 snímky, vystrašený, konárik) so svetlým okrajom, zvuk pišťania a šuchotu. Netopiere sú v poli
+  nepriateľov za hadíkmi. Logika v `src/core/bat.ts` (unit testy), scenáre v `tests/e2e/bat.spec.ts`. Pocit: čaká na playtest.
+- [x] **5. Level 3 „Les za súmraku“** — ~200 stĺpcov, začína pri východe z jaskyne (vidno ho za mačkou), 4–5
   checkpointov, pierka (~80–90 bodov), klbká, ježkovia, hadíci, pohyblivé a prepadávacie plošiny, liany a kmene,
   netopiere (najprv predstavené bezpečne), tajná miestnosť so zlatou rybičkou. Cieľ na konci lesa.
   Test: `route.spec` prejde level 3 po úsekoch (aj s netopiermi a rybičkou). Férovosť a obtiažnosť: overené playtestom.
+  Stav: 200 stĺpcov, 5 checkpointov (34, 68, 108, 144, 172), 34 pierok = 84 bodov, 5 netopierov, dve klbká (54 na rímse
+  za kmeňom, 146).
+  Úseky: A 0–33 výstup z jaskyne (skala s ústím jaskyne za mačkou, `exit-caveMouth.png`), prvý netopier pod rímsou
+  bezpečne pri štarte (nízka rímsa v riadku 12 — strieborné pierko na nej je na plný skok); B 34–67 ježko, kmeň na
+  vysokú rímsu s klbkom a netopierom pod ňou, jama 60–63; C 68–107 močiar: plošina do strany, dve prepadávacie dosky,
+  rímsa, hadík;
+  D 108–143 hlinený kopec (118–128) len po liane v stĺpci 116, v ňom tajná miestnosť (118–121, riadky 8–10) s
+  prasklinou smerom k liane, navrchu pierka a zlaté, pod kopcom vrana; E 144–171 netopierí háj: tri rímsy s netopiermi
+  nad jamami 154–156 a 163–165; F 172–199 ježko a breh, od stĺpca 190 jazero (`exit-lake.png`, ukotvené v pravom
+  dolnom rohu mapy: `exit.at = 'mapEnd'`) s lodičkou a lampášom — mačka skočí z brehu do lodičky (cieľ 191–193),
+  do vody = smrť. `LevelDef.entrance` kreslí obrázok na začiatku levelu. `route.spec` má „level 3“ (šesť testov, bot
+  vie mňauknúť aj počas skoku: `jumpRight(x, ms, meow)`), `levels.spec` overuje ústie jaskyne, jazero a skok do
+  lodičky. Unit testy (93) a všetky e2e testy (175) prechádzajú.
+  Playtest (2026-11-24): pierko nad prvým netopierom bolo nedosiahnuteľné (rímsa 6 dlaždíc nad zemou) → rímsa znížená
+  do riadku 12; netopier nad prepadávacími doskami bol pasca bez šance → odstránený aj s rímsou, na rímsu za kmeňom
+  pribudlo klbko. `bat.spec` skúša netopiera v háji (visí vysoko nad rovnou zemou).
+  Playtest 2: do tajnej miestnosti pri liane sa zmestí aj veľká mačka — obmedzenie „len malá mačka“ je teraz voliteľná
+  vlastnosť miestnosti v Tiled (`tight`, bool); má ju len miestnosť v leveli 2. Na konci netopierieho hája pribudla
+  liana (stĺpec 171): po nej sa vylezie nad rímsy a dá sa vrátiť po nich pre pierka (rímsy rozšírené, medzery 3 dlaždice
+  nad jamami). `route.spec` to prejde, `secret.spec` overuje veľkú mačku v miestnosti levelu 3.
 
 ### Fáza C — záver
 
-- [ ] **6. Finálna kontrola M5** — všetky testy, FPS ~60 vo všetkých troch leveloch (so zapojenou nabíjačkou),
+- [x] **6. Finálna kontrola M5** — všetky testy, FPS ~60 vo všetkých troch leveloch (so zapojenou nabíjačkou),
   reštart 10× v leveli 3, playtest celej hry od úvodnej obrazovky cez tri levely po záverečnú obrazovku, aktualizácia
   dokumentov.
+  Stav (2026-11-24): unit testy (93) a všetky e2e testy (178) prechádzajú, build je v poriadku. `performance.spec`
+  meria FPS aj v leveli 3 (> 55 vo všetkých troch, so zapojenou nabíjačkou). `levels.spec`: reštart levelu 3 z výsledkov
+  10× (netopier, smrť v jame, klbko, pierko, lodička) dáva vždy rovnaký počiatočný stav vrátane nepriateľov, miestnosti
+  a jazera. Level 3 otestovaný playtestom (2026-11-24) po dvoch kolách úprav. Playtest celej hry
+  (úvod → tri levely → záverečná obrazovka) v poriadku; M5 uzavretý 2026-11-24. Testy bežia so stlmeným zvukom
+  (`--mute-audio` v `playwright.config.ts`).
 
 ### Predvolené rozhodnutia M5 (zmeníme, ak pri playteste nebudú sedieť)
 
-- ❓ **Cieľ levelu 3 a koniec hry:** návrh — na konci lesa chalúpka so svietiacim oknom (mačka je doma) a záverečná
-  obrazovka „Mačka je doma!“ namiesto „Hra dokončená!“. Rozhodneme pri kroku 5.
+- **Cieľ levelu 3** (rozhodnuté 2026-11-23): les končí pri vode, kde čaká lodička — mačka do nej skočí a level sa
+  skončí (nadväzuje na plánovaný level na lodičke, backlog). Hra tým nekončí natrvalo; kým level na lodičke nie je,
+  po leveli 3 sa ukáže záverečná obrazovka. Chalúpka ako koniec hry je v backlogu.
 - Netopiere sú len v leveli 3; lesu ani jaskyni sa nič nemení.
 - Zlatá rybička je len v leveli 3 (skrytá inak ako v jaskyni, napr. vchodom hore cez lianu — z backlogu).
 - Životy a body sa prenášajú ako doteraz; uložený postup odomkne level 3 po dokončení jaskyne.

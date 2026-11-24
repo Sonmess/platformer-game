@@ -16,13 +16,13 @@ const hash = (...n) => {
 const rgb = hex => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 const mix = (a, b, t) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 
-function canvas ()
+function canvas (w = W, h = H)
 {
-    const data = Buffer.alloc(W * H * 4);
+    const data = Buffer.alloc(w * h * 4);
     const put = (x, y, hex, alpha = 1) => {
         x = Math.round(x); y = Math.round(y);
-        if (x < 0 || y < 0 || x >= W || y >= H) return;
-        const i = (y * W + x) * 4, [r, g, b] = rgb(hex);
+        if (x < 0 || y < 0 || x >= w || y >= h) return;
+        const i = (y * w + x) * 4, [r, g, b] = rgb(hex);
         const a0 = data[i + 3] / 255, a = alpha + a0 * (1 - alpha);
         if (a === 0) return;
         data[i] = Math.round((r * alpha + data[i] * a0 * (1 - alpha)) / a);
@@ -30,8 +30,8 @@ function canvas ()
         data[i + 2] = Math.round((b * alpha + data[i + 2] * a0 * (1 - alpha)) / a);
         data[i + 3] = Math.round(a * 255);
     };
-    const get = (x, y) => data[(y * W + x) * 4 + 3];
-    return { data, put, get };
+    const get = (x, y) => data[(y * w + x) * 4 + 3];
+    return { data, put, get, w, h };
 }
 
 const ROCK = { r1: '#2c2a3a', r2: '#363447', r3: '#23212e', dark: '#17151f', rim: '#6a6680' };
@@ -183,8 +183,83 @@ const VARIANTS = {
     }
 };
 
+// ── Level 3, the dusk forest ─────────────────────────────────────────────────────────────────
+// The cave seen from outside, where level 3 starts (80×144, anchored on the floor at the level's left edge): a mound of
+// cave rock with the dark mouth the cat came out of, lit violet by the dusk along its right side, grass on top.
+VARIANTS.caveMouth = () => {
+    const c = canvas(80, 144);
+    const outline = y => Math.round(70 - Math.max(0, (60 - y)) * 0.55 + Math.sin(y / 6) * 2);          // right edge of the mound
+    const top = x => Math.round(28 + Math.pow(x / 80, 2) * 24 + Math.sin(x / 5) * 2);                    // its top edge
+    const mouth = (x, y) => { const cx = 36, base = 143, r = 22; return y > base - 34 && (y >= base - 34 + r ? Math.abs(x - cx) <= r * 0.8 : Math.hypot(x - cx, y - (base - 34 + r)) <= r); };
+    for (let y = 0; y < 144; y++) for (let x = 0; x < 80; x++) {
+        if (y < top(x) || x > outline(y)) continue;
+        if (mouth(x, y)) {                                                     // the dark way in, a faint glow deep inside
+            const d = Math.hypot(x - 36, y - 130) / 30;
+            c.put(x, y, d < 0.35 ? '#1d1a2c' : '#0d0b14');
+            continue;
+        }
+        const n = hash(Math.floor(x / 3), Math.floor(y / 3), 71) * 0.6 + hash(x, y, 72) * 0.4;
+        let col = n < 0.33 ? ROCK.r3 : n < 0.72 ? ROCK.r1 : ROCK.r2;
+        if (x >= outline(y) - 1 || mouth(x + 1, y) || mouth(x - 1, y) || mouth(x, y + 1)) col = '#8a86b8';   // dusk light on the edges
+        else if (hash(x, y, 73) < 0.03) col = '#5d6f93';
+        c.put(x, y, col);
+    }
+    for (let x = 0; x < 80; x++) {                                             // grass and a few tufts along the top
+        const t = top(x);
+        if (x > outline(t)) continue;
+        for (let k = 0; k < 3; k++) c.put(x, t + k, k === 0 ? '#8fdcbc' : k === 1 ? '#55a48e' : '#317068');
+        if (hash(x, 74) < 0.25) c.put(x, t - 1, '#55a48e');
+    }
+    return c;
+};
+
+// The lake where level 3 ends (160×112, anchored at the level's bottom-right corner): still dark water from the shore
+// (col 190) to the edge, the moon's reflection, reeds by the shore, and a little rowboat moored to a post, a lantern
+// glowing in it — the cat jumps in and the level is done. The water surface is 80 px from the top (the floor's height).
+VARIANTS.lake = () => {
+    const c = canvas(160, 112);
+    const surface = 80;
+    for (let y = surface; y < 112; y++) for (let x = 0; x < 160; x++) {                // water, darker deeper down
+        const t = (y - surface) / 32;
+        c.put(x, y, t < 0.15 ? '#3e3a6e' : t < 0.45 ? '#2a2650' : '#1b1838');
+        if (y > surface + 2 && hash(x, y, 81) < 0.04) c.put(x, y, '#4c4884');          // ripples
+    }
+    for (let x = 0; x < 160; x++) if ((x + Math.floor(x / 7)) % 3 !== 0) c.put(x, surface, '#6a66a8');   // the surface's shine
+    for (let k = 0; k < 9; k++) {                                                       // the moon's broken reflection
+        const y = surface + 4 + k * 3, half = 6 - Math.floor(k / 2), cx = 118 + (k % 2 ? 2 : -1);
+        for (let x = cx - half; x <= cx + half; x++) if ((x + k) % 3 !== 0) c.put(x, y, '#e8e2bc', 0.75 - k * 0.06);
+    }
+    for (let i = 0; i < 6; i++) {                                                       // reeds at the shore
+        const x = 3 + i * 2, h = 10 + Math.floor(hash(i, 82) * 10);
+        for (let y = surface - h; y < surface + 2; y++) c.put(x + (y < surface - h + 3 ? 1 : 0), y, '#2f5a48');
+        c.put(x + 1, surface - h, '#6a4a3a'); c.put(x + 1, surface - h + 1, '#6a4a3a');  // a cattail
+    }
+    // The mooring post at the shore and its rope to the boat.
+    for (let y = surface - 14; y < surface + 6; y++) { c.put(1, y, '#4a3524'); c.put(2, y, '#6e5038'); }
+    for (let x = 3; x < 20; x++) c.put(x, surface - 11 + Math.round(Math.sin((x - 3) / 16 * Math.PI) * 3), '#cfc4a4');
+    // The boat: a wooden hull (cols 191-193 = x 16..64), riding on the water, a plank seat and a lantern on a pole.
+    const bx0 = 18, bx1 = 62, deck = surface - 6;
+    for (let y = deck; y <= surface + 3; y++) {
+        const inset = Math.round((y - deck) * 0.9);
+        for (let x = bx0 + inset; x <= bx1 - inset; x++) {
+            const edge = x === bx0 + inset || x === bx1 - inset || y === surface + 3;
+            c.put(x, y, edge ? '#3a2a22' : y === deck ? '#a8835a' : (y - deck) % 3 === 0 ? '#6e5038' : '#85623f');
+        }
+    }
+    for (let x = bx0 - 1; x <= bx1 + 1; x++) c.put(x, deck - 1, '#c79c66');              // the gunwale, lit
+    for (let x = 34; x <= 46; x++) c.put(x, deck + 1, '#c79c66');                         // the seat
+    for (let y = deck - 16; y < deck; y++) c.put(56, y, '#4a3524');                       // the lantern pole
+    for (let y = deck - 20; y <= deck - 15; y++) for (let x = 54; x <= 58; x++) c.put(x, y, y === deck - 20 || x === 54 || x === 58 ? '#3a2a22' : '#ffd27a');
+    for (let y = -10; y <= 10; y++) for (let x = -10; x <= 10; x++) {                    // its warm glow
+        const d = Math.hypot(x, y);
+        if (d > 3 && d < 10 && (x + y) % 2 === 0) c.put(56 + x, deck - 17 + y, '#ffd27a', 0.18 * (1 - d / 10));
+    }
+    for (let x = bx0 + 2; x < bx1 - 2; x++) if (x % 4 !== 0) c.put(x, surface + 5, '#6a66a8', 0.6);   // ripple under the boat
+    return c;
+};
+
 // ── PNG ──────────────────────────────────────────────────────────────────────────────────────
-function png ({ data })
+function png ({ data, w: W = 96, h: H = 208 })
 {
     const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
     const crc = buf => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
@@ -204,8 +279,9 @@ function png ({ data })
 const OUT = process.argv[2] ?? 'public/assets/own/exit';
 mkdirSync(OUT, { recursive: true });
 // The game uses 'arch' (chosen 2026-11-20); name others to render them too: node tools/exit.mjs <outDir> fullMoon crack
-const names = process.argv.slice(3).length ? process.argv.slice(3) : ['arch'];
+const names = process.argv.slice(3).length ? process.argv.slice(3) : ['arch', 'caveMouth', 'lake'];
 for (const [name, draw] of Object.entries(VARIANTS).filter(([n]) => names.includes(n))) {
-    writeFileSync(`${OUT}/exit-${name}.png`, png(draw()));
-    console.log(`${OUT}/exit-${name}.png  ${W}×${H}`);
+    const c = draw();
+    writeFileSync(`${OUT}/exit-${name}.png`, png(c));
+    console.log(`${OUT}/exit-${name}.png  ${c.w}×${c.h}`);
 }

@@ -54,7 +54,11 @@ const PALETTE = {
     V: '#ffcf3a',   // golden fish: gold
     W: '#fff3a6',   //   shine
     X: '#c98a12',   //   shade, fins
-    Z: '#120f18'    // crack in the rock (secret room hint)
+    Z: '#120f18',   // crack in the rock (secret room hint)
+    1: '#5a4673',   // bat: body and ears
+    2: '#33273f',   //   wing membrane
+    3: '#ffd85a',   //   eyes
+    4: '#d18cab'    //   inside the ears, the mouth
 };
 
 // ── Cat: 32×22 frames, facing right, feet on the bottom row ────────────────────────────────
@@ -373,6 +377,52 @@ const CRACK = [(() => {
     return g.map(r => r.join(''));
 })()];
 
+// ── Bat (enemy, level 3): 18×14 frames. Hanging upside down from its feet (top row) with its wings wrapped round it;
+// flying with the wings up, then down; scared with the wings flung wide and the mouth open. Light rim like the crow's.
+const BW = 18, BH = 14;
+function batGrid () { return Array.from({ length: BH }, () => Array(BW).fill('.')); }
+const bput = (g, x, y, c) => { if (x >= 0 && x < BW && y >= 0 && y < BH) g[y][x] = c; };
+function batHang ()
+{
+    const g = batGrid(), cx = 8.5;
+    for (let y = 1; y < 10; y++) for (let x = 0; x < BW; x++) {
+        if (((x - cx) / 4.6) ** 2 + ((y - 5.5) / 4.6) ** 2 <= 1) bput(g, x, y, Math.abs(x - cx) < 1.6 ? '1' : '2');
+    }
+    bput(g, 8, 0, '1'); bput(g, 9, 0, '1');                                    // the feet gripping the branch
+    for (let y = 9; y < 13; y++) for (let x = 0; x < BW; x++) if (Math.hypot(x - cx, y - 10.5) <= 2.3) bput(g, x, y, '1');   // head, upside down
+    bput(g, 7, 11, '3'); bput(g, 10, 11, '3');
+    bput(g, 6, 13, '1'); bput(g, 11, 13, '1');                                 // ears pointing down
+    return g.map(r => r.join(''));
+}
+function batFly (wingsUp, scared = false)
+{
+    const g = batGrid(), cx = 8.5;
+    for (const side of [-1, 1]) {
+        for (let k = 0; k <= 7; k++) {
+            const x = Math.round(cx + side * (2 + k));
+            const top = scared ? 4 : wingsUp ? Math.round(5 - k * 0.6) : Math.round(5 + k * 0.4);
+            const bottom = (scared ? 7 : wingsUp ? Math.round(8 - k * 0.5) : Math.round(8 + k * 0.5)) - (k % 3 === 2 ? 1 : 0);   // scalloped edge
+            for (let y = top; y <= bottom; y++) bput(g, x, y, '2');
+        }
+    }
+    for (let y = 4; y < 11; y++) for (let x = 0; x < BW; x++) if (((x - cx) / 2.4) ** 2 + ((y - 7) / 3.4) ** 2 <= 1) bput(g, x, y, '1');
+    for (let y = 1; y < 5; y++) for (let x = 0; x < BW; x++) if (Math.hypot(x - cx, y - 3) <= 2.1) bput(g, x, y, '1');       // head
+    bput(g, 7, 0, '1'); bput(g, 10, 0, '1'); bput(g, 7, 1, '4'); bput(g, 10, 1, '4');                                         // ears
+    if (scared) { bput(g, 7, 3, 'w'); bput(g, 10, 3, 'w'); bput(g, 8, 4, '4'); bput(g, 9, 4, '4'); }
+    else { bput(g, 7, 3, '3'); bput(g, 10, 3, '3'); }
+    return g.map(r => r.join(''));
+}
+const BAT = { hang: [batHang()], fly: [batFly(true), batFly(false)], scared: [batFly(true, true)] };
+// The branch stub a bat hangs from: 28×6, bark.
+const BAT_BRANCH = [[
+    '..........kk................',
+    '.kkllllllkklllllllllllkk....',
+    'kllllkllllllllkllllllllllkk.',
+    'klllllllllkllllllllklllllllk',
+    '.kkllllkllllllllllllllkkkk..',
+    '...kkkk..kkkkkkkkkkkk.......'
+]];
+
 // ── Campfire (checkpoint): 24×24, unlit = 1 frame, lit = 4 flame frames ──────────────────────
 // ── Hedgehog (enemy): 20×14 frames, facing right, feet on the bottom row ───────────────────────
 // Walking: spiny back, pointed face with a black nose; two leg poses. Scared: a spiky ball.
@@ -689,6 +739,10 @@ write('vine-tip', [VINE_TIP], true);
 write('vine-knot', [VINE_KNOT], true);
 write('stalactite', STALACTITE, true);
 write('golden-fish', [FISH, FISH_GLINT], true);
+write('bat-hang', BAT.hang, true, '', 'L');
+write('bat-fly', BAT.fly, true, '', 'L');
+write('bat-scared', BAT.scared, true, '', 'L');
+write('bat-branch', BAT_BRANCH, true);
 write('secret-crack', CRACK, false);
 write('feather-normal', FEATHER.normal, true);
 write('feather-silver', FEATHER.silver, true);

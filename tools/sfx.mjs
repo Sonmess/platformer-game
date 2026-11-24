@@ -113,6 +113,12 @@ const SFX = {
         note({ wave: 'triangle', from: C6, at: 0.35, dur: 0.5, vol: 0.35, decay: 1.3, vibrato: [7, 0.01] }),
         note({ wave: 'noise', from: 9000, to: 7000, at: 0.35, dur: 0.3, vol: 0.06, decay: 2 })
     ],
+    // A bat wakes and dives: two shrill squeaks, then the whoosh of its wings.
+    bat: [
+        note({ from: 2800, to: 3600, dur: 0.05, vol: 0.2, duty: 0.25, decay: 1 }),
+        note({ from: 3000, to: 3900, at: 0.08, dur: 0.05, vol: 0.18, duty: 0.25, decay: 1 }),
+        note({ wave: 'noise', from: 2200, to: 700, at: 0.14, dur: 0.32, vol: 0.18, attack: 0.05, decay: 1.4 })
+    ],
     // A crumbling platform starts to give: two dry cracks.
     crack: [
         note({ wave: 'noise', from: 6000, to: 3000, dur: 0.04, vol: 0.4, decay: 3 }),

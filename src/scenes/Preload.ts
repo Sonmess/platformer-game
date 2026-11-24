@@ -19,6 +19,7 @@ export class Preload extends Scene
             this.load.image(level.tiles.key, level.tiles.url);
             this.load.image(level.crumble.key, level.crumble.url);
             if (level.exit) this.load.image(level.exit.key, level.exit.url);
+            if (level.entrance) this.load.image(level.entrance.key, level.entrance.url);
         }
 
         const cat = { frameWidth: CAT.frameWidth, frameHeight: CAT.frameHeight };
@@ -38,6 +39,11 @@ export class Preload extends Scene
         const { GOLDEN_FISH } = ASSETS;
         this.load.spritesheet(GOLDEN_FISH.key, GOLDEN_FISH.url, { frameWidth: GOLDEN_FISH.frameWidth, frameHeight: GOLDEN_FISH.frameHeight });
         this.load.image(ASSETS.SECRET_CRACK.key, ASSETS.SECRET_CRACK.url);
+        const { BAT } = ASSETS;
+        this.load.image(BAT.hang.key, BAT.hang.url);
+        this.load.spritesheet(BAT.fly.key, BAT.fly.url, { frameWidth: BAT.frameWidth, frameHeight: BAT.frameHeight });
+        this.load.image(BAT.scared.key, BAT.scared.url);
+        this.load.image(BAT.branch.key, BAT.branch.url);
         for (const f of Object.values(FEATHERS)) {
             this.load.spritesheet(f.key, f.url, { frameWidth: FEATHER_SHEET.frameWidth, frameHeight: FEATHER_SHEET.frameHeight });
         }
@@ -87,6 +93,7 @@ export class Preload extends Scene
         this.anims.create({ key: ANIM.CAT_CLAW, frames: [{ key: CAT.claw.key }] });
         this.anims.create({ key: ANIM.CAT_CLIMB, frames: frames(CAT.climb.key, CAT.climb.frames), frameRate: CAT.climb.frameRate, repeat: -1 });
         this.anims.create({ key: ANIM.CAT_CLING, frames: [{ key: CAT.climb.key, frame: 0 }] });
+        this.anims.create({ key: ANIM.BAT_FLY, frames: frames(ASSETS.BAT.fly.key, ASSETS.BAT.fly.frames), frameRate: ASSETS.BAT.fly.frameRate, repeat: -1 });
         this.anims.create({ key: ANIM.GOLDEN_FISH, frames: frames(ASSETS.GOLDEN_FISH.key, ASSETS.GOLDEN_FISH.frames), frameRate: TREASURE.FRAME_RATE, repeat: -1 });
         const { HEDGEHOG } = ASSETS;
         this.anims.create({ key: ANIM.HEDGEHOG_WALK, frames: frames(HEDGEHOG.walk.key, HEDGEHOG.walk.frames), frameRate: HEDGEHOG.walk.frameRate, repeat: -1 });

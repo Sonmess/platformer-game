@@ -83,12 +83,14 @@ export const AUDIO = {
         CLIMB: { key: 'sfx-climb', url: 'assets/own/sfx/climb.wav', volume: 0.25, detune: 150 },
         RUMBLE: { key: 'sfx-rumble', url: 'assets/own/sfx/rumble.wav', volume: 0.45, detune: 80 },
         SHATTER: { key: 'sfx-shatter', url: 'assets/own/sfx/shatter.wav', volume: 0.45, detune: 100 },
+        BAT: { key: 'sfx-bat', url: 'assets/own/sfx/bat.wav', volume: 0.4, detune: 120 },
         SECRET: { key: 'sfx-secret', url: 'assets/own/sfx/secret.wav', volume: 0.45, detune: 0 },
         TREASURE: { key: 'sfx-treasure', url: 'assets/own/sfx/treasure.wav', volume: 0.5, detune: 0 }
     },
     // Background loops from tools/music.mjs, one per level (LevelDef.music); one instance each for the whole game.
     MUSIC: { key: 'music-forest', url: 'assets/own/music/forest.wav', volume: 0.4, pausedVolume: 0.12 } as MusicTrack,
     CAVE_MUSIC: { key: 'music-cave', url: 'assets/own/music/cave.wav', volume: 0.45, pausedVolume: 0.12 } as MusicTrack,
+    DUSK_MUSIC: { key: 'music-dusk', url: 'assets/own/music/dusk.wav', volume: 0.42, pausedVolume: 0.12 } as MusicTrack,
     MUSIC_FADE_MS: 1200,        // a different level's track crossfades over this long
     // Coins picked up in quick succession climb in pitch (a combo).
     COIN_COMBO: { windowMs: 700, stepCents: 100, maxSteps: 5 },
@@ -232,7 +234,8 @@ export const FLEE = {
     MS: 650,
     hedgehog: { dx: 72, dy: 0, hopPx: 8, animScale: 3 },
     crow: { dx: 80, dy: -90, hopPx: 0, animScale: 2.5 },
-    snake: { dx: 64, dy: 0, hopPx: 4, animScale: 3 }
+    snake: { dx: 64, dy: 0, hopPx: 4, animScale: 3 },
+    bat: { dx: 70, dy: -110, hopPx: 0, animScale: 2.5 }
 } as const;
 
 // Climbing (src/core/climb.ts): Tiled rectangles of type "vine" (hanging) or "trunk" (a tree) are climbable areas.
@@ -298,6 +301,23 @@ export const STALACTITE = {
     SHAKE_PX: 1,
     SHAKE_STEP_MS: 50,
     FALL_OUT_PX: 64             // over a pit it falls this far below the level, then counts as shattered
+} as const;
+
+// Bats (src/core/bat.ts, level 3): hang from a branch (Tiled point "bat" = where the feet grip). When the cat comes below
+// one, it wakes (the warning), swoops in an arc to where the cat was and climbs back, then rests. A cat that keeps running
+// is gone by the time it arrives; one that stands still is hit. A meow sends it back to its branch, harmless for a while.
+export const BAT = {
+    WIDTH: 12,                  // hitbox; the sprite is 18×14
+    HEIGHT: 8,
+    SPRITE_HEIGHT: 14,
+    TRIGGER_X: 40,
+    TRIGGER_BELOW: 130,
+    WAKE_MS: 320,
+    SWOOP_MS: 1100,
+    REST_MS: 1200,
+    MAX_REACH_X: 64,
+    MAX_DROP: 120,
+    RETURN_SPEED: 80            // px/s back to the branch when scared
 } as const;
 
 // Moving platforms: a Tiled rectangle of type "platform" is the path (wider than tall = left-right, otherwise
@@ -393,6 +413,7 @@ export const LEVEL = {
     VINE_TYPE: 'vine',              // rectangle = the climbable vine (drawn centred, hanging from its top)
     TRUNK_TYPE: 'trunk',
     STALACTITE_TYPE: 'stalactite',
+    BAT_TYPE: 'bat',                // point = where a bat hangs (its feet, under a branch stub)
     SECRET_TYPE: 'secret',          // rectangle = rock that is not really there (a secret room behind a wall)
     TREASURE_TYPE: 'treasure',      // point = a golden fish  // point = where it hangs (top centre), falls straight down            // rectangle = the climbable trunk, bottom edge on the ground; a crown on top
     GOAL_TYPE: 'goal'
@@ -412,8 +433,13 @@ export interface LevelDef
     parallax: readonly ParallaxLayerDef[];
     skyColor: string;
     music: MusicTrack;
-    /** Art drawn around the goal (its bottom-right corner on the goal's), e.g. the cave's moonlit way out. */
-    exit?: { key: string; url: string };
+    /**
+     * Art drawn around the goal, e.g. the cave's moonlit way out: its bottom-right corner on the goal's (`at: 'goal'`,
+     * the default) or on the level's bottom-right corner (`'mapEnd'`, e.g. the lake with the boat). Fireflies drift by it.
+     */
+    exit?: { key: string; url: string; at?: 'goal' | 'mapEnd' };
+    /** Art at the level's start, standing on the floor at its left edge (e.g. the cave the cat just came out of). */
+    entrance?: { key: string; url: string };
 }
 
 export const LEVELS: readonly LevelDef[] = [
@@ -438,14 +464,17 @@ export const LEVELS: readonly LevelDef[] = [
         exit: { key: 'exit-arch', url: 'assets/own/exit/exit-arch.png' }
     },
     {
-        // Greybox until M5 step 5 (the level) and step 2 (its own terrain); background: the forest at dusk.
+        // The forest at dusk: moonlit grass, cool planks, the dusk sky and tinted forest; it starts at the cave's mouth
+        // and ends at a lake, where a boat waits.
         name: 'Les za súmraku',
         map: 'level3',
-        tiles: { key: 'tiles-grass', url: 'assets/own/tiles/grass.png' },
-        crumble: { key: 'crumble-strip-planks', url: 'assets/own/tiles/crumble-planks.png' },
+        tiles: { key: 'tiles-dusk', url: 'assets/own/tiles/dusk.png' },
+        crumble: { key: 'crumble-strip-dusk', url: 'assets/own/tiles/crumble-dusk.png' },
         parallax: DUSK_PARALLAX.LAYERS,
         skyColor: DUSK_PARALLAX.SKY_COLOR,
-        music: AUDIO.MUSIC
+        music: AUDIO.DUSK_MUSIC,
+        entrance: { key: 'entrance-cave', url: 'assets/own/exit/exit-caveMouth.png' },
+        exit: { key: 'exit-lake', url: 'assets/own/exit/exit-lake.png', at: 'mapEnd' }
     }
 ];
 
@@ -619,6 +648,7 @@ export const SECRET = {
     REVEAL_ALPHA: 0.22,         // the fake rock while the cat is inside
     FADE_PER_S: 4,              // alpha change per second (in and out)
     ENTRANCE_PROPERTY: 'entrance',
+    TIGHT_PROPERTY: 'tight',   // bool: the crack is too narrow for a big cat (only a small one squeezes in)
     // A second hint: now and then a little dust drifts out of the crack, as if a draught came from behind the wall.
     DUST: { EVERY_MS: 700, COUNT: 3, SPEED_OUT: { min: 6, max: 20 }, SPEED_Y: { min: -8, max: 2 }, LIFESPAN: { min: 1000, max: 1700 },
         TINT: [0xb3aec8, 0x8c88a3, 0x6a6680], CRACK_HEIGHT: 40 }
@@ -651,6 +681,13 @@ export const ASSETS = {
     },
     YARN: { key: 'yarn', url: 'assets/own/yarn.png' },
     STALACTITE: { key: 'stalactite', url: 'assets/own/stalactite.png' },
+    BAT: {
+        frameWidth: 18, frameHeight: 14,
+        hang: { key: 'bat-hang', url: 'assets/own/bat-hang.png' },
+        fly: { key: 'bat-fly', url: 'assets/own/bat-fly.png', frames: 2, frameRate: 10 },
+        scared: { key: 'bat-scared', url: 'assets/own/bat-scared.png' },
+        branch: { key: 'bat-branch', url: 'assets/own/bat-branch.png' }
+    },
     GOLDEN_FISH: { key: 'golden-fish', url: 'assets/own/golden-fish.png', frameWidth: 16, frameHeight: 12, frames: 2 },
     SECRET_CRACK: { key: 'secret-crack', url: 'assets/own/secret-crack.png' },        // 16×40, two and a half tiles tall
     CAMPFIRE: {
@@ -702,6 +739,7 @@ export const ANIM = {
     CAT_CLIMB: 'cat-climb',
     CAT_CLING: 'cat-cling',
     GOLDEN_FISH: 'golden-fish-glint',
+    BAT_FLY: 'bat-fly',
     HEDGEHOG_WALK: 'hedgehog-walk',
     CROW_FLY: 'crow-fly',
     SNAKE_SLITHER: 'snake-slither',

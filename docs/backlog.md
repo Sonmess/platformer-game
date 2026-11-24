@@ -42,6 +42,11 @@ Nápady a úlohy mimo aktuálneho míľnika. Formát: `- [ ] názov — krátky 
   a prepadávacie plošiny „popraskaná tráva“ / „červenkastá skala“ (2026-11-05, upravené 2026-11-20)
 - [ ] Prvky „vietor“, „gejzír“ a „svetlušky a tma“ pre ďalšie levely (2026-11-20)
 - [ ] Zlaté rybičky aj v leveli 1 a 2 (2026-11-20)
+- [ ] **Level na lodičke** (nadväzuje na koniec levelu 3, kde mačka skočí do lodičky): iný typ hry — mačka sa plaví
+  na lodičke a uhýba prekážkam doľava a doprava, kamera je za ňou (pohľad zozadu, akoby do hĺbky). Treba vlastný
+  rámec scény (nie plošinovka), vlastnú grafiku vody a prekážok; vhodné ako samostatný míľnik (2026-11-23)
+- [ ] **Koniec hry: chalúpka** — na konci poslednej úrovne chalúpka so svietiacim oknom (mačka je doma) a záverečná
+  obrazovka „Mačka je doma!“ namiesto „Hra dokončená!“ (2026-11-23)
 
 ## Neskôr
 

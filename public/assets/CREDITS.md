@@ -43,9 +43,9 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
 ### Vlastná grafika projektu — `own/`
 
 - **Mačka** (`cat-idle`, `cat-run`, `cat-jump`, `cat-meow`, `cat-hurt`, `cat-claw`, hlávka do HUD `cat-head`), **pierka** (`feather-normal`, `feather-silver`, `feather-gold`), **klbko vlny** (`yarn`), **ohnisko** (`campfire-unlit`, `campfire-lit`),
-  **stalaktit** (`stalactite`), **zlatá rybička** (`golden-fish`), **prasklina** (`secret-crack`), **ježko** (`hedgehog-walk`, `hedgehog-scared`), **vrana** (`crow-fly`, `crow-scared`) a **hadík** (`snake-slither`, `snake-warn`, `snake-spray`) nakreslené pre tento projekt
+  **stalaktit** (`stalactite`), **zlatá rybička** (`golden-fish`), **netopier** (`bat-hang`, `bat-fly`, `bat-scared`, `bat-branch`), **prasklina** (`secret-crack`), **ježko** (`hedgehog-walk`, `hedgehog-scared`), **vrana** (`crow-fly`, `crow-scared`) a **hadík** (`snake-slither`, `snake-warn`, `snake-spray`) nakreslené pre tento projekt
   ako textový pixel art v `tools/sprites.mjs`; PNG generuje `node tools/sprites.mjs`. Bez cudzej licencie, patrí projektu.
-- **Dlaždice terénu** (`tiles/grass.png` v leveli 1, `tiles/cave.png` v jaskyni; `tiles/bricks.png` a `tiles/rock.png` pripravené pre ďalšie levely; prepadávacie plošiny `tiles/crumble-*.png`) —
+- **Dlaždice terénu** (`tiles/grass.png` v leveli 1, `tiles/cave.png` v jaskyni, `tiles/dusk.png` v lese za súmraku; `tiles/bricks.png` a `tiles/rock.png` pripravené pre ďalšie levely; prepadávacie plošiny `tiles/crumble-*.png`) —
   kreslené procedurálne pre tento projekt skriptom `tools/tiles.mjs`; PNG generuje `node tools/tiles.mjs`. Bez cudzej
   licencie, patrí projektu.
 - **Liany a stromy** (`trunk-bark`, `trunk-roots`, `trunk-crown`, `vine-stem`, `vine-tip`, `vine-knot`) a **šplhajúca mačka**
@@ -54,11 +54,12 @@ Každý externý asset (grafika, zvuk, fonty) sa eviduje tu: zdroj, autor, licen
   ju dopĺňajú vrstvy lesa Tall Forest, len tónované. Bez cudzej licencie, patrí projektu.
 - **Pozadie jaskyne** (`parallax/cave-back.png`, `cave-far`, `cave-mid`, `cave-near`) — vrstvy kreslené procedurálne
   pre tento projekt skriptom `tools/parallax.mjs`; PNG generuje `node tools/parallax.mjs`. Bez cudzej licencie, patrí projektu.
-- **Východ z jaskyne** (`exit/exit-arch.png`) — kreslený procedurálne pre tento projekt skriptom `tools/exit.mjs`
-  (ďalšie dva návrhy sa dajú vyrobiť tým istým skriptom); bez cudzej licencie, patrí projektu.
-- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, syčanie a striekanie jedu hadíka, chytenie a šplhanie, uvoľnenie a rozbitie stalaktitu, objavenie tajnej miestnosti, zlatá rybička, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
+- **Východ z jaskyne** (`exit/exit-arch.png`), **ústie jaskyne** na začiatku levelu 3 (`exit/exit-caveMouth.png`) a
+  **jazero s lodičkou** na jeho konci (`exit/exit-lake.png`) — kreslené procedurálne pre tento projekt skriptom
+  `tools/exit.mjs` (ďalšie dva návrhy oblúka sa dajú vyrobiť tým istým skriptom); bez cudzej licencie, patria projektu.
+- **Zvukové efekty** (`sfx/`: skok, dopad, pierko, život späť, klbko (nafúknutie / zmenšenie), ohnisko, smrť, cieľ, mňau, švihnutie pazúrikmi, útek nepriateľa, syčanie a striekanie jedu hadíka, chytenie a šplhanie, uvoľnenie a rozbitie stalaktitu, objavenie tajnej miestnosti, zlatá rybička, pišťanie netopiera, vystrašenie, praskanie a zrútenie plošiny, koniec hry) — 8-bitové zvuky syntetizované pre tento
   projekt skriptom `tools/sfx.mjs`; WAV generuje `node tools/sfx.mjs`. Bez cudzej licencie, patrí projektu.
-- **Hudba** (`music/forest.wav` a `music/cave.wav`) — pokojné 8-bitové slučky (~30 s) skomponované pre tento projekt v
+- **Hudba** (`music/forest.wav`, `music/cave.wav` a `music/dusk.wav`) — pokojné 8-bitové slučky (~30 s) skomponované pre tento projekt v
   `tools/music.mjs`; WAV generuje `node tools/music.mjs`. Bez cudzej licencie, patrí projektu.
 
 Ďakujeme autorom — pri ansimuzovej grafike uvedenie mena nie je povinné, ale je vítané.

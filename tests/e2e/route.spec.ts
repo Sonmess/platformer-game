@@ -19,7 +19,7 @@ declare global {
         __bot: {
             until (pred: string, timeoutMs?: number): Promise<void>;
             runRight (toX: number, opts?: { jumps?: number[]; jumpMs?: number; meow?: boolean; careful?: boolean; timeoutMs?: number }): Promise<void>;
-            jumpRight (releaseAtX: number, jumpMs?: number): Promise<void>;
+            jumpRight (releaseAtX: number, jumpMs?: number, meow?: boolean): Promise<void>;
             clawSnake (index: number): Promise<void>;
         };
     }
@@ -79,14 +79,20 @@ function installBot ()
                 g().release(['right']);
             }
         },
-        /** Jumps to the right, steering until the cat's x passes `releaseAtX`, then lands. */
-        async jumpRight (releaseAtX, jumpMs = 300)
+        /** Jumps to the right, steering until the cat's x passes `releaseAtX`, then lands; with `meow` it meows at enemies close by. */
+        async jumpRight (releaseAtX, jumpMs = 300, meow = false)
         {
+            const meowAtThreats = () => {
+                const s = g().getState();
+                if (meow && s.meow.cooldownMs === 0 && s.enemies.some(e => e.harmful && Math.abs(e.x - s.player!.x) < 3 * 16 && Math.abs(e.y - s.player!.y) < 20)) g().press(['meow'], 50);
+            };
             const start = g().getState().deaths;
             g().hold(['right']);
             g().press(['jump'], jumpMs);
             try {
                 for (let t = 0; g().getState().player!.x < releaseAtX; t += 16) {
+                    meowAtThreats();
+                    if (died(start)) throw new Error(`bot: died during jumpRight (at ${(g().getState().player!.x / 16).toFixed(1)})`);
                     if (t > 3000) throw new Error(`bot: jumpRight never got there (at ${(g().getState().player!.x / 16).toFixed(1)},${(g().getState().player!.y / 16).toFixed(1)})`);
                     await g().wait(16);
                 }
@@ -95,6 +101,7 @@ function installBot ()
             }
             await g().wait(50);
             for (let t = 0; !g().getState().player!.onGround; t += 16) {
+                meowAtThreats();
                 if (died(start) || t > 3000) throw new Error(`bot: jumpRight did not land (at ${(g().getState().player!.x / 16).toFixed(1)},${(g().getState().player!.y / 16).toFixed(1)})`);
                 await g().wait(16);
             }
@@ -130,8 +137,8 @@ async function startAt (page: Page, col: number, row: number)
 const until = (page: Page, pred: string, timeoutMs?: number) => page.evaluate(([p, t]) => window.__bot.until(p, t), [pred, timeoutMs] as const);
 const runRight = (page: Page, toX: number, opts?: Parameters<Window['__bot']['runRight']>[1]) =>
     page.evaluate(([x, o]) => window.__bot.runRight(x, o), [toX, opts] as const);
-const jumpRight = (page: Page, releaseAtX: number, jumpMs?: number) =>
-    page.evaluate(([x, ms]) => window.__bot.jumpRight(x, ms), [releaseAtX, jumpMs] as const);
+const jumpRight = (page: Page, releaseAtX: number, jumpMs?: number, meow?: boolean) =>
+    page.evaluate(([x, ms, m]) => window.__bot.jumpRight(x, ms, m), [releaseAtX, jumpMs, meow] as const);
 const clawSnake = (page: Page, index: number) => page.evaluate(i => window.__bot.clawSnake(i), index);
 const hold = (page: Page, keys: string[]) => page.evaluate(k => window.__game!.hold(k as never), keys);
 const release = (page: Page, keys: string[]) => page.evaluate(k => window.__game!.release(k as never), keys);
@@ -375,5 +382,122 @@ test.describe('level 2 (the cave)', () => {
         const s = await state(page);
         expect(s.deaths).toBe(0);
         expect(s.finalScreen).toBe(false);                                     // the dusk forest comes next
+    });
+});
+
+test.describe('level 3 (the dusk forest)', () => {
+    const L3 = landmarks(3);
+    const platform = L3.PLATFORMS[0];
+    const vine = L3.VINES.find(v => v.col === 116)!;
+
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/?play=3');
+        await page.waitForFunction(() => window.__game?.getState().player?.onGround === true && window.__game.getState().levelNumber === 3);
+    });
+
+    test('out of the cave: under the first bat to the first campfire', async ({ page }) => {
+        await runRight(page, at(35), { meow: true });
+        const s = await state(page);
+        expect(s.deaths).toBe(0);
+        expect(s.checkpoint.x).toBe(at(34));
+    });
+
+    test('the hedgehog, the trunk and its bat, over the pit', async ({ page }) => {
+        await startAt(page, 34, 15);
+        await runRight(page, at(69), { meow: true, careful: true, jumps: [59 * TILE], jumpMs: 400 });
+        const s = await state(page);
+        expect(s.deaths).toBe(0);
+        expect(s.checkpoint.x).toBe(at(68));
+    });
+
+    test('the marsh: the moving platform, two crumbling planks, the ledge, claw the snake', async ({ page }) => {
+        await startAt(page, 68, 15);
+        await runRight(page, 71.4 * TILE);                                       // well short of the edge: the cat slides a little
+        await until(page, `s.platforms[0].x <= ${platform.x + 4}`);
+        await jumpRight(page, platform.x + 1.5 * TILE);
+        expect((await state(page)).player!.y).toBeCloseTo(feet(13), 0);
+        await until(page, `s.platforms[0].x >= ${platform.x + platform.width - 3 * TILE - 4}`);
+        await jumpRight(page, 84.5 * TILE, 250);                                  // onto the first plank
+        await jumpRight(page, 87.5 * TILE, 250, true);                            // the second, a tile higher
+        await jumpRight(page, 91.5 * TILE, 250, true);                            // the ledge
+        expect((await state(page)).player!.y).toBeCloseTo(feet(12), 0);
+        await clawSnake(page, L3.snakeIndex(0));
+        await runRight(page, at(109));
+        const s = await state(page);
+        expect(s.deaths).toBe(0);
+        expect(s.checkpoint.x).toBe(at(108));
+    });
+
+    test('the mound: up the vine, through the crack for the golden fish, onto the top, past the crow', async ({ page }) => {
+        await startAt(page, 108, 15);
+        await runRight(page, centre(vine) - 4);
+        await hold(page, ['up']);
+        await until(page, 's.player.climbing');
+        await until(page, `s.player.y < ${feet(11)}`);                         // level with the secret room (rows 8-10)
+        await release(page, ['up']);
+        await hold(page, ['right']);                                             // a little jump off the vine, into the crack
+        await page.evaluate(() => window.__game!.press(['jump'], 120));
+        await until(page, 's.treasures.found === 1');
+        await release(page, ['right']);
+        await hold(page, ['left']);                                              // back out, down to the floor by the vine
+        await until(page, `s.player.onGround && s.player.y > ${feet(14)}`);
+        await release(page, ['left']);
+        await runRight(page, centre(vine) - 4);
+        await hold(page, ['up']);
+        await until(page, 's.player.climbing');
+        await until(page, `s.player.y < ${feet(6) - 6}`);                      // above the mound
+        await release(page, ['up']);
+        await hold(page, ['right']);
+        await page.evaluate(() => window.__game!.press(['jump'], 250));
+        await until(page, `s.player.onGround && s.player.y < ${feet(7)}`);    // on top of the mound
+        await release(page, ['right']);
+        await runRight(page, at(145), { meow: true });
+        const s = await state(page);
+        expect(s.deaths).toBe(0);
+        expect(s.treasures.found).toBe(1);
+        expect(s.checkpoint.x).toBe(at(144));
+    });
+
+    test('the bat grove: the yarn ball, over two pits under three bats, up the vine and back along the canopy for its feathers', async ({ page }) => {
+        const groveVine = L3.VINES.find(v => v.col === 171)!;
+        await startAt(page, 144, 15);
+        await runRight(page, centre(groveVine) - 4, { jumps: [153 * TILE, 162 * TILE], jumpMs: 400 });
+        await hold(page, ['up']);
+        await until(page, 's.player.climbing');
+        await until(page, `s.player.y < ${feet(9) - 8}`);                       // above the canopy
+        await release(page, ['up']);
+        const before = (await state(page)).points;
+        // Back left along the three ledges, hopping the gaps over the pits.
+        await page.evaluate(async ([edges, leftEnd]) => {
+            const g = window.__game!;
+            g.hold(['left']);
+            g.press(['jump'], 60);                                               // a hop off the vine onto the last ledge (not over its feather)
+            const pending = [...edges];
+            try {
+                for (let t = 0; g.getState().player!.x > leftEnd || !g.getState().player!.onGround; t += 16) {
+                    if (t > 8000 || g.getState().deaths > 0) throw new Error('bot: lost on the canopy at ' + (g.getState().player!.x / 16).toFixed(1));
+                    if (pending.length && g.getState().player!.x <= pending[0] && g.getState().player!.onGround) { pending.shift(); g.press(['jump'], 300); }
+                    await g.wait(16);
+                }
+            } finally { g.release(['left']); }
+        }, [[166.4 * TILE, 157.4 * TILE], 150 * TILE] as const);
+        expect((await state(page)).points - before).toBe(20);                    // silver, gold, silver
+        expect((await state(page)).player!.y).toBeCloseTo(feet(9), 0);
+        await runRight(page, at(173), { jumps: [153 * TILE, 162 * TILE], jumpMs: 400 });   // the same hops back right, down past the vine
+        const s = await state(page);
+        expect(s.deaths).toBe(0);
+        expect(s.player!.big).toBe(true);
+        expect(s.checkpoint.x).toBe(at(172));
+    });
+
+    test('the lake: past the hedgehog, a jump from the shore into the boat', async ({ page }) => {
+        await startAt(page, 172, 15);
+        await runRight(page, 188.5 * TILE, { meow: true, careful: true });
+        await page.evaluate(() => { window.__game!.hold(['right']); window.__game!.press(['jump'], 300); });
+        await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
+        await page.evaluate(() => window.__game!.release(['right']));
+        const s = await state(page);
+        expect(s.deaths).toBe(0);
+        expect(s.finalScreen).toBe(true);                                      // the last level so far
     });
 });

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { DEPTH, EXIT, JUICE } from '../config/constants';
 
 /**
- * The way out of the cave: the end wall with an arched opening onto the moonlit forest at dusk (art from
+ * Art around a level's goal (`LevelDef.exit`) with fireflies drifting in front of it. The cave's way out: the end wall with an arched opening onto the moonlit forest at dusk (art from
  * tools/exit.mjs), moonlight falling in, and fireflies drifting in front of it. Pure decoration around the level's goal
  * zone: its bottom-right corner sits on the goal's bottom-right corner (the level's right edge).
  */

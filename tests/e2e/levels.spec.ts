@@ -62,6 +62,43 @@ test('restarting level 2 from its results 10× yields an identical initial state
     }
 });
 
+test('restarting level 3 from its results 10× yields an identical initial state, still in level 3', async ({ page }) => {
+    test.setTimeout(240_000);
+    const L = landmarks(3);
+    const snapshot = async () => {
+        const s = await state(page);
+        return { levelNumber: s.levelNumber, player: s.player, deaths: s.deaths, lives: s.lives, coins: s.coins, coinsTotal: s.coinsTotal,
+            points: s.points, totalPoints: s.totalPoints, coinsLeft: s.coinsLeft, yarnsLeft: s.yarnsLeft, hud: s.hud,
+            checkpoint: s.checkpoint, campfiresLit: s.campfiresLit, crumbles: s.crumbles, platforms: s.platforms.length,
+            enemies: s.enemies.map(e => ({ kind: e.kind, phase: e.phase, scared: e.scared, harmful: e.harmful, gone: e.gone })),
+            secrets: s.secrets.map(r => r.inside), exit: s.exit && { right: s.exit.right, bottom: s.exit.bottom },
+            music: { track: s.music.track, instances: s.music.instances }, listeners: s.listeners, parallax: s.parallax };
+    };
+    await page.goto('/?play=3');
+    await playing(page);
+    await page.evaluate(() => window.__game!.wait(300));
+    const first = await snapshot();
+    const bat = L.BATS[0], yarn = { x: 146.5 * TILE, y: 14.5 * TILE }, feather = L.FEATHERS[0];
+    for (let i = 0; i < 10; i++) {
+        // Dirty the run: wake the first bat and die in the first pit, take the yarn ball and a feather, then finish.
+        await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [bat.x - 2 * TILE, 15 * TILE - PLAYER.HEIGHT / 2]);
+        await page.evaluate(() => window.__game!.wait(200));
+        await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [61.5 * TILE, 14 * TILE]);
+        await page.waitForFunction(() => window.__game!.getState().deaths >= 1 && !window.__game!.getState().player!.dying);
+        await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [yarn.x, yarn.y]);
+        await page.waitForFunction(() => window.__game!.getState().player!.big);
+        await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [feather.x, feather.y]);
+        await page.waitForFunction(() => window.__game!.getState().coins === 1);
+        await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [L.GOAL.x, L.GOAL.y]);
+        await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
+        await page.evaluate(() => window.__game!.wait(700));                 // the results ignore keys for a moment
+        await page.evaluate(() => window.__game!.press(['replay'], 100));     // R: the same level again
+        await playing(page);
+        await page.evaluate(() => window.__game!.wait(300));
+        expect(await snapshot(), `after restart ${i + 1}`).toEqual(first);
+    }
+});
+
 test('going from level 2 to the title and into level 1 leaks no listeners', async ({ page }) => {
     await page.goto('/?play');
     await playing(page);
@@ -90,10 +127,12 @@ const toGoal = async (page: Page, level: number) => {
     await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
     await page.evaluate(d => window.__game!.wait(d), RESULTS.INPUT_DELAY_MS);
 };
-/** Into the first pit of level 1 (cols 50-53) or level 2 (cols 52-55, below its feathers), and back after the death animation. */
+/** The first pit of each level: level 1 cols 50-53, level 2 cols 52-55 (below its feathers), level 3 cols 60-63. */
+const PIT: Record<number, [number, number]> = { 1: [51 * TILE, 12 * TILE], 2: [53.5 * TILE, 14 * TILE], 3: [61.5 * TILE, 14 * TILE] };
+/** Into the level's first pit, and back after the death animation. */
 const dieInPit = async (page: Page, level: number) => {
     const deaths = (await state(page)).deaths;
-    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), level === 1 ? [51 * TILE, 12 * TILE] : [53.5 * TILE, 14 * TILE]);
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), PIT[level]);
     await page.waitForFunction(d => window.__game!.getState().deaths > d && !window.__game!.getState().player?.dying, deaths);
 };
 
@@ -197,7 +236,7 @@ test('the dusk forest has its own sky and tinted forest layers, none of the lime
     const dusk = LEVELS[2];
     await page.goto('/?play=3');
     await playing(page);
-    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [44 * TILE, 15 * TILE - PLAYER.HEIGHT / 2]);
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [28 * TILE, 15 * TILE - PLAYER.HEIGHT / 2]);
     await page.evaluate(() => window.__game!.wait(1500));
     const s = await state(page);
     expect(s.parallax.map(l => l.key)).toEqual(dusk.parallax.map(l => l.key));
@@ -209,4 +248,28 @@ test('the dusk forest has its own sky and tinted forest layers, none of the lime
     });
     expect(look.sky).toBe('rgba(20,20,51,1)');                                     // DUSK_PARALLAX.SKY_COLOR #141433
     expect(look.tints.slice(1)).toEqual(dusk.parallax.slice(1).map(l => l.tint));  // the forest layers are tinted
+});
+
+test('the dusk forest starts at the cave mouth and ends at the lake, where jumping into the boat finishes the level', async ({ page }) => {
+    const L = landmarks(3);
+    await page.goto('/?play=3');
+    await playing(page);
+    const entrance = await page.evaluate(() => {
+        const g = window.__game!.game.scene.getScene('Game') as unknown as { children: { list: { texture?: { key: string }; x: number; y: number }[] } };
+        const img = g.children.list.find(o => o.texture?.key === 'entrance-cave');
+        return img ? { x: img.x, y: img.y } : null;
+    });
+    expect(entrance).toEqual({ x: 0, y: 15 * TILE });                       // on the floor at the left edge
+    const s = await state(page);
+    expect(s.exit).not.toBeNull();
+    expect(s.exit!.right).toBe(L.LEVEL.width);                                // the lake fills the level's bottom-right corner
+    expect(s.exit!.bottom).toBe(L.LEVEL.height);
+    expect(L.GOAL.x).toBeGreaterThan(189 * TILE);                             // the boat floats past the shore
+
+    await page.evaluate(([x, y]) => window.__game!.teleport(x, y), [188 * TILE, 15 * TILE - PLAYER.HEIGHT / 2]);
+    await page.evaluate(() => window.__game!.wait(300));
+    await page.evaluate(() => { window.__game!.hold(['right']); window.__game!.press(['jump'], 300); });
+    await page.waitForFunction(() => window.__game!.getState().scene === 'LevelComplete');
+    await page.evaluate(() => window.__game!.release(['right']));
+    expect((await state(page)).deaths).toBe(0);
 });
